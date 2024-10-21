@@ -83,9 +83,6 @@ class Composition(
     private val movableRange = intArrayOf(0, 0)
 
     private val keyTextSizeSpan by lazy { AbsoluteSizeSpan(sp(keyTextSize)) }
-    private val labelTextSizeSpan by lazy { AbsoluteSizeSpan(sp(labelTextSize)) }
-    private val candidateTextSizeSpan by lazy { AbsoluteSizeSpan(sp(candidateTextSize)) }
-    private val commentTextSizeSpan by lazy { AbsoluteSizeSpan(sp(commentTextSize)) }
     private val keyTextColorSpan by lazy { keyTextColor?.let { ForegroundColorSpan(it) } }
     private val highlightTextColorSpan by lazy { highlightTextColor?.let { ForegroundColorSpan(it) } }
     private val highlightBackColorSpan by lazy { highlightBackColor?.let { BackgroundColorSpan(it) } }
@@ -333,7 +330,7 @@ class Composition(
                     labelColor,
                     labelTextSize,
                 )
-            inSpans(alignmentSpan, labelSpan, labelTextSizeSpan) { append(label) }
+            inSpans(alignmentSpan, labelSpan, AbsoluteSizeSpan(sp(labelTextSize))) { append(label) }
 
             val candidateSpan =
                 CandidateSpan(
@@ -344,7 +341,7 @@ class Composition(
                     candidateTextColor,
                     candidateTextSize,
                 )
-            inSpans(alignmentSpan, candidateSpan, candidateTextSizeSpan) { append(text) }
+            inSpans(alignmentSpan, candidateSpan, AbsoluteSizeSpan(sp(candidateTextSize))) { append(text) }
             currentLineLength += text.length
 
             if (showComment && !candidate.comment.isNullOrEmpty()) {
@@ -358,7 +355,7 @@ class Composition(
                         commentTextColor,
                         commentTextSize,
                     )
-                inSpans(alignmentSpan, commentSpan, commentTextSizeSpan) { append(comment) }
+                inSpans(alignmentSpan, commentSpan, AbsoluteSizeSpan(sp(commentTextSize))) { append(comment) }
                 currentLineLength += comment.length
             }
         }
