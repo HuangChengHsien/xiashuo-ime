@@ -2,6 +2,87 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.3.1] - 2024-11-01
+
+### 🚀 Features
+
+- *(core)* Implements KeyValue and KeyModifier
+- Implement RimeEvent to hold events created by this frontend
+- Hide scroll bars of switcher view
+
+### 🐛 Bug Fixes
+
+- Switches weren't updated after switching schema
+- Shift action could not be committed when ascii mode is off
+- Unrolled candidates size was actually limited to about 144
+- Could not unroll the candidates somehow
+- Unrolled candidates size was still limited to about 144
+- Some symbols would be committed twice in full and half shape
+- Assets in sub directories ran out of its parent in dest path
+- Data checksums descriptor didn't copy correctly
+- Couldn't smart match the keyboard corresponding to the schema id
+- Forgot to invoke response handlers in Rime itself
+- Could not scroll down the unrolled candidates
+- Metrics of strings in RimeProto were not completely converted
+- Filter opencc data file
+- Ime could not response key event from physical keyboard (#1485)
+- Truncated composition view (#1479)
+- Duplicated characters in ascii mode
+- Popup composition view blocked the bar view at first show
+- Duplicated line breaks
+
+### 🚜 Refactor
+
+- "pack" the text and comment view so that they are as centered as possible
+- Slightly shorten the default animation duration
+- Never fill the width of the candidate item view
+- Make the candidate text always in center while ...
+- Truncate the candidate at the end if the text is too long
+- Improve key event forwarding
+- Split out KeyboardActionListener from KeyboardView
+- Split out CommonKeyboardActionListener from TextInputManager
+- Make unrolled candidate view high customizable
+- Remove useless/unused keyboard settings
+- Split out EnterKeyLabelModule from KeyboardView
+- Remove debounce when selecting candidates in the compat view
+- *(api)* Update context in rime engine lifecycle looper
+- *(ime)* Merge TextInputManager into TrimeInputMethodService
+- Handle window switching in input(view) scope as more as possible
+- *(ime)* Reduce redundant text committing functions
+- Always pass the copy of the active theme to the views ...
+- Enhance the process of theme switching
+- Optimize timing background sync
+- Move on result action into FolderPickerPreference
+- Drop unnecessary data dir change listeners
+- Cleanup the process of handling rime response inside Rime
+- Enhance rime notification handling
+- Merge notification flow and response flow as callback flow
+- Move RimeResponse into RimeEvent as IpcResponse(Event)
+- Improve the build of spanned composition
+- Transform LiquidTabsUi with RecyclerView
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 3.3.1
+- Remove google java format
+- Upgrade ktlint to 1.3.1
+- Format with ktlint 1.3.1
+- Ignore code format patches within git blame
+- Share copyright profile
+- Update native dependencies
+- Upgrade opencc data
+- Update development guide [skip ci]
+- Add OpenCC data install path to gitignore
+- Update librime to 1.11.2-39-gb74f5fa0
+- Switch to macOS 15 runner
+- Add 3.3.1 changelog
+
+### Build
+
+- Implement OpenCCDataPlugin to install OpenCC data
+- Remove rules for installing OpenCC data in Makefile
+- Fix deprecated function usage
+
 ## [3.3.0] - 2024-09-01
 
 ### 🚀 Features
@@ -2086,14 +2167,6 @@ All notable changes to this project will be documented in this file.
 
 ## [3.0] - 2017-01-04
 
-### #33
-
-- Android 6.0 上請求讀寫權限
-
-### #5
-
-- 使用Clear或Escape清屏
-
 ### 🚀 Features
 
 - *(jni)* Save option
@@ -2143,16 +2216,6 @@ All notable changes to this project will be documented in this file.
 - Remove duplicated Chinese trime file
 - Dynamic version code according to commit number
 
-### Fix
-
-- Func name error
-- Destroy F4 menu when escape
-- Destroy F4 menu when back
-
-### Workaround
-
-- Deploy message error
-
 ### Candidate_padding
 
 - 內邊距
@@ -2171,40 +2234,8 @@ All notable changes to this project will be documented in this file.
 - *(jni)* Update librime
 - Dynamic version name and code
 
-### Cmake
-
-- Fix android clang
-- Add opencc tools
-- Add boost thread for win32
-
-### Code
-
-- Prior 隱藏鍵盤
-
-### GetSelectLabels
-
-- 候選標籤
-
 ### Jni
 
-- Set android-4
-- Add miniglog
-- Add arm64-v8a support
-- Fix ld error
-- Update opencc to 1.0.3
-- Use local librime for Android
-- Fix get_version null pointer error
-- Rename to rime_jni.cc
-- 保存最近方案
-- Update opencc
-- Opencc
-- Update boost & snappy
-- Default no use boost signals2
-- Modular
-- Update librime
-- Opencc dynamic lib
-- Add libiconv 1.14
-- Update makefile
 - Update yaml-cpp to 0.5.3
 - Update librime
 - Fix for ndk r11
@@ -2247,11 +2278,6 @@ All notable changes to this project will be documented in this file.
 
 - 解決rime_console編譯問題
 
-### Make
-
-- Add ndk-build to ant
-- Add lint
-
 ### Proximity_correction
 
 - 按鍵糾錯
@@ -2262,14 +2288,6 @@ All notable changes to this project will be documented in this file.
 
 ### Travis
 
-- Submodules
-- Install
-- Add ndk
-- Reduce log
-- Prebuilt ndk libs
-- Android-23
-- Script
-- Use gradle
 - Fix build break and add ant lint
 
 ### Win
@@ -2284,20 +2302,101 @@ All notable changes to this project will be documented in this file.
 
 - Auto_caps
 
-### 命令直通車
-
-- Run
-
 ### 按鍵單獨顏色或標籤
 
 - Key_text_color、key_back_color
+
+### 默認空格右滑（Schema_switch
+
+- Control+Shift+1）切換到下一方案
+
+## [3.0-beta2] - 2016-01-11
+
+### #33
+
+- Android 6.0 上請求讀寫權限
+
+### Cmake
+
+- Fix android clang
+- Add opencc tools
+- Add boost thread for win32
+
+### Code
+
+- Prior 隱藏鍵盤
+
+### GetSelectLabels
+
+- 候選標籤
+
+### Jni
+
+- Update opencc to 1.0.3
+- Use local librime for Android
+- Fix get_version null pointer error
+- Rename to rime_jni.cc
+- 保存最近方案
+- Update opencc
+- Opencc
+- Update boost & snappy
+- Default no use boost signals2
+- Modular
+- Update librime
+- Opencc dynamic lib
+- Add libiconv 1.14
+- Update makefile
+
+### Make
+
+- Add ndk-build to ant
+- Add lint
+
+### Travis
+
+- Submodules
+- Install
+- Add ndk
+- Reduce log
+- Prebuilt ndk libs
+- Android-23
+- Script
+- Use gradle
+
+### 命令直通車
+
+- Run
 
 ### 默認send_bindings
 
 - True
 
-### 默認空格右滑（Schema_switch
+## [3.0-beta] - 2015-07-24
 
-- Control+Shift+1）切換到下一方案
+### #5
+
+- 使用Clear或Escape清屏
+
+### Fix
+
+- Func name error
+- Destroy F4 menu when escape
+- Destroy F4 menu when back
+
+### Workaround
+
+- Deploy message error
+
+### Jni
+
+- Add arm64-v8a support
+- Fix ld error
+
+## [3.0-alpha] - 2015-07-06
+
+### Jni
+
+- Set android-4
+- Add miniglog
 
 <!-- generated by git-cliff -->
