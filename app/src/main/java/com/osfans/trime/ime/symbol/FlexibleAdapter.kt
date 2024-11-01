@@ -4,12 +4,15 @@
 
 package com.osfans.trime.ime.symbol
 
+import android.content.Context
 import android.os.Build
 import android.view.ViewGroup
 import android.widget.PopupMenu
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
+import com.chad.library.adapter4.BaseDifferAdapter
 import com.osfans.trime.R
 import com.osfans.trime.data.db.DatabaseBean
 import com.osfans.trime.data.theme.Theme
@@ -19,79 +22,63 @@ import kotlin.math.min
 
 abstract class FlexibleAdapter(
     private val theme: Theme,
-) : RecyclerView.Adapter<FlexibleAdapter.ViewHolder>() {
-    private val mBeans = mutableListOf<DatabaseBean>()
+) : BaseDifferAdapter<DatabaseBean, FlexibleAdapter.ViewHolder>(diffCallback) {
+    companion object {
+        private val diffCallback =
+            object : DiffUtil.ItemCallback<DatabaseBean>() {
+                override fun areItemsTheSame(
+                    oldItem: DatabaseBean,
+                    newItem: DatabaseBean,
+                ): Boolean = oldItem.id == newItem.id
 
-    // 映射条目的 id 和其在视图中位置的关系
-    // 以应对增删条目时 id 和其位置的相对变化
-    // [<id, position>, ...]
-    private val mBeansId = mutableMapOf<Int, Int>()
-    val beans get() = mBeans
+                override fun areContentsTheSame(
+                    oldItem: DatabaseBean,
+                    newItem: DatabaseBean,
+                ): Boolean = oldItem == newItem
+            }
 
-    fun updateBeans(beans: List<DatabaseBean>) {
-        val sorted =
-            beans.sortedWith { b1, b2 ->
-                when {
-                    // 如果 b1 置顶而 b2 没置顶，则 b1 比 b2 小，排前面
-                    b1.pinned && !b2.pinned -> -1
-                    // 如果 b1 没置顶而 b2 置顶，则 b1 比 b2 大，排后面
-                    !b1.pinned && b2.pinned -> 1
-                    // 如果都置顶了或都没置顶，则比较 id，id 大的排前面
-                    else -> b2.id.compareTo(b1.id)
+        private fun excerptText(
+            str: String,
+            lines: Int = 4,
+            chars: Int = 128,
+        ): String =
+            buildString {
+                val length = str.length
+                var lineBreak = -1
+                for (i in 1..lines) {
+                    val start = lineBreak + 1 // skip previous '\n'
+                    val excerptEnd = min(start + chars, length)
+                    lineBreak = str.indexOf('\n', start)
+                    if (lineBreak < 0) {
+                        // no line breaks remaining, substring to end of text
+                        append(str.substring(start, excerptEnd))
+                        break
+                    } else {
+                        val end = min(excerptEnd, lineBreak)
+                        // append one line exactly
+                        appendLine(str.substring(start, end))
+                    }
                 }
             }
-        val prevSize = mBeans.size
-        mBeans.clear()
-        notifyItemRangeRemoved(0, prevSize)
-        mBeans.addAll(sorted)
-        notifyItemRangeChanged(0, sorted.size)
-        mBeansId.clear()
-        mBeans.forEachIndexed { index: Int, (id): DatabaseBean ->
-            mBeansId[id] = index
-        }
     }
 
-    private fun excerptText(
-        str: String,
-        lines: Int = 4,
-        chars: Int = 128,
-    ): String =
-        buildString {
-            val length = str.length
-            var lineBreak = -1
-            for (i in 1..lines) {
-                val start = lineBreak + 1 // skip previous '\n'
-                val excerptEnd = min(start + chars, length)
-                lineBreak = str.indexOf('\n', start)
-                if (lineBreak < 0) {
-                    // no line breaks remaining, substring to end of text
-                    append(str.substring(start, excerptEnd))
-                    break
-                } else {
-                    val end = min(excerptEnd, lineBreak)
-                    // append one line exactly
-                    appendLine(str.substring(start, end))
-                }
-            }
-        }
-
-    override fun getItemCount(): Int = mBeans.size
-
     override fun onCreateViewHolder(
+        context: Context,
         parent: ViewGroup,
         viewType: Int,
-    ): ViewHolder = ViewHolder(SimpleItemUi(parent.context, theme))
+    ): ViewHolder = ViewHolder(SimpleItemUi(context, theme))
 
     class ViewHolder(
         val ui: SimpleItemUi,
     ) : RecyclerView.ViewHolder(ui.root)
 
     override fun onBindViewHolder(
-        viewHolder: ViewHolder,
+        holder: ViewHolder,
         position: Int,
+        item: DatabaseBean?,
     ) {
-        with(viewHolder.ui) {
-            val bean = mBeans[position]
+        with(holder.ui) {
+            val bean = item ?: return
             setItem(excerptText(bean.text ?: ""), bean.pinned)
             root.setOnClickListener {
                 onPaste(bean)
@@ -119,12 +106,10 @@ abstract class FlexibleAdapter(
                 if (bean.pinned) {
                     menuItem(R.string.simple_key_unpin, R.drawable.ic_outline_push_pin_24) {
                         onUnpin(bean)
-                        setPinStatus(bean.id, false)
                     }
                 } else {
                     menuItem(R.string.simple_key_pin, R.drawable.ic_baseline_push_pin_24) {
                         onPin(bean)
-                        setPinStatus(bean.id, true)
                     }
                 }
                 if (showCollectButton) {
@@ -134,12 +119,9 @@ abstract class FlexibleAdapter(
                 }
                 menuItem(R.string.delete, R.drawable.ic_baseline_delete_24) {
                     onDelete(bean)
-                    delete(bean.id)
                 }
-                if (beans.isNotEmpty()) {
-                    menuItem(R.string.delete_all, R.drawable.ic_baseline_delete_sweep_24) {
-                        onDeleteAll()
-                    }
+                menuItem(R.string.delete_all, R.drawable.ic_baseline_delete_sweep_24) {
+                    onDeleteAll()
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     menu.setForceShowIcon(true)
@@ -148,26 +130,6 @@ abstract class FlexibleAdapter(
                 true
             }
         }
-    }
-
-    private fun delete(id: Int) {
-        val position = mBeansId.getValue(id)
-        mBeans.removeAt(position)
-        mBeansId.remove(id)
-        for (i in position until mBeans.size) {
-            mBeansId[mBeans[i].id] = i
-        }
-        notifyItemRemoved(position)
-    }
-
-    private fun setPinStatus(
-        id: Int,
-        pinned: Boolean,
-    ) {
-        val position = mBeansId.getValue(id)
-        mBeans[position] = mBeans[position].copy(pinned = pinned)
-        // 置顶会改变条目的排列顺序
-        updateBeans(mBeans)
     }
 
     abstract fun onPaste(bean: DatabaseBean)

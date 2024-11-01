@@ -18,7 +18,7 @@ import com.osfans.trime.util.ShortcutUtils
 import kotlinx.coroutines.launch
 
 class DbAdapter(
-    private val context: Context,
+    private val ctx: Context,
     private val service: TrimeInputMethodService,
     theme: Theme,
 ) : FlexibleAdapter(theme) {
@@ -34,8 +34,9 @@ class DbAdapter(
                 SymbolBoardType.CLIPBOARD -> ClipboardHelper.pin(bean.id)
                 SymbolBoardType.COLLECTION -> CollectionHelper.pin(bean.id)
                 SymbolBoardType.DRAFT -> DraftHelper.pin(bean.id)
-                else -> return@launch
+                else -> {}
             }
+            refresh()
         }
     }
 
@@ -45,8 +46,9 @@ class DbAdapter(
                 SymbolBoardType.CLIPBOARD -> ClipboardHelper.unpin(bean.id)
                 SymbolBoardType.COLLECTION -> CollectionHelper.unpin(bean.id)
                 SymbolBoardType.DRAFT -> DraftHelper.unpin(bean.id)
-                else -> return@launch
+                else -> {}
             }
+            refresh()
         }
     }
 
@@ -56,13 +58,14 @@ class DbAdapter(
                 SymbolBoardType.CLIPBOARD -> ClipboardHelper.delete(bean.id)
                 SymbolBoardType.COLLECTION -> CollectionHelper.delete(bean.id)
                 SymbolBoardType.DRAFT -> DraftHelper.delete(bean.id)
-                else -> return@launch
+                else -> {}
             }
+            refresh()
         }
     }
 
     override fun onEdit(bean: DatabaseBean) {
-        bean.text?.let { ShortcutUtils.launchLiquidKeyboardEdit(context, type, bean.id, it) }
+        bean.text?.let { ShortcutUtils.launchLiquidKeyboardEdit(ctx, type, bean.id, it) }
     }
 
     override fun onCollect(bean: DatabaseBean) {
@@ -71,54 +74,34 @@ class DbAdapter(
 
     // FIXME: 这个方法可能实现得比较粗糙，需要日后改进
     override fun onDeleteAll() {
-        fun deleteAll() {
-            if (beans.all { it.pinned }) {
-                // 如果没有未置顶的条目，则删除所有已置顶的条目
-                service.lifecycleScope.launch {
-                    when (type) {
-                        SymbolBoardType.CLIPBOARD -> ClipboardHelper.deleteAll(false)
-                        SymbolBoardType.COLLECTION -> CollectionHelper.deleteAll(false)
-                        SymbolBoardType.DRAFT -> DraftHelper.deleteAll(false)
-                        else -> return@launch
-                    }
-                }
-                updateBeans(emptyList())
-            } else {
-                // 如果有已置顶的条目，则删除所有未置顶的条目
-                service.lifecycleScope.launch {
-                    when (type) {
-                        SymbolBoardType.CLIPBOARD -> {
-                            ClipboardHelper.deleteAll()
-                            updateBeans(ClipboardHelper.getAll())
-                        }
-
-                        SymbolBoardType.COLLECTION -> {
-                            CollectionHelper.deleteAll()
-                            updateBeans(CollectionHelper.getAll())
-                        }
-
-                        SymbolBoardType.DRAFT -> {
-                            DraftHelper.deleteAll()
-                            updateBeans(DraftHelper.getAll())
-                        }
-
-                        else -> return@launch
-                    }
-                }
-            }
-        }
-
         val confirm =
             AlertDialog
                 .Builder(context)
                 .setTitle(R.string.delete_all)
                 .setMessage(R.string.liquid_keyboard_ask_to_delete_all)
                 .setPositiveButton(R.string.ok) { _, _ ->
-                    deleteAll()
+                    service.lifecycleScope.launch {
+                        when (type) {
+                            SymbolBoardType.CLIPBOARD -> ClipboardHelper.deleteAll(ClipboardHelper.haveUnpinned())
+                            SymbolBoardType.COLLECTION -> CollectionHelper.deleteAll(CollectionHelper.haveUnpinned())
+                            SymbolBoardType.DRAFT -> DraftHelper.deleteAll(DraftHelper.haveUnpinned())
+                            else -> {}
+                        }
+                        refresh()
+                    }
                 }.setNegativeButton(R.string.cancel, null)
                 .create()
         service.inputView?.showDialog(confirm)
     }
 
     override val showCollectButton: Boolean = type != SymbolBoardType.COLLECTION
+
+    private suspend fun refresh() {
+        when (type) {
+            SymbolBoardType.CLIPBOARD -> submitList(ClipboardHelper.getAll())
+            SymbolBoardType.COLLECTION -> submitList(CollectionHelper.getAll())
+            SymbolBoardType.DRAFT -> submitList(DraftHelper.getAll())
+            else -> {}
+        }
+    }
 }

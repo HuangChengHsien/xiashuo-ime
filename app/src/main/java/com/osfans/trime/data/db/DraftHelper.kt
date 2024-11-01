@@ -53,6 +53,8 @@ object DraftHelper : CoroutineScope by CoroutineScope(SupervisorJob() + Dispatch
 
     suspend fun get(id: Int) = dftDao.get(id)
 
+    suspend fun haveUnpinned() = dftDao.haveUnpinned()
+
     suspend fun getAll() = dftDao.getAll()
 
     suspend fun pin(id: Int) = dftDao.updatePinned(id, true)
@@ -75,6 +77,7 @@ object DraftHelper : CoroutineScope by CoroutineScope(SupervisorJob() + Dispatch
         } else {
             dftDao.deleteAll()
         }
+        updateItemCount()
     }
 
     fun onInputEventChanged() {

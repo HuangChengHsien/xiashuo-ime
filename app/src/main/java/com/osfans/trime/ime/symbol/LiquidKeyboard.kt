@@ -207,7 +207,7 @@ class LiquidKeyboard(
         }
 
         service.lifecycleScope.launch {
-            dbAdapter.updateBeans(data())
+            dbAdapter.submitList(data())
         }
     }
 
@@ -246,7 +246,7 @@ class LiquidKeyboard(
         if (currentBoardType == SymbolBoardType.CLIPBOARD) {
             Timber.v("OnClipboardUpdateListener onUpdate: update clipboard view")
             service.lifecycleScope.launch {
-                dbAdapter.updateBeans(ClipboardHelper.getAll())
+                dbAdapter.submitList(ClipboardHelper.getAll())
             }
         }
     }

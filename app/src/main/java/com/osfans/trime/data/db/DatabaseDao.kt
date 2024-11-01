@@ -48,7 +48,7 @@ interface DatabaseDao {
     @Query("DELETE FROM ${DatabaseBean.TABLE_NAME} WHERE NOT pinned")
     suspend fun deleteAllUnpinned()
 
-    @Query("SELECT * FROM ${DatabaseBean.TABLE_NAME}")
+    @Query("SELECT * FROM ${DatabaseBean.TABLE_NAME} ORDER BY pinned DESC, time DESC")
     suspend fun getAll(): List<DatabaseBean>
 
     @Query("SELECT * FROM ${DatabaseBean.TABLE_NAME} WHERE id=:id LIMIT 1")
@@ -56,6 +56,9 @@ interface DatabaseDao {
 
     @Query("SELECT * FROM ${DatabaseBean.TABLE_NAME} WHERE rowId=:rowId LIMIT 1")
     suspend fun get(rowId: Long): DatabaseBean?
+
+    @Query("SELECT EXISTS(SELECT 1 FROM ${DatabaseBean.TABLE_NAME} WHERE pinned=0)")
+    suspend fun haveUnpinned(): Boolean
 
     @Query("SELECT COUNT(*) FROM ${DatabaseBean.TABLE_NAME}")
     suspend fun itemCount(): Int

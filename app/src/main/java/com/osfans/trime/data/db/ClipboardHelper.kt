@@ -90,6 +90,8 @@ object ClipboardHelper :
 
     suspend fun get(id: Int) = clbDao.get(id)
 
+    suspend fun haveUnpinned() = clbDao.haveUnpinned()
+
     suspend fun getAll() = clbDao.getAll()
 
     suspend fun pin(id: Int) = clbDao.updatePinned(id, true)
@@ -107,6 +109,7 @@ object ClipboardHelper :
         } else {
             clbDao.deleteAll()
         }
+        updateItemCount()
     }
 
     /**
