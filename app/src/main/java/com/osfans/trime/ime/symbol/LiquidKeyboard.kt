@@ -32,11 +32,12 @@ import com.osfans.trime.ime.keyboard.KeyboardWindow
 import com.osfans.trime.ime.window.BoardWindow
 import com.osfans.trime.ime.window.BoardWindowManager
 import com.osfans.trime.ime.window.ResidentWindow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.tatarka.inject.annotations.Inject
 import splitties.dimensions.dp
 import splitties.views.recyclerview.verticalLayoutManager
-import timber.log.Timber
 
 @InputScope
 @Inject
@@ -199,10 +200,6 @@ class LiquidKeyboard(
             keyboardView.apply {
                 layoutManager = oneColStaggeredGridLayoutManager
                 adapter = dbAdapter
-                setItemViewCacheSize(10)
-                setHasFixedSize(false)
-                // 调用ListView的setSelected(!ListView.isSelected())方法，这样就能及时刷新布局
-                isSelected = true
             }
         }
 
@@ -242,11 +239,13 @@ class LiquidKeyboard(
      * 实现 OnClipboardUpdateListener 中的 onUpdate
      * 当剪贴板内容变化且剪贴板视图处于开启状态时，更新视图.
      */
-    override fun onUpdate(text: String) {
-        if (currentBoardType == SymbolBoardType.CLIPBOARD) {
-            Timber.v("OnClipboardUpdateListener onUpdate: update clipboard view")
-            service.lifecycleScope.launch {
-                dbAdapter.submitList(ClipboardHelper.getAll())
+    override fun onUpdate(bean: DatabaseBean) {
+        service.lifecycleScope.launch {
+            dbAdapter.submitList(ClipboardHelper.getAll())
+            if (currentBoardType == SymbolBoardType.CLIPBOARD) {
+                withContext(Dispatchers.Main) {
+                    keyboardView.scrollToPosition(0)
+                }
             }
         }
     }

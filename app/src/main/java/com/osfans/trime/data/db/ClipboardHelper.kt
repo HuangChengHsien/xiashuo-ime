@@ -27,7 +27,7 @@ object ClipboardHelper :
     private lateinit var clbDao: DatabaseDao
 
     fun interface OnClipboardUpdateListener {
-        fun onUpdate(text: String)
+        fun onUpdate(bean: DatabaseBean)
     }
 
     private val mutex = Mutex()
@@ -42,21 +42,11 @@ object ClipboardHelper :
     private val onUpdateListeners = WeakHashSet<OnClipboardUpdateListener>()
 
     fun addOnUpdateListener(listener: OnClipboardUpdateListener) {
-        Timber.d("Add OnUpdateListener: $listener")
-        val result = onUpdateListeners.add(listener)
-        Timber.d(
-            "onUpdateListeners.add: result = $result," +
-                "onUpdateListeners.size = ${onUpdateListeners.size}",
-        )
+        onUpdateListeners.add(listener)
     }
 
     fun removeOnUpdateListener(listener: OnClipboardUpdateListener) {
-        Timber.d("Remove OnUpdateListener: $listener")
-        val result = onUpdateListeners.remove(listener)
-        Timber.d(
-            "onUpdateListeners.remove: result = $result," +
-                "onUpdateListeners.size = ${onUpdateListeners.size}",
-        )
+        onUpdateListeners.remove(listener)
     }
 
     private val limit get() = AppPrefs.defaultInstance().clipboard.clipboardLimit
@@ -76,6 +66,11 @@ object ClipboardHelper :
             .toHashSet()
 
     var lastBean: DatabaseBean? = null
+
+    private fun updateLastBean(bean: DatabaseBean) {
+        lastBean = bean
+        onUpdateListeners.forEach { it.onUpdate(bean) }
+    }
 
     fun init(context: Context) {
         clipboardManager.addPrimaryClipChangedListener(this)
@@ -97,6 +92,16 @@ object ClipboardHelper :
     suspend fun pin(id: Int) = clbDao.updatePinned(id, true)
 
     suspend fun unpin(id: Int) = clbDao.updatePinned(id, false)
+
+    suspend fun updateText(
+        id: Int,
+        text: String,
+    ) {
+        lastBean?.let {
+            if (id == it.id) updateLastBean(it.copy(text = text))
+        }
+        clbDao.updateText(id, text)
+    }
 
     suspend fun delete(id: Int) {
         clbDao.delete(id)
@@ -131,49 +136,32 @@ object ClipboardHelper :
                 it.text!!.isNotBlank() &&
                     !it.text.matchesAny(output)
             }?.let { b ->
-                if (b.text?.removeRegexSet(compare)?.isEmpty() == true) return
+                if (b.text!!.removeRegexSet(compare).isEmpty()) return
                 Timber.d("Accept clipboard $b")
                 launch {
                     mutex.withLock {
-                        val all = clbDao.getAll()
-                        var pinned = false
-                        all.find { b.text == it.text }?.let {
-                            clbDao.delete(it.id)
-                            pinned = it.pinned
+                        clbDao.find(b.text)?.let {
+                            updateLastBean(it.copy(time = b.time))
+                            clbDao.updateTime(it.id, b.time)
+                            return@launch
                         }
-                        val rowId = clbDao.insert(b.copy(pinned = pinned))
+                        val rowId = clbDao.insert(b)
                         removeOutdated()
                         updateItemCount()
-                        clbDao.get(rowId)?.let { newBean ->
-                            lastBean = newBean
-                            onUpdateListeners.forEach { listener ->
-                                listener.onUpdate(newBean.text ?: "")
-                            }
-                        }
+                        updateLastBean(clbDao.get(rowId) ?: b)
                     }
                 }
             }
     }
 
     private suspend fun removeOutdated() {
-        val all = clbDao.getAll()
-        if (all.size > limit) {
+        val unpinned = clbDao.getAllUnpinned()
+        if (unpinned.size > limit) {
             val outdated =
-                all
-                    .map {
-                        if (it.pinned) {
-                            it.copy(id = Int.MAX_VALUE)
-                        } else {
-                            it
-                        }
-                    }.sortedBy { it.id }
-                    .subList(0, all.size - limit)
-            clbDao.delete(outdated)
+                unpinned
+                    .sortedBy { it.id }
+                    .getOrNull(unpinned.size - limit)
+            clbDao.deletedUnpinnedEarlierThan(outdated?.time ?: System.currentTimeMillis())
         }
     }
-
-    suspend fun updateText(
-        id: Int,
-        text: String,
-    ) = clbDao.updateText(id, text)
 }

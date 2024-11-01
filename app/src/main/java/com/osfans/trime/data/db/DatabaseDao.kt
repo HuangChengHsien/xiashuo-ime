@@ -30,6 +30,12 @@ interface DatabaseDao {
         pinned: Boolean,
     )
 
+    @Query("UPDATE ${DatabaseBean.TABLE_NAME} SET time=:timestamp WHERE id=:id")
+    suspend fun updateTime(
+        id: Int,
+        timestamp: Long,
+    )
+
     @Delete
     suspend fun delete(bean: DatabaseBean)
 
@@ -48,6 +54,9 @@ interface DatabaseDao {
     @Query("DELETE FROM ${DatabaseBean.TABLE_NAME} WHERE NOT pinned")
     suspend fun deleteAllUnpinned()
 
+    @Query("DELETE FROM ${DatabaseBean.TABLE_NAME} WHERE time<:timestamp AND pinned=0")
+    suspend fun deletedUnpinnedEarlierThan(timestamp: Long)
+
     @Query("SELECT * FROM ${DatabaseBean.TABLE_NAME} ORDER BY pinned DESC, time DESC")
     suspend fun getAll(): List<DatabaseBean>
 
@@ -59,6 +68,12 @@ interface DatabaseDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM ${DatabaseBean.TABLE_NAME} WHERE pinned=0)")
     suspend fun haveUnpinned(): Boolean
+
+    @Query("SELECT * FROM ${DatabaseBean.TABLE_NAME} WHERE pinned=0")
+    suspend fun getAllUnpinned(): List<DatabaseBean>
+
+    @Query("SELECT * FROM ${DatabaseBean.TABLE_NAME} WHERE text=:text LIMIT 1")
+    suspend fun find(text: String): DatabaseBean?
 
     @Query("SELECT COUNT(*) FROM ${DatabaseBean.TABLE_NAME}")
     suspend fun itemCount(): Int
