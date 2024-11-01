@@ -5,8 +5,6 @@
 package com.osfans.trime.ime.symbol
 
 import android.os.Build
-import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
 import androidx.annotation.DrawableRes
@@ -14,10 +12,7 @@ import androidx.annotation.StringRes
 import androidx.recyclerview.widget.RecyclerView
 import com.osfans.trime.R
 import com.osfans.trime.data.db.DatabaseBean
-import com.osfans.trime.data.theme.ColorManager
-import com.osfans.trime.data.theme.FontManager
 import com.osfans.trime.data.theme.Theme
-import com.osfans.trime.databinding.SimpleKeyItemBinding
 import splitties.resources.drawable
 import splitties.resources.styledColor
 import kotlin.math.min
@@ -82,55 +77,28 @@ abstract class FlexibleAdapter(
 
     override fun getItemCount(): Int = mBeans.size
 
-    private val mTypeface = FontManager.getTypeface("long_text_font")
-    private val mLongTextColor = ColorManager.getColor("long_text_color")
-    private val mKeyTextColor = ColorManager.getColor("key_text_color")
-    private val mKeyLongTextSize = theme.generalStyle.keyLongTextSize
-    private val mLabelTextSize = theme.generalStyle.labelTextSize
-
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int,
-    ): ViewHolder {
-        val binding = SimpleKeyItemBinding.inflate(LayoutInflater.from(parent.context))
-        binding.root.background =
-            ColorManager.getDrawable(
-                parent.context,
-                "long_text_back_color",
-                border = theme.generalStyle.keyBorder,
-                "key_long_text_border",
-                roundCorner = theme.generalStyle.roundCorner,
-            )
-        binding.simpleKey.apply {
-            typeface = mTypeface
-            (mLongTextColor ?: mKeyTextColor)?.let { setTextColor(it) }
-            (mKeyLongTextSize.takeIf { it > 0f } ?: mLabelTextSize.takeIf { it > 0f })
-                ?.let { textSize = it.toFloat() }
-        }
-        return ViewHolder(binding)
-    }
+    ): ViewHolder = ViewHolder(SimpleItemUi(parent.context, theme))
 
-    inner class ViewHolder(
-        binding: SimpleKeyItemBinding,
-    ) : RecyclerView.ViewHolder(binding.root) {
-        val simpleKeyText = binding.simpleKey
-        val simpleKeyPin = binding.simpleKeyPin
-    }
+    class ViewHolder(
+        val ui: SimpleItemUi,
+    ) : RecyclerView.ViewHolder(ui.root)
 
     override fun onBindViewHolder(
         viewHolder: ViewHolder,
         position: Int,
     ) {
-        with(viewHolder) {
+        with(viewHolder.ui) {
             val bean = mBeans[position]
-            simpleKeyText.text = bean.text?.let { excerptText(it) }
-            simpleKeyPin.visibility = if (bean.pinned) View.VISIBLE else View.INVISIBLE
-            itemView.setOnClickListener {
+            setItem(excerptText(bean.text ?: ""), bean.pinned)
+            root.setOnClickListener {
                 onPaste(bean)
             }
-            itemView.setOnLongClickListener {
-                val iconColor = it.context.styledColor(android.R.attr.colorControlNormal)
-                val menu = PopupMenu(it.context, it)
+            root.setOnLongClickListener {
+                val iconColor = ctx.styledColor(android.R.attr.colorControlNormal)
+                val menu = PopupMenu(ctx, it)
 
                 fun menuItem(
                     @StringRes title: Int,

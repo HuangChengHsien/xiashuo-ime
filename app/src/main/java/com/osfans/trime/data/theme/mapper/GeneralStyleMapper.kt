@@ -86,7 +86,7 @@ class GeneralStyleMapper(
 
         val keyHeight = getInt("key_height")
 
-        val keyLongTextSize = getInt("key_long_text_size")
+        val keyLongTextSize = getFloat("key_long_text_size")
 
         val keyTextSize = getInt("key_text_size")
 

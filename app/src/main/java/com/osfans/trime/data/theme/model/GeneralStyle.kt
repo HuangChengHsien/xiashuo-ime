@@ -38,7 +38,7 @@ data class GeneralStyle(
     val keyFont: List<String>,
     val keyBorder: Int,
     val keyHeight: Int,
-    val keyLongTextSize: Int,
+    val keyLongTextSize: Float,
     val keyTextSize: Int,
     val keyTextOffsetX: Int,
     val keyTextOffsetY: Int,
