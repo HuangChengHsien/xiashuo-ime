@@ -256,10 +256,6 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
 
     private fun handleRimeCallback(it: RimeCallback) {
         when (it) {
-            is RimeNotification.SchemaNotification -> {
-                recreateInputView(ThemeManager.activeTheme)
-            }
-
             is RimeNotification.OptionNotification -> {
                 val value = it.value.value
                 when (val option = it.value.option) {

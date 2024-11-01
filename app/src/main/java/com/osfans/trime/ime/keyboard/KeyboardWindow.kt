@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import com.osfans.trime.R
 import com.osfans.trime.core.Rime
 import com.osfans.trime.core.RimeNotification.OptionNotification
+import com.osfans.trime.core.SchemaItem
 import com.osfans.trime.daemon.RimeSession
 import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.schema.SchemaManager
@@ -232,6 +233,10 @@ class KeyboardWindow(
         end: Int,
     ) {
         dispatchCapsState(mainKeyboardView::setShifted)
+    }
+
+    override fun onRimeSchemaUpdated(schema: SchemaItem) {
+        switchKeyboard(smartMatchKeyboard())
     }
 
     override fun onRimeOptionUpdated(value: OptionNotification.Value) {
