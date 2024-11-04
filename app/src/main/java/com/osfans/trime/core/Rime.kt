@@ -403,18 +403,6 @@ class Rime :
         @JvmStatic
         external fun selectRimeSchema(schemaId: String): Boolean
 
-        @JvmStatic
-        external fun getRimeConfigMap(
-            configId: String,
-            key: String,
-        ): Map<String, Any>?
-
-        @JvmStatic
-        external fun setRimeCustomConfigInt(
-            configId: String,
-            keyValuePairs: Array<Pair<String?, Int?>?>,
-        )
-
         // testing
         @JvmStatic
         external fun simulateRimeKeySequence(keySequence: String): Boolean

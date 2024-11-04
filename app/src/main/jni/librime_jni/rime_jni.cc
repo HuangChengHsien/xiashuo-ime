@@ -480,20 +480,6 @@ Java_com_osfans_trime_core_Rime_getLibrimeVersion(JNIEnv *env,
   return env->NewStringUTF(LIBRIME_VERSION);
 }
 
-extern "C" JNIEXPORT jobject JNICALL
-Java_com_osfans_trime_core_Rime_getRimeConfigMap(JNIEnv *env, jclass clazz,
-                                                 jstring config_id,
-                                                 jstring key) {
-  auto rime = rime_get_api();
-  RimeConfig config = {nullptr};
-  jobject value = nullptr;
-  if (rime->config_open(CString(env, config_id), &config)) {
-    value = rimeConfigMapToJObject(env, &config, CString(env, key));
-    rime->config_close(&config);
-  }
-  return value;
-}
-
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_osfans_trime_core_Rime_runRimeTask(JNIEnv *env, jclass /* thiz */,
                                             jstring task_name) {
