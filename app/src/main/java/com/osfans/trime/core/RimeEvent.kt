@@ -30,6 +30,7 @@ sealed class RimeEvent<T>(
         data class Data(
             val value: KeyValue,
             val modifiers: KeyModifiers,
+            val unicode: Int,
         )
     }
 

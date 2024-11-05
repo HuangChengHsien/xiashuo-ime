@@ -77,13 +77,14 @@ class Rime :
     override suspend fun processKey(
         value: Int,
         modifiers: UInt,
+        code: Int,
     ): Boolean =
         withRimeContext {
             processRimeKey(value, modifiers.toInt()).also {
                 if (it) {
                     ipcResponseCallback()
                 } else {
-                    keyEventCallback(KeyValue(value), KeyModifiers(modifiers))
+                    keyEventCallback(KeyValue(value), KeyModifiers(modifiers), code)
                 }
             }
         }
@@ -91,13 +92,14 @@ class Rime :
     override suspend fun processKey(
         value: KeyValue,
         modifiers: KeyModifiers,
+        code: Int,
     ): Boolean =
         withRimeContext {
             processRimeKey(value.value, modifiers.toInt()).also {
                 if (it) {
                     ipcResponseCallback()
                 } else {
-                    keyEventCallback(value, modifiers)
+                    keyEventCallback(value, modifiers, code)
                 }
             }
         }
@@ -450,8 +452,9 @@ class Rime :
         private fun keyEventCallback(
             value: KeyValue,
             modifiers: KeyModifiers,
+            code: Int,
         ) {
-            handleRimeEvent(RimeEvent.EventType.Key, RimeEvent.KeyEvent.Data(value, modifiers))
+            handleRimeEvent(RimeEvent.EventType.Key, RimeEvent.KeyEvent.Data(value, modifiers, code))
         }
 
         private fun <T> handleRimeEvent(
