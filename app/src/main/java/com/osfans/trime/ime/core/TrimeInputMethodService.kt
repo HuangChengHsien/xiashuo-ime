@@ -53,8 +53,8 @@ import com.osfans.trime.data.theme.ThemeManager
 import com.osfans.trime.ime.broadcast.IntentReceiver
 import com.osfans.trime.ime.enums.FullscreenMode
 import com.osfans.trime.ime.enums.InlinePreeditMode
+import com.osfans.trime.ime.enums.Keycode
 import com.osfans.trime.ime.keyboard.CommonKeyboardActionListener
-import com.osfans.trime.ime.keyboard.Event
 import com.osfans.trime.ime.keyboard.InitializationUi
 import com.osfans.trime.ime.keyboard.InputFeedbackManager
 import com.osfans.trime.util.ShortcutUtils
@@ -339,7 +339,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         instance = null
     }
 
-    private fun handleReturnKey() {
+    fun handleReturnKey() {
         currentInputEditorInfo.run {
             if (inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL) {
                 sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
@@ -762,26 +762,6 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         return s
     }
 
-    /**
-     * 如果爲Back鍵[KeyEvent.KEYCODE_BACK]，則隱藏鍵盤
-     *
-     * @param keyCode 鍵碼[KeyEvent.getKeyCode]
-     * @return 是否處理了Back鍵事件
-     */
-    private fun handleBack(keyCode: Int): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE) {
-            requestHideSelf(0)
-            return true
-        }
-        return false
-    }
-
-    private fun onRimeKey(event: IntArray): Boolean {
-        updateRimeOption()
-        // todo 改为异步处理按键事件、刷新UI
-        return Rime.processKey(event[0], event[1])
-    }
-
     private fun forwardKeyEvent(event: KeyEvent): Boolean {
         val modifiers = KeyModifiers.fromKeyEvent(event)
         val charCode = event.unicodeChar
@@ -845,33 +825,32 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         keyEventCode: Int,
         metaState: Int,
     ): Boolean { // 軟鍵盤
-        commonKeyboardActionListener?.needSendUpRimeKey = false
-        if (onRimeKey(Event.getRimeEvent(keyEventCode, metaState))) {
-            // 如果输入法消费了按键事件，则需要释放按键
-            commonKeyboardActionListener?.needSendUpRimeKey = true
-            Timber.d(
-                "\t<TrimeInput>\thandleKey()\trimeProcess, keycode=%d, metaState=%d",
-                keyEventCode,
-                metaState,
-            )
-        } else if (hookKeyboard(keyEventCode, metaState)) {
-            Timber.d("\t<TrimeInput>\thandleKey()\thookKeyboard, keycode=%d", keyEventCode)
-        } else if (handleBack(keyEventCode)) {
-            // 处理返回键（隐藏软键盘）
-            Timber.d("handleKey(): Back, keycode=$keyEventCode")
-        } else if (openCategory(keyEventCode)) {
-            // 打开系统默认应用
-            Timber.d("\t<TrimeInput>\thandleKey()\topenCategory keycode=%d", keyEventCode)
-        } else {
-            commonKeyboardActionListener?.needSendUpRimeKey = true
-            Timber.d(
-                "\t<TrimeInput>\thandleKey()\treturn FALSE, keycode=%d, metaState=%d",
-                keyEventCode,
-                metaState,
-            )
-            return false
+        commonKeyboardActionListener?.shouldReleaseKey = false
+        val value =
+            RimeKeyMapping
+                .keyCodeToVal(keyEventCode)
+                .takeIf { it != RimeKeyMapping.RimeKey_VoidSymbol }
+                ?: Rime.getRimeKeycodeByName(Keycode.keyNameOf(keyEventCode))
+        val modifiers = KeyModifiers.fromMetaState(metaState).modifiers
+        var result = false
+        postRimeJob {
+            if (!processKey(value, modifiers)) {
+                if (!hookKeyboard(keyEventCode, metaState)) {
+                    if (!openCategory(keyEventCode)) {
+                        result = false
+                    } else {
+                        Timber.d("handleKey: openCategory")
+                    }
+                } else {
+                    Timber.d("handleKey: hook")
+                }
+            } else {
+                commonKeyboardActionListener?.shouldReleaseKey = true
+                Timber.d("handleKey: processKey")
+            }
         }
-        return true
+        if (!result) commonKeyboardActionListener?.shouldReleaseKey = true
+        return result
     }
 
     fun shareText(): Boolean {
@@ -1003,21 +982,6 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     fun updateComposing() {
         inputView?.updateComposing(currentInputConnection)
         if (!onEvaluateInputViewShown()) setCandidatesViewShown(isComposable) // 實體鍵盤打字時顯示候選欄
-    }
-
-    /**
-     * 如果爲回車鍵[KeyEvent.KEYCODE_ENTER]，則換行
-     *
-     * @param keyCode 鍵碼[KeyEvent.getKeyCode]
-     * @return 是否處理了回車事件
-     */
-    private fun performEnter(keyCode: Int): Boolean { // 回車
-        if (keyCode == KeyEvent.KEYCODE_ENTER) {
-            DraftHelper.onInputEventChanged()
-            handleReturnKey()
-            return true
-        }
-        return false
     }
 
     override fun onEvaluateFullscreenMode(): Boolean {

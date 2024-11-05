@@ -6,7 +6,6 @@ package com.osfans.trime.ime.keyboard
 
 import android.view.KeyEvent
 import com.osfans.trime.core.Rime
-import com.osfans.trime.core.RimeKeyMapping
 import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.theme.ThemeManager
 import com.osfans.trime.ime.enums.Keycode
@@ -219,40 +218,6 @@ class Event(
                 keyCode = Keycode.keyCodeOf(s)
             }
             return keyCode
-        }
-
-        private fun hasModifier(
-            mask: Int,
-            modifier: Int,
-        ): Boolean = mask and modifier > 0
-
-        // KeyboardEvent 从软键盘的按键keycode（可能含有mask）和mask，分离出rimekeycode和mask构成的数组
-        @JvmStatic
-        fun getRimeEvent(
-            code: Int,
-            mask: Int,
-        ): IntArray {
-            var i = RimeKeyMapping.keyCodeToVal(code)
-            if (i == 0xffffff) { // 如果不是Android keycode, 则直接使用获取rimekeycode
-                val s = Keycode.keyNameOf(code)
-                i = Rime.getRimeKeycodeByName(s)
-            }
-            var m = 0
-            if (hasModifier(mask, KeyEvent.META_SHIFT_ON)) m = m or Rime.META_SHIFT_ON
-            if (hasModifier(mask, KeyEvent.META_CTRL_ON)) m = m or Rime.META_CTRL_ON
-            if (hasModifier(mask, KeyEvent.META_ALT_ON)) m = m or Rime.META_ALT_ON
-            if (hasModifier(mask, KeyEvent.META_SYM_ON)) m = m or Rime.META_SYM_ON
-            if (hasModifier(mask, KeyEvent.META_META_ON)) m = m or Rime.META_META_ON
-            if (mask == Rime.META_RELEASE_ON) m = m or Rime.META_RELEASE_ON
-            Timber.d(
-                "<Event> getRimeEvent()\tcode=%d, mask=%d, name=%s\toutput key=%d, meta=%d",
-                code,
-                mask,
-                Keycode.keyNameOf(code),
-                i,
-                m,
-            )
-            return intArrayOf(i, m)
         }
     }
 }

@@ -98,6 +98,16 @@ value class KeyModifiers(
             return KeyModifiers(states)
         }
 
+        fun fromMetaState(metaState: Int): KeyModifiers {
+            var states = KeyModifier.None.modifier
+            if (metaState.hasFlag(KeyEvent.META_ALT_ON)) states += KeyModifier.Alt
+            if (metaState.hasFlag(KeyEvent.META_CTRL_ON)) states += KeyModifier.Control
+            if (metaState.hasFlag(KeyEvent.META_SHIFT_ON)) states += KeyModifier.Shift
+            if (metaState.hasFlag(KeyEvent.META_CAPS_LOCK_ON)) states += KeyModifier.Lock
+            if (metaState.hasFlag(KeyEvent.META_META_ON)) states + KeyModifier.Meta
+            return KeyModifiers(states)
+        }
+
         fun mergeModifiers(arr: Array<out KeyModifier>): UInt = arr.fold(KeyModifier.None.modifier) { acc, it -> acc or it.modifier }
     }
 }

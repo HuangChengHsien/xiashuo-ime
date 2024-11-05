@@ -238,29 +238,6 @@ class Rime :
             System.loadLibrary("rime_jni")
         }
 
-        /*
-  Android SDK包含了如下6个修饰键的状态，其中function键会被trime消费掉，因此只处理5个键
-  Android和librime对按键命名并不一致。读取可能有误。librime按键命名见如下链接，
-  https://github.com/rime/librime/blob/master/src/rime/key_table.cc
-         */
-        @JvmField
-        val META_SHIFT_ON = getRimeModifierByName("Shift")
-
-        @JvmField
-        val META_CTRL_ON = getRimeModifierByName("Control")
-
-        @JvmField
-        val META_ALT_ON = getRimeModifierByName("Alt")
-
-        @JvmField
-        val META_SYM_ON = getRimeModifierByName("Super")
-
-        @JvmField
-        val META_META_ON = getRimeModifierByName("Meta")
-
-        @JvmField
-        val META_RELEASE_ON = getRimeModifierByName("Release")
-
         @JvmStatic
         val isComposing get() = inputStatus?.isComposing ?: false
 
@@ -282,30 +259,6 @@ class Rime :
         @JvmStatic
         val composingText: String
             get() = inputContext?.composition?.commitTextPreview ?: ""
-
-        @JvmStatic
-        fun isVoidKeycode(keycode: Int): Boolean {
-            val voidSymbol = 0xffffff
-            return keycode <= 0 || keycode == voidSymbol
-        }
-
-        // KeyProcess 调用JNI方法发送keycode和mask
-        @JvmStatic
-        fun processKey(
-            keycode: Int,
-            mask: Int,
-        ): Boolean {
-            if (isVoidKeycode(keycode)) return false
-            Timber.d("processKey: keyCode=$keycode, mask=$mask")
-            return processRimeKey(keycode, mask).also {
-                Timber.d("processKey ${if (it) "success" else "failed"}")
-                if (it) {
-                    ipcResponseCallback()
-                } else {
-                    keyEventCallback(KeyValue(keycode), KeyModifiers.of(mask))
-                }
-            }
-        }
 
         @JvmStatic
         fun simulateKeySequence(sequence: CharSequence): Boolean {

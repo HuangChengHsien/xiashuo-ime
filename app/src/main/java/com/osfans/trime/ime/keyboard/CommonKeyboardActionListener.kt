@@ -10,8 +10,10 @@ import android.content.Context
 import android.view.KeyEvent
 import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.R
+import com.osfans.trime.core.KeyModifier
 import com.osfans.trime.core.Rime
 import com.osfans.trime.core.RimeApi
+import com.osfans.trime.core.RimeKeyMapping
 import com.osfans.trime.daemon.RimeSession
 import com.osfans.trime.daemon.launchOnReady
 import com.osfans.trime.data.prefs.AppPrefs
@@ -57,7 +59,7 @@ class CommonKeyboardActionListener(
 
     private val prefs = AppPrefs.defaultInstance()
 
-    var needSendUpRimeKey: Boolean = false
+    var shouldReleaseKey: Boolean = false
 
     private fun showDialog(dialog: suspend (RimeApi) -> Dialog) {
         rime.launchOnReady { api ->
@@ -115,15 +117,19 @@ class CommonKeyboardActionListener(
             }
 
             override fun onRelease(keyEventCode: Int) {
-                if (needSendUpRimeKey) {
+                if (shouldReleaseKey) {
                     if (service.shouldUpdateRimeOption) {
                         Rime.setOption("soft_cursors", prefs.keyboard.softCursorEnabled)
                         Rime.setOption("_horizontal", ThemeManager.activeTheme.generalStyle.horizontal)
                         service.shouldUpdateRimeOption = false
                     }
                     // FIXME: 释放按键可能不对
-                    val (value, modifiers) = Event.getRimeEvent(keyEventCode, Rime.META_RELEASE_ON)
-                    Rime.processKey(value, modifiers)
+                    val value = RimeKeyMapping.keyCodeToVal(keyEventCode)
+                    if (value != RimeKeyMapping.RimeKey_VoidSymbol) {
+                        service.postRimeJob {
+                            processKey(value, KeyModifier.Release.modifier)
+                        }
+                    }
                 }
             }
 
@@ -214,6 +220,10 @@ class CommonKeyboardActionListener(
                     }
                     KeyEvent.KEYCODE_PROG_RED -> showColorPicker()
                     KeyEvent.KEYCODE_MENU -> showEnabledSchemaPicker()
+                    KeyEvent.KEYCODE_BACK,
+                    KeyEvent.KEYCODE_ESCAPE,
+                    -> service.requestHideSelf(0)
+                    KeyEvent.KEYCODE_ENTER -> service.handleReturnKey()
                     else -> {
                         if (event.mask == 0 && KeyboardSwitcher.currentKeyboard.isOnlyShiftOn) {
                             if (event.code == KeyEvent.KEYCODE_SPACE && prefs.keyboard.hookShiftSpace) {
@@ -252,7 +262,7 @@ class CommonKeyboardActionListener(
                 // 优先由librime处理按键事件
                 if (service.handleKey(keyEventCode, metaState)) return
 
-                needSendUpRimeKey = false
+                shouldReleaseKey = false
 
                 // 小键盘自动增加锁定
                 if (keyEventCode >= KeyEvent.KEYCODE_NUMPAD_0 && keyEventCode <= KeyEvent.KEYCODE_NUMPAD_EQUALS) {
@@ -295,7 +305,7 @@ class CommonKeyboardActionListener(
                     }
                     sequence = sequence.substring(slice.length)
                 }
-                needSendUpRimeKey = false
+                shouldReleaseKey = false
             }
         }
     }
