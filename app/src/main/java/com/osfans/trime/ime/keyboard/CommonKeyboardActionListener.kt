@@ -220,10 +220,6 @@ class CommonKeyboardActionListener(
                     }
                     KeyEvent.KEYCODE_PROG_RED -> showColorPicker()
                     KeyEvent.KEYCODE_MENU -> showEnabledSchemaPicker()
-                    KeyEvent.KEYCODE_BACK,
-                    KeyEvent.KEYCODE_ESCAPE,
-                    -> service.requestHideSelf(0)
-                    KeyEvent.KEYCODE_ENTER -> service.handleReturnKey()
                     else -> {
                         if (event.mask == 0 && KeyboardSwitcher.currentKeyboard.isOnlyShiftOn) {
                             if (event.code == KeyEvent.KEYCODE_SPACE && prefs.keyboard.hookShiftSpace) {
@@ -264,10 +260,15 @@ class CommonKeyboardActionListener(
 
                 shouldReleaseKey = false
 
-                // 小键盘自动增加锁定
-                if (keyEventCode >= KeyEvent.KEYCODE_NUMPAD_0 && keyEventCode <= KeyEvent.KEYCODE_NUMPAD_EQUALS) {
-                    service.sendDownUpKeyEvent(keyEventCode, metaState or KeyEvent.META_NUM_LOCK_ON)
-                    return
+                when (keyEventCode) {
+                    KeyEvent.KEYCODE_ENTER -> service.handleReturnKey()
+                    KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> service.requestHideSelf(0)
+                    else -> {
+                        // 小键盘自动增加锁定
+                        if (keyEventCode in KeyEvent.KEYCODE_NUMPAD_0..KeyEvent.KEYCODE_NUMPAD_EQUALS) {
+                            service.sendDownUpKeyEvent(keyEventCode, metaState or KeyEvent.META_NUM_LOCK_ON)
+                        }
+                    }
                 }
             }
 
