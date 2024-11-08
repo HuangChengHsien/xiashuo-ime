@@ -103,7 +103,6 @@ class InputView(
     private val themedContext = context.withTheme(android.R.style.Theme_DeviceDefault_Settings)
     private val inputComponent = InputComponent::class.create(this, themedContext, theme, service, rime)
     private val broadcaster = inputComponent.broadcaster
-    val commonKeyboardActionListener = inputComponent.commonKeyboardActionListener
     private val enterKeyLabel = inputComponent.enterKeyLabel
     private val windowManager = inputComponent.windowManager
     private val quickBar: QuickBar = inputComponent.quickBar

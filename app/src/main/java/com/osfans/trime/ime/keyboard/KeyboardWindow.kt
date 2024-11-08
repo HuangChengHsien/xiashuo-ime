@@ -19,6 +19,7 @@ import com.osfans.trime.core.SchemaItem
 import com.osfans.trime.daemon.RimeSession
 import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.schema.SchemaManager
+import com.osfans.trime.data.theme.KeyActionManager
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.ime.broadcast.InputBroadcastReceiver
 import com.osfans.trime.ime.core.TrimeInputMethodService
@@ -245,9 +246,21 @@ class KeyboardWindow(
             "_hide_key_hint" -> mainKeyboardView.showKeyHint = !value.value
             "_hide_key_symbol" -> mainKeyboardView.showKeySymbol = !value.value
             else -> {
-                if (opt.matches("^_keyboard_.+".toRegex())) {
-                    switchKeyboard(opt.removePrefix("_keyboard_"))
-                    return
+                when {
+                    opt.startsWith("_keyboard_") -> {
+                        val target = opt.removePrefix("_keyboard_")
+                        if (target.isNotEmpty()) {
+                            switchKeyboard(target)
+                        }
+                    }
+                    opt.startsWith("_key_") -> {
+                        val what = opt.removePrefix("_key_")
+                        if (what.isNotEmpty() && value.value) {
+                            commonKeyboardActionListener
+                                .listener
+                                .onAction(KeyActionManager.getAction(what))
+                        }
+                    }
                 }
             }
         }

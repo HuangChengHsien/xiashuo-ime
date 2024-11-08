@@ -11,21 +11,23 @@ import android.view.KeyEvent
 import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.R
 import com.osfans.trime.core.KeyModifier
+import com.osfans.trime.core.KeyModifiers
 import com.osfans.trime.core.Rime
 import com.osfans.trime.core.RimeApi
 import com.osfans.trime.core.RimeKeyMapping
+import com.osfans.trime.core.ScancodeMapping
 import com.osfans.trime.daemon.RimeSession
 import com.osfans.trime.daemon.launchOnReady
 import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.KeyActionManager
-import com.osfans.trime.data.theme.ThemeManager
 import com.osfans.trime.ime.core.InputView
 import com.osfans.trime.ime.core.Speech
 import com.osfans.trime.ime.core.TrimeInputMethodService
 import com.osfans.trime.ime.dependency.InputScope
 import com.osfans.trime.ime.dialog.AvailableSchemaPickerDialog
 import com.osfans.trime.ime.dialog.EnabledSchemaPickerDialog
+import com.osfans.trime.ime.enums.Keycode
 import com.osfans.trime.ime.symbol.LiquidKeyboard
 import com.osfans.trime.ime.symbol.SymbolBoardType
 import com.osfans.trime.ime.symbol.TabManager
@@ -34,10 +36,12 @@ import com.osfans.trime.ui.main.settings.ColorPickerDialog
 import com.osfans.trime.ui.main.settings.KeySoundEffectPickerDialog
 import com.osfans.trime.ui.main.settings.ThemePickerDialog
 import com.osfans.trime.util.ShortcutUtils
+import com.osfans.trime.util.ShortcutUtils.openCategory
 import com.osfans.trime.util.isAsciiPrintable
 import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Inject
 import splitties.systemservices.inputMethodManager
+import timber.log.Timber
 
 @InputScope
 @Inject
@@ -59,7 +63,7 @@ class CommonKeyboardActionListener(
 
     private val prefs = AppPrefs.defaultInstance()
 
-    var shouldReleaseKey: Boolean = false
+    private var shouldReleaseKey: Boolean = false
 
     private fun showDialog(dialog: suspend (RimeApi) -> Dialog) {
         rime.launchOnReady { api ->
@@ -118,11 +122,6 @@ class CommonKeyboardActionListener(
 
             override fun onRelease(keyEventCode: Int) {
                 if (shouldReleaseKey) {
-                    if (service.shouldUpdateRimeOption) {
-                        Rime.setOption("soft_cursors", prefs.keyboard.softCursorEnabled)
-                        Rime.setOption("_horizontal", ThemeManager.activeTheme.generalStyle.horizontal)
-                        service.shouldUpdateRimeOption = false
-                    }
                     // FIXME: 释放按键可能不对
                     val value = RimeKeyMapping.keyCodeToVal(keyEventCode)
                     if (value != RimeKeyMapping.RimeKey_VoidSymbol) {
@@ -255,18 +254,41 @@ class CommonKeyboardActionListener(
                 keyEventCode: Int,
                 metaState: Int,
             ) {
-                // 优先由librime处理按键事件
-                if (service.handleKey(keyEventCode, metaState)) return
-
                 shouldReleaseKey = false
+                val value =
+                    RimeKeyMapping
+                        .keyCodeToVal(keyEventCode)
+                        .takeIf { it != RimeKeyMapping.RimeKey_VoidSymbol }
+                        ?: Rime.getRimeKeycodeByName(Keycode.keyNameOf(keyEventCode))
+                val modifiers = KeyModifiers.fromMetaState(metaState).modifiers
+                val code = ScancodeMapping.keyCodeToScancode(keyEventCode)
+                service.postRimeJob {
+                    if (processKey(value, modifiers, code)) {
+                        shouldReleaseKey = true
+                        Timber.d("handleKey: processKey")
+                        return@postRimeJob
+                    }
+                    if (service.hookKeyboard(keyEventCode, metaState)) {
+                        Timber.d("handleKey: hook")
+                        return@postRimeJob
+                    }
+                    if (context.openCategory(keyEventCode)) {
+                        Timber.d("handleKey: openCategory")
+                        return@postRimeJob
+                    }
+                    shouldReleaseKey = false
 
-                when (keyEventCode) {
-                    KeyEvent.KEYCODE_ENTER -> service.handleReturnKey()
-                    KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> service.requestHideSelf(0)
-                    else -> {
-                        // 小键盘自动增加锁定
-                        if (keyEventCode in KeyEvent.KEYCODE_NUMPAD_0..KeyEvent.KEYCODE_NUMPAD_EQUALS) {
-                            service.sendDownUpKeyEvent(keyEventCode, metaState or KeyEvent.META_NUM_LOCK_ON)
+                    when (keyEventCode) {
+                        KeyEvent.KEYCODE_ENTER -> service.handleReturnKey()
+                        KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> service.requestHideSelf(0)
+                        else -> {
+                            // 小键盘自动增加锁定
+                            if (keyEventCode in KeyEvent.KEYCODE_NUMPAD_0..KeyEvent.KEYCODE_NUMPAD_EQUALS) {
+                                service.sendDownUpKeyEvent(
+                                    keyEventCode,
+                                    metaState or KeyEvent.META_NUM_LOCK_ON,
+                                )
+                            }
                         }
                     }
                 }
