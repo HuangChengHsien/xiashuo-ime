@@ -18,7 +18,7 @@ import com.osfans.trime.daemon.RimeSession
 import com.osfans.trime.daemon.launchOnReady
 import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.theme.ColorManager
-import com.osfans.trime.data.theme.EventManager
+import com.osfans.trime.data.theme.KeyActionManager
 import com.osfans.trime.data.theme.ThemeManager
 import com.osfans.trime.ime.core.InputView
 import com.osfans.trime.ime.core.Speech
@@ -133,12 +133,12 @@ class CommonKeyboardActionListener(
                 }
             }
 
-            override fun onEvent(event: Event) {
-                when (event.code) {
+            override fun onAction(action: KeyAction) {
+                when (action.code) {
                     KeyEvent.KEYCODE_SWITCH_CHARSET -> { // Switch status
                         rime.launchOnReady { api ->
                             service.lifecycleScope.launch {
-                                val option = event.getToggle()
+                                val option = action.getToggle()
                                 val status = api.getRuntimeOption(option)
                                 api.setRuntimeOption(option, !status)
 
@@ -147,9 +147,9 @@ class CommonKeyboardActionListener(
                         }
                     }
                     KeyEvent.KEYCODE_LANGUAGE_SWITCH -> { // Switch IME
-                        if (event.select == ".next") {
+                        if (action.select == ".next") {
                             service.switchToNextIme()
-                        } else if (event.select.isNotEmpty()) {
+                        } else if (action.select.isNotEmpty()) {
                             service.switchToPrevIme()
                         } else {
                             inputMethodManager.showInputMethodPicker()
@@ -161,7 +161,7 @@ class CommonKeyboardActionListener(
                         // %2$s爲當前輸入的編碼
                         // %3$s爲光標前字符
                         // %4$s爲光標前所有字符
-                        var arg = event.option
+                        var arg = action.option
                         val activeTextRegex = Regex(".*%(\\d*)\\$" + "s.*")
                         if (arg.matches(activeTextRegex)) {
                             var activeTextMode =
@@ -180,7 +180,7 @@ class CommonKeyboardActionListener(
                                 )
                         }
 
-                        when (event.command) {
+                        when (action.command) {
                             "liquid_keyboard" -> {
                                 val target =
                                     when {
@@ -201,7 +201,7 @@ class CommonKeyboardActionListener(
                             "paste_by_char" -> service.pasteByChar()
                             "set_color_scheme" -> ColorManager.setColorScheme(arg)
                             else -> {
-                                ShortcutUtils.call(service, event.command, arg)?.let {
+                                ShortcutUtils.call(service, action.command, arg)?.let {
                                     service.commitText(it)
                                     service.updateComposing()
                                 }
@@ -210,7 +210,7 @@ class CommonKeyboardActionListener(
                     }
                     KeyEvent.KEYCODE_VOICE_ASSIST -> Speech(service).startListening() // Speech Recognition
                     KeyEvent.KEYCODE_SETTINGS -> { // Settings
-                        when (event.option) {
+                        when (action.option) {
                             "theme" -> showThemePicker()
                             "color" -> showColorPicker()
                             "schema" -> showAvailableSchemaPicker()
@@ -221,31 +221,31 @@ class CommonKeyboardActionListener(
                     KeyEvent.KEYCODE_PROG_RED -> showColorPicker()
                     KeyEvent.KEYCODE_MENU -> showEnabledSchemaPicker()
                     else -> {
-                        if (event.mask == 0 && KeyboardSwitcher.currentKeyboard.isOnlyShiftOn) {
-                            if (event.code == KeyEvent.KEYCODE_SPACE && prefs.keyboard.hookShiftSpace) {
-                                onKey(event.code, 0)
+                        if (action.mask == 0 && KeyboardSwitcher.currentKeyboard.isOnlyShiftOn) {
+                            if (action.code == KeyEvent.KEYCODE_SPACE && prefs.keyboard.hookShiftSpace) {
+                                onKey(action.code, 0)
                                 return
-                            } else if (event.code >= KeyEvent.KEYCODE_0 &&
-                                event.code <= KeyEvent.KEYCODE_9 &&
+                            } else if (action.code >= KeyEvent.KEYCODE_0 &&
+                                action.code <= KeyEvent.KEYCODE_9 &&
                                 prefs.keyboard.hookShiftNum
                             ) {
-                                onKey(event.code, 0)
+                                onKey(action.code, 0)
                                 return
                             } else if (prefs.keyboard.hookShiftSymbol) {
-                                if (event.code >= KeyEvent.KEYCODE_GRAVE &&
-                                    event.code <= KeyEvent.KEYCODE_SLASH ||
-                                    event.code == KeyEvent.KEYCODE_COMMA ||
-                                    event.code == KeyEvent.KEYCODE_PERIOD
+                                if (action.code >= KeyEvent.KEYCODE_GRAVE &&
+                                    action.code <= KeyEvent.KEYCODE_SLASH ||
+                                    action.code == KeyEvent.KEYCODE_COMMA ||
+                                    action.code == KeyEvent.KEYCODE_PERIOD
                                 ) {
-                                    onKey(event.code, 0)
+                                    onKey(action.code, 0)
                                     return
                                 }
                             }
                         }
-                        if (event.mask == 0) {
-                            onKey(event.code, KeyboardSwitcher.currentKeyboard.modifer)
+                        if (action.mask == 0) {
+                            onKey(action.code, KeyboardSwitcher.currentKeyboard.modifer)
                         } else {
-                            onKey(event.code, event.mask)
+                            onKey(action.code, action.mask)
                         }
                     }
                 }
@@ -297,11 +297,11 @@ class CommonKeyboardActionListener(
                         }
                         BRACED_KEY_EVENT.matches(sequence) -> {
                             slice = BRACED_KEY_EVENT.matchEntire(sequence)?.groupValues?.get(1) ?: ""
-                            onEvent(EventManager.getEvent(slice))
+                            onAction(KeyActionManager.getAction(slice))
                         }
                         else -> {
                             slice = sequence.first().toString()
-                            onEvent(EventManager.getEvent(slice))
+                            onAction(KeyActionManager.getAction(slice))
                         }
                     }
                     sequence = sequence.substring(slice.length)

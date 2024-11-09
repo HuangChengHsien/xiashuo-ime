@@ -13,7 +13,7 @@ import com.osfans.trime.core.Rime.Companion.isAsciiMode
 import com.osfans.trime.core.Rime.Companion.isComposing
 import com.osfans.trime.core.Rime.Companion.showAsciiPunch
 import com.osfans.trime.data.theme.ColorManager
-import com.osfans.trime.data.theme.EventManager
+import com.osfans.trime.data.theme.KeyActionManager
 import com.osfans.trime.ime.enums.KeyEventType
 import com.osfans.trime.util.CollectionUtils.obtainBoolean
 import com.osfans.trime.util.CollectionUtils.obtainFloat
@@ -22,7 +22,7 @@ import com.osfans.trime.util.appContext
 import com.osfans.trime.util.sp
 import java.text.MessageFormat
 
-/** [鍵盤][Keyboard]中的各個按鍵，包含單擊、長按、滑動等多種[事件][Event]  */
+/** [鍵盤][Keyboard]中的各個按鍵，包含單擊、長按、滑動等多種[事件][KeyAction]  */
 @Suppress(
     "ktlint:standard:property-naming",
     "ktlint:standard:value-argument-comment",
@@ -30,7 +30,7 @@ import java.text.MessageFormat
 class Key(
     private val mKeyboard: Keyboard,
 ) {
-    var events = arrayOfNulls<Event>(EVENT_NUM)
+    var keyActions = arrayOfNulls<KeyAction>(EVENT_NUM)
 
     var edgeFlags = 0
     private var sendBindings = true
@@ -109,10 +109,10 @@ class Key(
                 val typeStr = type.toString().lowercase()
                 s = obtainString(keyDefs, typeStr)
                 if (s.isNotEmpty()) {
-                    events[type.ordinal] = EventManager.getEvent(s)
+                    keyActions[type.ordinal] = KeyActionManager.getAction(s)
                     if (type.ordinal < KeyEventType.COMBO.ordinal) hasComposingKey = true
                 } else if (type == KeyEventType.CLICK) {
-                    events[type.ordinal] = EventManager.getEvent("")
+                    keyActions[type.ordinal] = KeyActionManager.getAction("")
                 }
             }
             if (hasComposingKey) mKeyboard.composingKeys.add(this)
@@ -328,58 +328,58 @@ class Key(
      * @return
      */
     fun sendBindings(type: Int): Boolean {
-        var e: Event? = null
-        if (type != KeyEventType.CLICK.ordinal && type >= 0 && type <= EVENT_NUM) e = events[type]
+        var e: KeyAction? = null
+        if (type != KeyEventType.CLICK.ordinal && type >= 0 && type <= EVENT_NUM) e = keyActions[type]
         if (e != null) return true
-        if (events[KeyEventType.ASCII.ordinal] != null && isAsciiMode) return false
+        if (keyActions[KeyEventType.ASCII.ordinal] != null && isAsciiMode) return false
         if (sendBindings) {
-            if (events[KeyEventType.PAGING.ordinal] != null && hasLeft()) return true
-            if (events[KeyEventType.HAS_MENU.ordinal] != null && hasMenu()) return true
-            if (events[KeyEventType.COMPOSING.ordinal] != null && isComposing) return true
+            if (keyActions[KeyEventType.PAGING.ordinal] != null && hasLeft()) return true
+            if (keyActions[KeyEventType.HAS_MENU.ordinal] != null && hasMenu()) return true
+            if (keyActions[KeyEventType.COMPOSING.ordinal] != null && isComposing) return true
         }
         return false
     }
 
-    private val event: Event?
+    private val keyAction: KeyAction?
         get() {
-            if (events[KeyEventType.ASCII.ordinal] != null && isAsciiMode) {
-                return events[KeyEventType.ASCII.ordinal]
+            if (keyActions[KeyEventType.ASCII.ordinal] != null && isAsciiMode) {
+                return keyActions[KeyEventType.ASCII.ordinal]
             }
-            if (events[KeyEventType.PAGING.ordinal] != null && hasLeft()) {
-                return events[KeyEventType.PAGING.ordinal]
+            if (keyActions[KeyEventType.PAGING.ordinal] != null && hasLeft()) {
+                return keyActions[KeyEventType.PAGING.ordinal]
             }
-            if (events[KeyEventType.HAS_MENU.ordinal] != null && hasMenu()) {
-                return events[KeyEventType.HAS_MENU.ordinal]
+            if (keyActions[KeyEventType.HAS_MENU.ordinal] != null && hasMenu()) {
+                return keyActions[KeyEventType.HAS_MENU.ordinal]
             }
-            return if (events[KeyEventType.COMPOSING.ordinal] != null && isComposing) {
-                events[KeyEventType.COMPOSING.ordinal]
+            return if (keyActions[KeyEventType.COMPOSING.ordinal] != null && isComposing) {
+                keyActions[KeyEventType.COMPOSING.ordinal]
             } else {
                 click
             }
         }
-    val click: Event?
-        get() = events[KeyEventType.CLICK.ordinal]
-    val longClick: Event?
-        get() = events[KeyEventType.LONG_CLICK.ordinal]
+    val click: KeyAction?
+        get() = keyActions[KeyEventType.CLICK.ordinal]
+    val longClick: KeyAction?
+        get() = keyActions[KeyEventType.LONG_CLICK.ordinal]
 
-    fun hasEvent(i: Int): Boolean = events[i] != null
+    fun hasEvent(i: Int): Boolean = keyActions[i] != null
 
-    fun getEvent(i: Int): Event? {
-        var e: Event? = null
-        if (i != KeyEventType.CLICK.ordinal && i >= 0 && i <= EVENT_NUM) e = events[i]
+    fun getAction(i: Int): KeyAction? {
+        var e: KeyAction? = null
+        if (i != KeyEventType.CLICK.ordinal && i >= 0 && i <= EVENT_NUM) e = keyActions[i]
         if (e != null) return e
-        if (events[KeyEventType.ASCII.ordinal] != null && isAsciiMode) {
-            return events[KeyEventType.ASCII.ordinal]
+        if (keyActions[KeyEventType.ASCII.ordinal] != null && isAsciiMode) {
+            return keyActions[KeyEventType.ASCII.ordinal]
         }
         if (sendBindings) {
-            if (events[KeyEventType.PAGING.ordinal] != null && hasLeft()) {
-                return events[KeyEventType.PAGING.ordinal]
+            if (keyActions[KeyEventType.PAGING.ordinal] != null && hasLeft()) {
+                return keyActions[KeyEventType.PAGING.ordinal]
             }
-            if (events[KeyEventType.HAS_MENU.ordinal] != null && hasMenu()) {
-                return events[KeyEventType.HAS_MENU.ordinal]
+            if (keyActions[KeyEventType.HAS_MENU.ordinal] != null && hasMenu()) {
+                return keyActions[KeyEventType.HAS_MENU.ordinal]
             }
-            if (events[KeyEventType.COMPOSING.ordinal] != null && isComposing) {
-                return events[KeyEventType.COMPOSING.ordinal]
+            if (keyActions[KeyEventType.COMPOSING.ordinal] != null && isComposing) {
+                return keyActions[KeyEventType.COMPOSING.ordinal]
             }
         }
         return click
@@ -388,13 +388,13 @@ class Key(
     val code: Int
         get() = click!!.code
 
-    fun getCode(type: Int): Int = getEvent(type)!!.code
+    fun getCode(type: Int): Int = getAction(type)!!.code
 
     fun getLabel(): String? {
-        val event = event
+        val event = keyAction
         return if (!TextUtils.isEmpty(label) &&
             event === click &&
-            events[KeyEventType.ASCII.ordinal] == null &&
+            keyActions[KeyEventType.ASCII.ordinal] == null &&
             !showAsciiPunch()
         ) {
             label
@@ -405,9 +405,9 @@ class Key(
 
     fun getPreviewText(type: Int): String =
         if (type == KeyEventType.CLICK.ordinal) {
-            event!!.getPreviewText(mKeyboard)
+            keyAction!!.getPreviewText(mKeyboard)
         } else {
-            getEvent(type)!!.getPreviewText(mKeyboard)
+            getAction(type)!!.getPreviewText(mKeyboard)
         }
 
     val symbolLabel: String?

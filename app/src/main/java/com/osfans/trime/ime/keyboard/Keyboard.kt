@@ -6,7 +6,7 @@ package com.osfans.trime.ime.keyboard
 
 import android.view.KeyEvent
 import com.osfans.trime.data.prefs.AppPrefs.Companion.defaultInstance
-import com.osfans.trime.data.theme.EventManager
+import com.osfans.trime.data.theme.KeyActionManager
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.ime.keyboard.KeyboardPrefs.isLandscapeMode
 import com.osfans.trime.util.CollectionUtils.obtainBoolean
@@ -133,7 +133,7 @@ class Keyboard(
             key.width = keyWidth
             key.height = keyHeight
             key.gap = horizontalGap
-            key.events[0] = EventManager.getEvent(element.toString())
+            key.keyActions[0] = KeyActionManager.getAction(element.toString())
             column++
             x += key.width + key.gap
             mKeys.add(key)

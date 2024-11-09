@@ -16,7 +16,7 @@ import timber.log.Timber
 import java.util.Locale
 
 /** [按鍵][Key]的各種事件（單擊、長按、滑動等）  */
-class Event(
+class KeyAction(
     var s: String,
 ) {
     var code = 0

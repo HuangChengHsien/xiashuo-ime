@@ -48,7 +48,7 @@ import com.osfans.trime.daemon.RimeSession
 import com.osfans.trime.data.db.DraftHelper
 import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.theme.ColorManager
-import com.osfans.trime.data.theme.EventManager
+import com.osfans.trime.data.theme.KeyActionManager
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.data.theme.ThemeManager
 import com.osfans.trime.ime.broadcast.IntentReceiver
@@ -276,7 +276,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                             inputView
                                 ?.commonKeyboardActionListener
                                 ?.listener
-                                ?.onEvent(EventManager.getEvent(key))
+                                ?.onAction(KeyActionManager.getAction(key))
                             shouldUpdateRimeOption = true
                         }
                 }

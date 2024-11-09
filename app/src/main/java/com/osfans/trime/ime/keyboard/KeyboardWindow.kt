@@ -269,21 +269,21 @@ class KeyboardWindow(
     inner class ListenerDecorator(
         private val delegate: KeyboardActionListener,
     ) : KeyboardActionListener by delegate {
-        override fun onEvent(event: Event) {
-            if (event.commit.isNotEmpty()) {
+        override fun onAction(action: KeyAction) {
+            if (action.commit.isNotEmpty()) {
                 // Directly commit the text and don't dispatch to Rime
-                service.commitText(event.commit, true)
+                service.commitText(action.commit, true)
                 return
             }
 
-            if (event.getText(currentKeyboard).isNotEmpty()) {
-                onText(event.getText(currentKeyboard))
+            if (action.getText(currentKeyboard).isNotEmpty()) {
+                onText(action.getText(currentKeyboard))
                 return
             }
-            if (event.code == KeyEvent.KEYCODE_EISU) { // Switch keyboard
-                switchKeyboard(event.select)
+            if (action.code == KeyEvent.KEYCODE_EISU) { // Switch keyboard
+                switchKeyboard(action.select)
             } else {
-                delegate.onEvent(event)
+                delegate.onAction(action)
             }
         }
     }

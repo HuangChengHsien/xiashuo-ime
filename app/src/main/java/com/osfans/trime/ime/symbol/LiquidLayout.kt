@@ -9,8 +9,8 @@ import android.content.Context
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.setPadding
 import com.osfans.trime.data.theme.ColorManager
-import com.osfans.trime.data.theme.EventManager
 import com.osfans.trime.data.theme.FontManager
+import com.osfans.trime.data.theme.KeyActionManager
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.ime.keyboard.CommonKeyboardActionListener
 import splitties.dimensions.dp
@@ -92,10 +92,10 @@ class LiquidLayout(
                                 )
                                 // todo 想办法实现退格键、空格键等 repeatable: true 长按连续触发
                                 setOnClickListener {
-                                    val event = EventManager.getEvent(operation.toString())
+                                    val event = KeyActionManager.getAction(operation.toString())
                                     commonKeyboardActionListener.listener.run {
                                         onPress(event.code)
-                                        onEvent(event)
+                                        onAction(event)
                                     }
                                 }
                             }

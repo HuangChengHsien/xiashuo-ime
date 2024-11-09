@@ -56,7 +56,7 @@ object ThemeManager {
 
     fun init() {
         Theme(prefs.selectedTheme).let {
-            EventManager.resetCache()
+            KeyActionManager.resetCache()
             FontManager.resetCache(it)
             ColorManager.resetCache(it)
             TabManager.resetCache(it)
@@ -66,7 +66,7 @@ object ThemeManager {
 
     fun setNormalTheme(name: String) {
         Theme(name).let {
-            EventManager.resetCache()
+            KeyActionManager.resetCache()
             FontManager.resetCache(it)
             ColorManager.resetCache(it)
             TabManager.resetCache(it)

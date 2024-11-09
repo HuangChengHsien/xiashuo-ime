@@ -32,8 +32,6 @@ import com.osfans.trime.data.theme.FontManager
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.data.theme.model.CompositionComponent
 import com.osfans.trime.ime.core.TrimeInputMethodService
-import com.osfans.trime.ime.keyboard.Event
-import com.osfans.trime.ime.keyboard.KeyboardActionListener
 import com.osfans.trime.ime.keyboard.KeyboardPrefs.isLandscapeMode
 import com.osfans.trime.util.sp
 import splitties.dimensions.dp
@@ -94,7 +92,6 @@ class Composition(
     private var initialY = 0f
     private var onActionMove: ((Float, Float) -> Unit)? = null
     private var onSelectCandidate: ((Int) -> Unit)? = null
-    private var keyboardActionListener: KeyboardActionListener? = null
 
     private val stickyLines: Int
         get() =
@@ -158,25 +155,6 @@ class Composition(
 
     fun setOnSelectCandidateListener(listener: ((Int) -> Unit)?) {
         onSelectCandidate = listener
-    }
-
-    fun setKeyboardActionListener(listener: KeyboardActionListener?) {
-        keyboardActionListener = listener
-    }
-
-    private inner class EventSpan(
-        private val event: Event,
-    ) : ClickableSpan() {
-        override fun onClick(tv: View) {
-            keyboardActionListener?.onPress(event.code)
-            keyboardActionListener?.onEvent(event)
-        }
-
-        override fun updateDrawState(ds: TextPaint) {
-            ds.isUnderlineText = false
-            keyTextColor?.let { ds.color = it }
-            keyBackColor?.let { ds.bgColor = it }
-        }
     }
 
     private fun alignmentSpan(alignment: String): AlignmentSpan {

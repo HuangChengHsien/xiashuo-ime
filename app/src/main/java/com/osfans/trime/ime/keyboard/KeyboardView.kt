@@ -300,14 +300,14 @@ class KeyboardView(
                                 absY < absX ||
                                     (
                                         deltaY > 0 &&
-                                            mKeys!![mDownKey].events[KeyEventType.SWIPE_UP.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_UP.ordinal] == null
                                     ) ||
                                     (
                                         deltaY < 0 &&
-                                            mKeys!![mDownKey].events[KeyEventType.SWIPE_DOWN.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_DOWN.ordinal] == null
                                     )
                             ) &&
-                            mKeys!![mDownKey].events[KeyEventType.SWIPE_RIGHT.ordinal] != null
+                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_RIGHT.ordinal] != null
                         ) {
                             // I should have implement mDisambiguateSwipe as a config option, but the logic
                             // here is really weird, and I don't really know
@@ -325,14 +325,14 @@ class KeyboardView(
                                 absY < absX ||
                                     (
                                         deltaY > 0 &&
-                                            mKeys!![mDownKey].events[KeyEventType.SWIPE_UP.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_UP.ordinal] == null
                                     ) ||
                                     (
                                         deltaY < 0 &&
-                                            mKeys!![mDownKey].events[KeyEventType.SWIPE_DOWN.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_DOWN.ordinal] == null
                                     )
                             ) &&
-                            mKeys!![mDownKey].events[KeyEventType.SWIPE_LEFT.ordinal] != null
+                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_LEFT.ordinal] != null
                         ) {
                             if (mDisambiguateSwipe && endingVelocityX < velocityX / 4) {
                                 return true
@@ -345,14 +345,14 @@ class KeyboardView(
                                 absX < absY ||
                                     (
                                         deltaX > 0 &&
-                                            mKeys!![mDownKey].events[KeyEventType.SWIPE_RIGHT.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_RIGHT.ordinal] == null
                                     ) ||
                                     (
                                         deltaX < 0 &&
-                                            mKeys!![mDownKey].events[KeyEventType.SWIPE_LEFT.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_LEFT.ordinal] == null
                                     )
                             ) &&
-                            mKeys!![mDownKey].events[KeyEventType.SWIPE_UP.ordinal] != null
+                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_UP.ordinal] != null
                         ) {
                             if (mDisambiguateSwipe && endingVelocityY < velocityY / 4) {
                                 return true
@@ -365,14 +365,14 @@ class KeyboardView(
                                 absX < absY ||
                                     (
                                         deltaX > 0 &&
-                                            mKeys!![mDownKey].events[KeyEventType.SWIPE_RIGHT.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_RIGHT.ordinal] == null
                                     ) ||
                                     (
                                         deltaX < 0 &&
-                                            mKeys!![mDownKey].events[KeyEventType.SWIPE_LEFT.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_LEFT.ordinal] == null
                                     )
                             ) &&
-                            mKeys!![mDownKey].events[KeyEventType.SWIPE_DOWN.ordinal] != null
+                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_DOWN.ordinal] != null
                         ) {
                             if (mDisambiguateSwipe && endingVelocityY > velocityY / 4) {
                                 return true
@@ -850,7 +850,7 @@ class KeyboardView(
                 // getKeyIndices(x, y, codes); // 这里实际上并没有生效
                 Timber.d("detectAndSendKey: onEvent, code=$code, key.getEvent")
                 // 可以在这里把 mKeyboard.getModifer() 获取的修饰键状态写入event里
-                key.getEvent(type.ordinal)?.let { keyboardActionListener?.onEvent(it) }
+                key.getAction(type.ordinal)?.let { keyboardActionListener?.onAction(it) }
                 releaseKey(code)
                 Timber.d("detectAndSendKey: refreshModifier")
                 refreshModifier()
@@ -1069,7 +1069,7 @@ class KeyboardView(
             popupKey.longClick?.let {
                 removeMessages()
                 mAbortKey = true
-                keyboardActionListener?.onEvent(it)
+                keyboardActionListener?.onAction(it)
                 releaseKey(it.code)
                 resetModifer()
                 return true
@@ -1095,8 +1095,8 @@ class KeyboardView(
                         id = android.R.id.keyboardView
                         this@apply.keyboardActionListener =
                             object : KeyboardActionListener {
-                                override fun onEvent(event: Event) {
-                                    keyboardActionListener?.onEvent(event)
+                                override fun onAction(action: KeyAction) {
+                                    keyboardActionListener?.onAction(action)
                                     dismissPopupKeyboard()
                                 }
 
