@@ -177,6 +177,9 @@ class GlobalRefSingleton {
   jclass SchemaListItem;
   jmethodID SchemaListItemInit;
 
+  jclass KeyEvent;
+  jmethodID KeyEventInit;
+
   GlobalRefSingleton(JavaVM *jvm_) : jvm(jvm_) {
     JNIEnv *env;
     jvm->AttachCurrentThread(&env, nullptr);
@@ -268,6 +271,11 @@ class GlobalRefSingleton {
         env->NewGlobalRef(env->FindClass("com/osfans/trime/core/SchemaItem")));
     SchemaListItemInit = env->GetMethodID(
         SchemaListItem, "<init>", "(Ljava/lang/String;Ljava/lang/String;)V");
+
+    KeyEvent = reinterpret_cast<jclass>(env->NewGlobalRef(
+        env->FindClass("com/osfans/trime/core/RimeKeyEvent")));
+    KeyEventInit =
+        env->GetMethodID(KeyEvent, "<init>", "(IILjava/lang/String;)V");
   }
 
   const JEnv AttachEnv() const { return JEnv(jvm); }
