@@ -9,215 +9,186 @@ import com.osfans.trime.core.Rime
 import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.theme.ThemeManager
 import com.osfans.trime.ime.enums.Keycode
-import com.osfans.trime.util.CollectionUtils.obtainBoolean
-import com.osfans.trime.util.CollectionUtils.obtainString
 import com.osfans.trime.util.virtualKeyCharacterMap
-import timber.log.Timber
-import java.util.Locale
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import splitties.bitflags.hasFlag
 
 /** [按鍵][Key]的各種事件（單擊、長按、滑動等）  */
 class KeyAction(
-    var s: String,
+    raw: String,
 ) {
     var code = 0
-    var mask = 0
+        private set
+    var modifier = 0
+        private set
+    var command: String = ""
+        private set
+    var option: String = ""
+        private set
+    var select: String = ""
+        private set
+    var toggle: String = ""
+        private set
+    var commit: String = ""
+        private set
+    var shiftLock: String = ""
+        private set
+    var isFunctional = false
+        private set
+    var isRepeatable = false
+        private set
+    var isSticky = false
+        private set
+
     private var text: String = ""
     private var label: String = ""
     private var shiftLabel = ""
     private var preview: String = ""
     private var states: List<String>? = null
-    var command: String = ""
-    var option: String = ""
-    var select: String = ""
-    private var toggle: String = ""
-    var commit: String = ""
-        private set
-    var shiftLock: String? = null
-    var isFunctional = false
-    var isRepeatable = false
-    var isSticky = false
 
-    // 快速把字符串解析为event, 暂时只处理了comment类型 不能完全正确处理=，
-    private fun parseAction(raw: String): Boolean {
-        val pairs =
-            raw
-                .split(',')
-                .filter { it.isNotBlank() }
-                .map { it.split('=', limit = 2) }
-                .associate { it.first() to (it.getOrNull(1) ?: "") }
-
-        val (commit, label, text) =
-            pairs.run {
-                arrayOf(get("commit") ?: "", get("label") ?: "", get("text") ?: "")
-            }
-
-        this.commit = commit
-        this.text = text
-        this.label = label.ifEmpty { commit }.ifEmpty { text }
-
-        Timber.d("parseAction: raw=$raw: text=$text, commit=$commit, label=$label")
-        return commit.isNotBlank() || text.isNotBlank() || label.isNotBlank()
-    }
+    private val hookShiftNum get() = AppPrefs.defaultInstance().keyboard.hookShiftNum
+    private val hookShiftSymbol get() = AppPrefs.defaultInstance().keyboard.hookShiftSymbol
 
     private fun adjustCase(
-        s: String,
-        kb: Keyboard?,
-    ): String {
-        var str = s
-        if (str.isEmpty()) return ""
-        if (str.length == 1 && kb != null && kb.needUpCase()) {
-            str = str.uppercase(Locale.getDefault())
-        } else if (str.length == 1 &&
-            kb != null &&
-            !Rime.isAsciiMode &&
-            kb.isLabelUppercase
-        ) {
-            str = str.uppercase(Locale.getDefault())
+        str: String,
+        keyboard: Keyboard,
+    ): String =
+        if (str.length == 1 && (keyboard.isShifted || (!Rime.isAsciiMode && keyboard.isLabelUppercase))) {
+            str.uppercase()
+        } else {
+            str
         }
-        return str
-    }
 
-    fun getLabel(kb: Keyboard?): String {
+    fun getLabel(keyboard: Keyboard): String {
         val state = states?.get(if (Rime.getOption(toggle)) 1 else 0)
         if (state != null) return state
-        if (kb == null) return adjustCase(label, null)
-        if (kb.isOnlyShiftOn) {
-            if (code >= KeyEvent.KEYCODE_0 &&
-                code <= KeyEvent.KEYCODE_9 &&
-                !AppPrefs.defaultInstance().keyboard.hookShiftNum
-            ) {
-                return adjustCase(shiftLabel, kb)
+        if (keyboard.isOnlyShiftOn) {
+            if (code in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 && !hookShiftNum) {
+                return adjustCase(shiftLabel, keyboard)
             }
-            if (code >= KeyEvent.KEYCODE_GRAVE &&
-                code <= KeyEvent.KEYCODE_SLASH ||
+            if (code in KeyEvent.KEYCODE_GRAVE..KeyEvent.KEYCODE_SLASH ||
                 code == KeyEvent.KEYCODE_COMMA ||
                 code == KeyEvent.KEYCODE_PERIOD
             ) {
-                if (!AppPrefs.defaultInstance().keyboard.hookShiftSymbol) return adjustCase(shiftLabel, kb)
+                if (!hookShiftSymbol) return adjustCase(shiftLabel, keyboard)
             }
-        } else if (kb.modifer or mask and KeyEvent.META_SHIFT_ON != 0) {
-            return adjustCase(shiftLabel, kb)
+        } else if ((modifier or keyboard.modifier).hasFlag(KeyEvent.META_SHIFT_ON)) {
+            return adjustCase(shiftLabel, keyboard)
         }
-        return adjustCase(label, kb)
+        return adjustCase(label, keyboard)
     }
 
-    fun getText(kb: Keyboard?): String {
-        if (text.isNotEmpty()) return adjustCase(text, kb)
-        if (kb != null &&
-            kb.needUpCase() &&
-            mask == 0 &&
-            code >= KeyEvent.KEYCODE_A &&
-            code <= KeyEvent.KEYCODE_Z
-        ) {
-            return adjustCase(label, kb)
-        }
-        return ""
-    }
-
-    fun getPreviewText(kb: Keyboard?): String = preview.ifEmpty { getLabel(kb) }
-
-    fun getToggle(): String = toggle.ifEmpty { "ascii_mode" }
-
-    private fun parseLabel() {
-        if (label.isNotEmpty()) return
-        val c = code
-        if (c == KeyEvent.KEYCODE_SPACE) {
-            label = Rime.currentSchemaName
+    fun getText(keyboard: Keyboard): String =
+        if (text.isNotEmpty()) {
+            adjustCase(text, keyboard)
+        } else if (keyboard.isShifted && code in KeyEvent.KEYCODE_A..KeyEvent.KEYCODE_Z && modifier == 0) {
+            adjustCase(label, keyboard)
         } else {
-            if (c > 0) label = Keycode.getDisplayLabel(c, mask)
+            text
         }
-    }
 
-    val isMeta: Boolean
-        get() {
-            val c = this.code
-            return c == KeyEvent.KEYCODE_META_LEFT || c == KeyEvent.KEYCODE_META_RIGHT
-        }
-    val isAlt: Boolean
-        get() {
-            val c = this.code
-            return c == KeyEvent.KEYCODE_ALT_LEFT || c == KeyEvent.KEYCODE_ALT_RIGHT
-        }
+    fun getPreview(keyboard: Keyboard): String = preview.ifEmpty { getLabel(keyboard) }
 
     init {
-        initHelper()
-    }
-
-    private fun initHelper() {
-        // {send|key} {Ctrl+F}
-        if (s.matches(sendPattern)) {
-            val label = s.substring(1, s.length - 1) // 去除两边的大括号
-            val sends = Keycode.parseSend(label) // send
-            code = sends[0]
-            mask = sends[1]
-            /** 解析成功 */
-            if (code > 0 || mask > 0) return
-            if (parseAction(label)) return
-            s = label
-        }
-        val theme = ThemeManager.activeTheme
-        // 预设按键，如 Return BackSpace
-        if (theme.presetKeys!!.containsKey(s)) {
-            val presetKey = theme.presetKeys!![s]?.configMap
-            command = obtainString(presetKey, "command", "")
-            option = obtainString(presetKey, "option", "")
-            select = obtainString(presetKey, "select", "")
-            toggle = obtainString(presetKey, "toggle", "")
-            label = obtainString(presetKey, "label", "")
-            preview = obtainString(presetKey, "preview", "")
-            shiftLock = obtainString(presetKey, "shift_lock", "")
-            commit = obtainString(presetKey, "commit", "")
-            var send = obtainString(presetKey, "send", "")
-            if (send.isEmpty() && command.isNotEmpty()) send = "function" // command默認發function
-            val sends = Keycode.parseSend(send)
-            code = sends[0]
-            mask = sends[1]
-            parseLabel()
-            text = presetKey?.getValue("text")?.getString() ?: ""
-            if (code < 0 && text.isEmpty()) text = s
-            states = presetKey?.get("states")?.configList?.map { it!!.configValue.getString() }
-            isSticky = obtainBoolean(presetKey, "sticky", false)
-            isRepeatable = obtainBoolean(presetKey, "repeatable", false)
-            isFunctional = obtainBoolean(presetKey, "functional", true)
-        } else if (getClickCode(s).also { code = it } >= 0) {
-            // 普通的单个按键 'q' '1' '!'
-            parseLabel()
+        val unbraced = raw.removeSurrounding("{", "}")
+        // match like: { x: "{Control+a}" }
+        if (raw.matches(SINGLE_BRACED_STR)) {
+            val (c, m) = Keycode.parseSend(unbraced)
+            if (c != KeyEvent.KEYCODE_UNKNOWN || m > 0) {
+                code = c
+                modifier = m
+            } else {
+                // match: { x: { commit: a, text: b, label: c } }
+                val action = decodeMapFromString(raw)
+                if (action.isNotEmpty()) {
+                    commit = action["commit"] ?: ""
+                    text = action["text"] ?: ""
+                    label = action["label"] ?: ""
+                }
+            }
         } else {
-            // '(){Left}'
-            code = 0
-            text = s
-            label = text.replace(labelPattern, "")
-        }
-        shiftLabel = label
-        if (Keycode.isStdKey(code)) { // Android keycode区域
-            if (virtualKeyCharacterMap.isPrintingKey(code)) {
-                val mMask = KeyEvent.META_SHIFT_ON or mask
-                val event = KeyEvent(0, 0, KeyEvent.ACTION_DOWN, code, 0, mMask)
-                val k = event.getUnicodeChar(mMask)
-                Timber.d(
-                    "shiftLabel = $shiftLabel keycode=$code, mask=$mMask, k=$k",
-                )
-                if (k > 0) {
-                    shiftLabel = "" + k.toChar()
+            val theme = ThemeManager.activeTheme
+            // match like: { x: BackSpace } -> preset_keys/BackSpace: {..., send: BackSpace }
+            if (theme.presetKeys!!.containsKey(unbraced)) {
+                theme.presetKeys!![unbraced]!!.configMap.let {
+                    command = it.getValue("command")?.getString() ?: ""
+                    option = it.getValue("option")?.getString() ?: ""
+                    select = it.getValue("select")?.getString() ?: ""
+                    toggle = it.getValue("toggle")?.getString() ?: ""
+                    preview = it.getValue("preview")?.getString() ?: ""
+                    shiftLock = it.getValue("shift_lock")?.getString() ?: ""
+                    commit = it.getValue("commit")?.getString() ?: ""
+                    text = it.getValue("text")?.getString() ?: ""
+                    isSticky = it.getValue("sticky")?.getBool() ?: false
+                    isRepeatable = it.getValue("repeatable")?.getBool() ?: false
+                    isFunctional = it.getValue("functional")?.getBool() ?: true
+
+                    states =
+                        runCatching {
+                            it["states"]?.configList?.decode(ListSerializer(String.serializer()))
+                        }.getOrNull()
+
+                    val send = it.getValue("send")?.getString()
+                    if (!send.isNullOrEmpty()) {
+                        val (c, m) = Keycode.parseSend(send)
+                        code = c
+                        modifier = m
+                    } else if (command.isNotEmpty()) {
+                        code = KeyEvent.KEYCODE_FUNCTION
+                    }
+
+                    if (code == KeyEvent.KEYCODE_SPACE) {
+                        label = Rime.currentSchemaName
+                    } else if (code != KeyEvent.KEYCODE_UNKNOWN) {
+                        label = it
+                            .getValue("label")
+                            ?.getString()
+                            ?.ifEmpty { Keycode.getDisplayLabel(code, modifier) } ?: ""
+                    }
+                }
+            } else {
+                // match like: { x: 1 } or { x: q } ...
+                code = Keycode.keyCodeOf(unbraced)
+                if (unbraced.isNotEmpty() && code == KeyEvent.KEYCODE_UNKNOWN) {
+                    text = raw
+                    label = raw.replace(BRACED_STR, "")
+                } else {
+                    if (label.isEmpty()) {
+                        if (code == KeyEvent.KEYCODE_SPACE) {
+                            label = Rime.currentSchemaName
+                        } else if (code != KeyEvent.KEYCODE_UNKNOWN) {
+                            label = Keycode.getDisplayLabel(code, modifier)
+                        }
+                    }
+                }
+            }
+            shiftLabel = label
+            if (Keycode.isStdKey(code)) { // Android keycode区域
+                if (virtualKeyCharacterMap.isPrintingKey(code)) {
+                    val charCode = virtualKeyCharacterMap.get(code, modifier or KeyEvent.META_SHIFT_ON)
+                    if (charCode > 0) {
+                        shiftLabel = charCode.toChar().toString()
+                    }
                 }
             }
         }
     }
 
     companion object {
-        // {send|key}
-        private val sendPattern = Regex("""\{[^{}]+\}""")
-        private val labelPattern = Regex("""\{[^{}]+\}""")
+        private val SINGLE_BRACED_STR = Regex("""^\{[^{}]+\}$""")
+        private val BRACED_STR = Regex("""\{[^{}]+\}""")
+        private val KV_PATTERN = Regex("""(\\w+)=(\\w+)""")
 
-        @JvmStatic
-        fun getClickCode(s: String?): Int {
-            var keyCode = -1
-            if (s.isNullOrEmpty()) { // 空鍵
-                keyCode = 0
-            } else if (Keycode.fromString(s) != Keycode.VoidSymbol) {
-                keyCode = Keycode.keyCodeOf(s)
+        private fun decodeMapFromString(str: String): Map<String, String> {
+            val map = mutableMapOf<String, String>()
+            val trimmed = str.removeSurrounding("{", "}")
+            val matches = KV_PATTERN.findAll(trimmed)
+            for (match in matches) {
+                val (_, k, v) = match.groupValues
+                map[k] = v
             }
-            return keyCode
+            return map
         }
     }
 }

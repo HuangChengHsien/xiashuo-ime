@@ -276,9 +276,11 @@ class KeyboardWindow(
                 return
             }
 
-            if (action.getText(currentKeyboard).isNotEmpty()) {
-                onText(action.getText(currentKeyboard))
-                return
+            currentKeyboard?.let {
+                if (action.getText(it).isNotEmpty()) {
+                    onText(action.getText(it))
+                    return
+                }
             }
             if (action.code == KeyEvent.KEYCODE_EISU) { // Switch keyboard
                 switchKeyboard(action.select)

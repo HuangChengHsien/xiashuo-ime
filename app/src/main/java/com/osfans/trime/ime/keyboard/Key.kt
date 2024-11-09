@@ -405,9 +405,9 @@ class Key(
 
     fun getPreviewText(type: Int): String =
         if (type == KeyEventType.CLICK.ordinal) {
-            keyAction!!.getPreviewText(mKeyboard)
+            keyAction!!.getPreview(mKeyboard)
         } else {
-            getAction(type)!!.getPreviewText(mKeyboard)
+            getAction(type)!!.getPreview(mKeyboard)
         }
 
     val symbolLabel: String?

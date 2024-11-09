@@ -16,6 +16,7 @@ import com.osfans.trime.util.CollectionUtils.obtainString
 import com.osfans.trime.util.appContext
 import com.osfans.trime.util.config.ConfigMap
 import com.osfans.trime.util.sp
+import splitties.bitflags.hasFlag
 import splitties.dimensions.dp
 import timber.log.Timber
 import kotlin.math.abs
@@ -69,7 +70,7 @@ class Keyboard(
     /** List of keys in this keyboard  */
     private val mKeys: MutableList<Key>
     val composingKeys: MutableList<Key>
-    var modifer = 0
+    var modifier = 0
         private set
 
     /** Width of the screen available to fit the keyboard  */
@@ -498,9 +499,7 @@ class Keyboard(
     val keys: List<Key>
         get() = mKeys
 
-    fun hasModifier(modifierMask: Int): Boolean = modifer and modifierMask != 0
-
-    fun hasModifier(): Boolean = modifer != 0
+    fun hasModifier(modifierMask: Int): Boolean = modifier and modifierMask != 0
 
     private fun setModifier(
         mask: Int,
@@ -509,7 +508,7 @@ class Keyboard(
         val b = hasModifier(mask)
         if (b == value) return false
         printModifierKeyState("")
-        modifer = if (value) modifer or mask else modifer and mask.inv()
+        modifier = if (value) modifier or mask else modifier and mask.inv()
         printModifierKeyState("->")
         return true
     }
@@ -529,17 +528,9 @@ class Keyboard(
     val isAlted: Boolean
         get() = hasModifier(KeyEvent.META_ALT_ON)
     val isShifted: Boolean
-        get() = hasModifier(KeyEvent.META_SHIFT_ON)
-
-    // 需要优化
-    fun needUpCase(): Boolean {
-        if (mShiftKey != null) {
-            if (mShiftKey!!.isOn) {
-                return true
-            }
-        }
-        return hasModifier(KeyEvent.META_SHIFT_ON)
-    }
+        get() =
+            modifier.hasFlag(KeyEvent.META_SHIFT_ON) ||
+                mShiftKey?.isOn == true
 
     /**
      * 設定鍵盤的Shift鍵狀態
@@ -673,18 +664,18 @@ class Keyboard(
     }
 
     val isOnlyShiftOn: Boolean
-        get() = mShiftKey != null && mShiftKey!!.isOn && modifer and MASK_META_WITHOUT_SHIFT == 0
+        get() = mShiftKey != null && mShiftKey!!.isOn && modifier and MASK_META_WITHOUT_SHIFT == 0
 
     fun resetShifted(): Boolean = if (mShiftKey != null && !mShiftKey!!.isOn) setModifier(KeyEvent.META_SHIFT_ON, false) else false
 
     fun resetModifer(): Boolean {
         // 这里改为了一次性重置全部修饰键状态并返回TRUE刷新UI，可能有bug
-        modifer = 0
-        if (mShiftKey != null && mShiftKey!!.isOn) modifer = KeyEvent.META_SHIFT_ON
-        if (mAltKey != null && mAltKey!!.isOn) modifer = modifer or KeyEvent.META_ALT_ON
-        if (mCtrlKey != null && mCtrlKey!!.isOn) modifer = modifer or KeyEvent.META_CTRL_ON
-        if (mMetaKey != null && mMetaKey!!.isOn) modifer = modifer or KeyEvent.META_META_ON
-        if (mSymKey != null && mSymKey!!.isOn) modifer = modifer or KeyEvent.KEYCODE_SYM
+        modifier = 0
+        if (mShiftKey != null && mShiftKey!!.isOn) modifier = KeyEvent.META_SHIFT_ON
+        if (mAltKey != null && mAltKey!!.isOn) modifier = modifier or KeyEvent.META_ALT_ON
+        if (mCtrlKey != null && mCtrlKey!!.isOn) modifier = modifier or KeyEvent.META_CTRL_ON
+        if (mMetaKey != null && mMetaKey!!.isOn) modifier = modifier or KeyEvent.META_META_ON
+        if (mSymKey != null && mSymKey!!.isOn) modifier = modifier or KeyEvent.KEYCODE_SYM
         return true
     }
 

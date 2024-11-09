@@ -433,44 +433,6 @@ enum class Keycode {
 
         fun isStdKey(keycode: Int): Boolean = keycode in SOFT_LEFT.ordinal..PROFILE_SWITCH.ordinal
 
-        fun toStdKeyEvent(
-            keycode: Int,
-            mask: Int = 0,
-        ): IntArray {
-            val event = IntArray(2)
-            if (keycode !in entries.indices) return event
-            if (keycode < A.ordinal) {
-                event[0] = keycode
-                event[1] = mask
-            } else {
-                if (keycode <= Z.ordinal) {
-                    event[0] = keycode - A.ordinal + a.ordinal
-                } else {
-                    event[0] =
-                        when (keycode) {
-                            exclam.ordinal -> _1.ordinal
-                            dollar.ordinal -> _4.ordinal
-                            percent.ordinal -> _5.ordinal
-                            asciicircum.ordinal -> _6.ordinal
-                            ampersand.ordinal -> _7.ordinal
-                            quotedbl.ordinal -> apostrophe.ordinal
-                            colon.ordinal -> semicolon.ordinal
-                            less.ordinal -> comma.ordinal
-                            greater.ordinal -> period.ordinal
-                            question.ordinal -> slash.ordinal
-                            underscore.ordinal -> minus.ordinal
-                            braceleft.ordinal -> bracketleft.ordinal
-                            braceright.ordinal -> bracketright.ordinal
-                            asciitilde.ordinal -> grave.ordinal
-                            bar.ordinal -> backslash.ordinal
-                            else -> 0
-                        }
-                }
-                event[1] = mask or KeyEvent.META_SHIFT_ON
-            }
-            return event
-        }
-
         private fun hasSymbolLabel(keycode: Int): Boolean {
             if (keycode !in entries.indices) return false
             return keycode >= A.ordinal || reverseMap.containsKey(entries[keycode])
@@ -485,8 +447,7 @@ enum class Keycode {
             if (isStdKey(keyCode)) {
                 // Android keycode区域
                 if (virtualKeyCharacterMap.isPrintingKey(keyCode)) {
-                    val event = KeyEvent(0, 0, KeyEvent.ACTION_DOWN, keyCode, 0, mask)
-                    val charCode = event.getUnicodeChar(mask)
+                    val charCode = virtualKeyCharacterMap.get(keyCode, mask)
                     Timber.d("getDisplayLabel(): keycode=$keyCode, mask=$mask, charCode=$charCode")
                     if (charCode > 0) {
                         charCode.toChar().toString()
@@ -502,13 +463,13 @@ enum class Keycode {
                 ""
             }
 
-        private val masks =
-            hashMapOf(
+        private val modifiers =
+            mapOf(
                 "Shift" to KeyEvent.META_SHIFT_ON,
                 "Control" to KeyEvent.META_CTRL_ON,
                 "Alt" to KeyEvent.META_ALT_ON,
                 "Meta" to KeyEvent.META_META_ON,
-                "SYM" to KeyEvent.META_SYM_ON,
+                "Super" to KeyEvent.META_SYM_ON,
             )
 
         @JvmStatic
@@ -530,16 +491,12 @@ enum class Keycode {
         }
 
         @JvmStatic
-        fun parseSend(s: String): IntArray {
-            val sends = IntArray(2)
-            if (s.isEmpty()) return sends
-            val keys = s.split('+')
+        fun parseSend(str: String): IntArray {
+            val sends = intArrayOf(0, 0)
+            if (str.isEmpty()) return sends
+            val keys = str.split('+')
             sends[0] = fromString(keys.last()).ordinal
-            for (key in keys) {
-                if (masks.containsKey(key)) {
-                    sends[1] = sends[1] or (masks[key] ?: 0)
-                }
-            }
+            sends[1] = keys.filter { modifiers.containsKey(it) }.fold(0) { acc, key -> acc or modifiers[key]!! }
             return sends
         }
     }

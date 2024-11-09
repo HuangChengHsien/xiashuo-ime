@@ -138,7 +138,7 @@ class CommonKeyboardActionListener(
                     KeyEvent.KEYCODE_SWITCH_CHARSET -> { // Switch status
                         rime.launchOnReady { api ->
                             service.lifecycleScope.launch {
-                                val option = action.getToggle()
+                                val option = action.toggle.ifEmpty { return@launch }
                                 val status = api.getRuntimeOption(option)
                                 api.setRuntimeOption(option, !status)
 
@@ -221,7 +221,7 @@ class CommonKeyboardActionListener(
                     KeyEvent.KEYCODE_PROG_RED -> showColorPicker()
                     KeyEvent.KEYCODE_MENU -> showEnabledSchemaPicker()
                     else -> {
-                        if (action.mask == 0 && KeyboardSwitcher.currentKeyboard.isOnlyShiftOn) {
+                        if (action.modifier == 0 && KeyboardSwitcher.currentKeyboard.isOnlyShiftOn) {
                             if (action.code == KeyEvent.KEYCODE_SPACE && prefs.keyboard.hookShiftSpace) {
                                 onKey(action.code, 0)
                                 return
@@ -242,10 +242,10 @@ class CommonKeyboardActionListener(
                                 }
                             }
                         }
-                        if (action.mask == 0) {
-                            onKey(action.code, KeyboardSwitcher.currentKeyboard.modifer)
+                        if (action.modifier == 0) {
+                            onKey(action.code, KeyboardSwitcher.currentKeyboard.modifier)
                         } else {
-                            onKey(action.code, action.mask)
+                            onKey(action.code, action.modifier)
                         }
                     }
                 }
