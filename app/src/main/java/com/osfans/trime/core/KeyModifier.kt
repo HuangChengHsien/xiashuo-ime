@@ -85,15 +85,12 @@ value class KeyModifiers(
         fun fromKeyEvent(event: KeyEvent): KeyModifiers {
             var states = KeyModifier.None.modifier
             event.apply {
-                if (action == KeyEvent.ACTION_UP) {
-                    states += KeyModifier.Release
-                } else {
-                    if (isAltPressed) states += KeyModifier.Alt
-                    if (isCtrlPressed) states += KeyModifier.Control
-                    if (isShiftPressed) states += KeyModifier.Shift
-                    if (isCapsLockOn) states += KeyModifier.Lock
-                    if (isMetaPressed) states += KeyModifier.Meta
-                }
+                if (isAltPressed) states += KeyModifier.Alt
+                if (isCtrlPressed) states += KeyModifier.Control
+                if (isShiftPressed) states += KeyModifier.Shift
+                if (isCapsLockOn) states += KeyModifier.Lock
+                if (isMetaPressed) states += KeyModifier.Meta
+                if (action == KeyEvent.ACTION_UP) states += KeyModifier.Release
             }
             return KeyModifiers(states)
         }

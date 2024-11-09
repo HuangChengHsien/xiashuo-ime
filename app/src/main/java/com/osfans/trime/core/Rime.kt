@@ -78,13 +78,14 @@ class Rime :
         value: Int,
         modifiers: UInt,
         code: Int,
+        up: Boolean,
     ): Boolean =
         withRimeContext {
             processRimeKey(value, modifiers.toInt()).also {
                 if (it) {
                     ipcResponseCallback()
                 } else {
-                    keyEventCallback(KeyValue(value), KeyModifiers(modifiers), code)
+                    keyEventCallback(KeyValue(value), KeyModifiers(modifiers), code, up)
                 }
             }
         }
@@ -93,13 +94,14 @@ class Rime :
         value: KeyValue,
         modifiers: KeyModifiers,
         code: Int,
+        up: Boolean,
     ): Boolean =
         withRimeContext {
             processRimeKey(value.value, modifiers.toInt()).also {
                 if (it) {
                     ipcResponseCallback()
                 } else {
-                    keyEventCallback(value, modifiers, code)
+                    keyEventCallback(value, modifiers, code, up)
                 }
             }
         }
@@ -453,8 +455,9 @@ class Rime :
             value: KeyValue,
             modifiers: KeyModifiers,
             code: Int,
+            up: Boolean,
         ) {
-            handleRimeEvent(RimeEvent.EventType.Key, RimeEvent.KeyEvent.Data(value, modifiers, code))
+            handleRimeEvent(RimeEvent.EventType.Key, RimeEvent.KeyEvent.Data(value, modifiers, code, up))
         }
 
         private fun <T> handleRimeEvent(

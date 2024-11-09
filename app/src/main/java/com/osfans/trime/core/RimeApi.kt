@@ -23,12 +23,14 @@ interface RimeApi {
         value: Int,
         modifiers: UInt = 0u,
         code: Int = 0,
+        up: Boolean = false,
     ): Boolean
 
     suspend fun processKey(
         value: KeyValue,
         modifiers: KeyModifiers,
         code: Int = 0,
+        up: Boolean = false,
     ): Boolean
 
     suspend fun selectCandidate(idx: Int): Boolean

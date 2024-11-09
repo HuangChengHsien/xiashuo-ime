@@ -16,6 +16,7 @@ import android.text.InputType
 import android.view.InputDevice
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
@@ -32,7 +33,6 @@ import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.BuildConfig
 import com.osfans.trime.R
-import com.osfans.trime.core.KeyModifier
 import com.osfans.trime.core.KeyModifiers
 import com.osfans.trime.core.KeyValue
 import com.osfans.trime.core.Rime
@@ -297,13 +297,13 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                     val keyCode = it.value.keyCode
                     if (keyCode != KeyEvent.KEYCODE_UNKNOWN) {
                         val eventTime = SystemClock.uptimeMillis()
-                        if (it.modifiers.modifiers == KeyModifier.Release.modifier) {
+                        if (it.up) {
                             sendUpKeyEvent(eventTime, keyCode, it.modifiers.metaState)
                         } else {
                             sendDownKeyEvent(eventTime, keyCode, it.modifiers.metaState)
                         }
                     } else {
-                        if (it.modifiers.modifiers != KeyModifier.Release.modifier && it.unicode > 0) {
+                        if (!it.up && it.unicode > 0) {
                             commitText(Char(it.unicode).toString())
                         } else {
                             Timber.w("Unhandled Rime KeyEvent: $it")
@@ -764,18 +764,19 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun forwardKeyEvent(event: KeyEvent): Boolean {
+        val up = event.action == MotionEvent.ACTION_UP
         val modifiers = KeyModifiers.fromKeyEvent(event)
         val charCode = event.unicodeChar
         if (charCode > 0 && charCode != '\t'.code) {
             postRimeJob {
-                processKey(charCode, modifiers.modifiers, event.scanCode)
+                processKey(charCode, modifiers.modifiers, event.scanCode, up)
             }
             return true
         }
         val keyVal = KeyValue.fromKeyEvent(event)
         if (keyVal.value != RimeKeyMapping.RimeKey_VoidSymbol) {
             postRimeJob {
-                processKey(keyVal, modifiers, event.scanCode)
+                processKey(keyVal, modifiers, event.scanCode, up)
             }
             return true
         }
