@@ -29,7 +29,6 @@ import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.FontManager
 import com.osfans.trime.data.theme.Theme
-import com.osfans.trime.ime.enums.KeyEventType
 import com.osfans.trime.util.LeakGuardHandlerWrapper
 import com.osfans.trime.util.indexOfStateSet
 import com.osfans.trime.util.sp
@@ -238,7 +237,7 @@ class KeyboardView(
         override fun handleMessage(msg: Message) {
             val mKeyboardView = getOwnerInstanceOrNull() ?: return
             when (msg.what) {
-                MSG_SHOW_PREVIEW -> mKeyboardView.showKey(msg.arg1, msg.arg2)
+                MSG_SHOW_PREVIEW -> mKeyboardView.showKey(msg.arg1, KeyBehavior.entries[msg.arg2])
                 MSG_REMOVE_PREVIEW -> mKeyboardView.mPreviewPopup.dismiss()
                 MSG_REPEAT ->
                     if (mKeyboardView.repeatKey()) {
@@ -289,7 +288,7 @@ class KeyboardView(
                         val endingVelocityX: Float = mSwipeTracker.xVelocity
                         val endingVelocityY: Float = mSwipeTracker.yVelocity
                         var sendDownKey = false
-                        var type = KeyEventType.CLICK
+                        var behavior = KeyBehavior.CLICK
                         //  In my tests velocity always smaller than 400
                         //  so I don't really why we need to compare velocity here,
                         //  as default value of getSwipeVelocity() is 800
@@ -300,14 +299,14 @@ class KeyboardView(
                                 absY < absX ||
                                     (
                                         deltaY > 0 &&
-                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_UP.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_UP.ordinal] == null
                                     ) ||
                                     (
                                         deltaY < 0 &&
-                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_DOWN.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_DOWN.ordinal] == null
                                     )
                             ) &&
-                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_RIGHT.ordinal] != null
+                            mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_RIGHT.ordinal] != null
                         ) {
                             // I should have implement mDisambiguateSwipe as a config option, but the logic
                             // here is really weird, and I don't really know
@@ -318,67 +317,67 @@ class KeyboardView(
                                 return true
                             } else {
                                 sendDownKey = true
-                                type = KeyEventType.SWIPE_RIGHT
+                                behavior = KeyBehavior.SWIPE_RIGHT
                             }
                         } else if ((deltaX < -travel || velocityX < -velocity) &&
                             (
                                 absY < absX ||
                                     (
                                         deltaY > 0 &&
-                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_UP.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_UP.ordinal] == null
                                     ) ||
                                     (
                                         deltaY < 0 &&
-                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_DOWN.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_DOWN.ordinal] == null
                                     )
                             ) &&
-                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_LEFT.ordinal] != null
+                            mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_LEFT.ordinal] != null
                         ) {
                             if (mDisambiguateSwipe && endingVelocityX < velocityX / 4) {
                                 return true
                             } else {
                                 sendDownKey = true
-                                type = KeyEventType.SWIPE_LEFT
+                                behavior = KeyBehavior.SWIPE_LEFT
                             }
                         } else if ((deltaY < -travel || velocityY < -velocity) &&
                             (
                                 absX < absY ||
                                     (
                                         deltaX > 0 &&
-                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_RIGHT.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_RIGHT.ordinal] == null
                                     ) ||
                                     (
                                         deltaX < 0 &&
-                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_LEFT.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_LEFT.ordinal] == null
                                     )
                             ) &&
-                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_UP.ordinal] != null
+                            mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_UP.ordinal] != null
                         ) {
                             if (mDisambiguateSwipe && endingVelocityY < velocityY / 4) {
                                 return true
                             } else {
                                 sendDownKey = true
-                                type = KeyEventType.SWIPE_UP
+                                behavior = KeyBehavior.SWIPE_UP
                             }
                         } else if ((deltaY > travel || velocityY > velocity) &&
                             (
                                 absX < absY ||
                                     (
                                         deltaX > 0 &&
-                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_RIGHT.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_RIGHT.ordinal] == null
                                     ) ||
                                     (
                                         deltaX < 0 &&
-                                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_LEFT.ordinal] == null
+                                            mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_LEFT.ordinal] == null
                                     )
                             ) &&
-                            mKeys!![mDownKey].keyActions[KeyEventType.SWIPE_DOWN.ordinal] != null
+                            mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_DOWN.ordinal] != null
                         ) {
                             if (mDisambiguateSwipe && endingVelocityY > velocityY / 4) {
                                 return true
                             } else {
                                 sendDownKey = true
-                                type = KeyEventType.SWIPE_DOWN
+                                behavior = KeyBehavior.SWIPE_DOWN
                             }
                         } else {
                             Timber.d("swipeDebug.onFling fail , dY=$deltaY, vY=$velocityY, eVY=$endingVelocityY, travel=$travel")
@@ -386,8 +385,8 @@ class KeyboardView(
                         if (sendDownKey) {
                             Timber.d("initGestureDetector: sendDownKey")
                             showPreview(NOT_A_KEY)
-                            showPreview(mDownKey, type.ordinal)
-                            detectAndSendKey(mDownKey, mStartX, mStartY, me1.eventTime, type)
+                            showPreview(mDownKey, behavior)
+                            detectAndSendKey(mDownKey, mStartX, mStartY, me1.eventTime, behavior)
                             return true
                         }
                         return false
@@ -830,27 +829,27 @@ class KeyboardView(
         x: Int,
         y: Int,
         eventTime: Long,
-        type: KeyEventType = KeyEventType.CLICK,
+        behavior: KeyBehavior = KeyBehavior.CLICK,
     ) {
-        Timber.d("detectAndSendKey: index=$index, x=$x, y=$y, type=$type, mKeys.size=${mKeys!!.size}")
+        Timber.d("detectAndSendKey: index=$index, x=$x, y=$y, type=$behavior, mKeys.size=${mKeys!!.size}")
         if (index != NOT_A_KEY && index < mKeys!!.size) {
             val key = mKeys!![index]
-            if (Key.isTrimeModifierKey(key.code) && !key.sendBindings(type.ordinal)) {
+            if (Key.isTrimeModifierKey(key.code) && !key.sendBindings(behavior)) {
                 Timber.d("detectAndSendKey: ModifierKey, key.getEvent, keyLabel=${key.getLabel()}")
                 setModifier(key)
             } else {
                 if (key.click!!.isRepeatable) {
-                    if (type.ordinal > KeyEventType.CLICK.ordinal) mAbortKey = true
-                    if (!key.hasEvent(type.ordinal)) return
+                    if (behavior > KeyBehavior.CLICK) mAbortKey = true
+                    if (!key.hasAction(behavior)) return
                 }
-                val code = key.getCode(type.ordinal)
+                val code = key.getCode(behavior)
                 // TextEntryState.keyPressedAt(key, x, y);
                 val codes = IntArray(MAX_NEARBY_KEYS)
                 Arrays.fill(codes, NOT_A_KEY)
                 // getKeyIndices(x, y, codes); // 这里实际上并没有生效
                 Timber.d("detectAndSendKey: onEvent, code=$code, key.getEvent")
                 // 可以在这里把 mKeyboard.getModifer() 获取的修饰键状态写入event里
-                key.getAction(type.ordinal)?.let { keyboardActionListener?.onAction(it) }
+                key.getAction(behavior)?.let { keyboardActionListener?.onAction(it) }
                 releaseKey(code)
                 Timber.d("detectAndSendKey: refreshModifier")
                 refreshModifier()
@@ -862,7 +861,7 @@ class KeyboardView(
 
     private fun showPreview(
         keyIndex: Int,
-        type: Int = 0,
+        behavior: KeyBehavior = KeyBehavior.COMPOSING,
     ) {
         val oldKeyIndex = mCurrentKeyIndex
         val previewPopup = mPreviewPopup
@@ -895,10 +894,10 @@ class KeyboardView(
             if (keyIndex != NOT_A_KEY) {
                 if (previewPopup.isShowing && mPreviewText.visibility == VISIBLE) {
                     // Show right away, if it's already visible and finger is moving around
-                    showKey(keyIndex, type)
+                    showKey(keyIndex, behavior)
                 } else {
                     mHandler.sendMessageDelayed(
-                        mHandler.obtainMessage(MSG_SHOW_PREVIEW, keyIndex, type),
+                        mHandler.obtainMessage(MSG_SHOW_PREVIEW, keyIndex, behavior.ordinal),
                         DELAY_BEFORE_PREVIEW.toLong(),
                     )
                 }
@@ -908,13 +907,13 @@ class KeyboardView(
 
     private fun showKey(
         keyIndex: Int,
-        type: Int,
+        behavior: KeyBehavior,
     ) {
         val previewPopup = mPreviewPopup
         if (keyIndex !in mKeys!!.indices) return
         val key = mKeys!![keyIndex]
         mPreviewText.setCompoundDrawables(null, null, null, null)
-        mPreviewText.text = key.getPreviewText(type)
+        mPreviewText.text = key.getPreviewText(behavior)
         mPreviewText.measure(
             MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
             MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
@@ -1045,7 +1044,7 @@ class KeyboardView(
             return false
         }
         showPreview(NOT_A_KEY)
-        showPreview(mCurrentKey, KeyEventType.LONG_CLICK.ordinal)
+        showPreview(mCurrentKey, KeyBehavior.LONG_CLICK)
         val popupKey = mKeys!![mCurrentKey]
         val result = onLongPress(popupKey)
         if (result) {
@@ -1075,7 +1074,7 @@ class KeyboardView(
                 return true
             }
             Timber.w("only set isShifted, no others modifierkey")
-            if (popupKey.isShift && !popupKey.sendBindings(KeyEventType.LONG_CLICK.ordinal)) {
+            if (popupKey.isShift && !popupKey.sendBindings(KeyBehavior.LONG_CLICK)) {
                 // todo 其他修饰键
                 setShifted(!popupKey.isOn, !popupKey.isOn)
                 return true
@@ -1315,7 +1314,7 @@ class KeyboardView(
                 val msg = mHandler.obtainMessage(MSG_LONGPRESS, me)
                 mHandler.sendMessageDelayed(msg, prefs.keyboard.longPressTimeout.toLong())
             }
-            showPreview(keyIndex, 0)
+            showPreview(keyIndex, KeyBehavior.COMPOSING)
         }
 
         /**
@@ -1341,18 +1340,18 @@ class KeyboardView(
                 val travel = prefs.keyboard.swipeTravel
                 if (max(absY, absX) > travel && touchOnePoint) {
                     Timber.d("\t<TrimeInput>\tonModifiedTouchEvent()\ttouch")
-                    val keyEventType =
+                    val keyBehavior =
                         if (absX < absY) {
                             Timber.d("swipeDebug.ext y, dX=$dx, dY=$dy")
-                            if (dy > travel) KeyEventType.SWIPE_DOWN else KeyEventType.SWIPE_UP
+                            if (dy > travel) KeyBehavior.SWIPE_DOWN else KeyBehavior.SWIPE_UP
                         } else {
                             Timber.d("swipeDebug.ext x, dX=$dx, dY=$dy")
-                            if (dx > travel) KeyEventType.SWIPE_RIGHT else KeyEventType.SWIPE_LEFT
+                            if (dx > travel) KeyBehavior.SWIPE_RIGHT else KeyBehavior.SWIPE_LEFT
                         }
                     showPreview(NOT_A_KEY)
                     mHandler.removeMessages(MSG_REPEAT)
                     mHandler.removeMessages(MSG_LONGPRESS)
-                    detectAndSendKey(mDownKey, mStartX, mStartY, me.eventTime, keyEventType)
+                    detectAndSendKey(mDownKey, mStartX, mStartY, me.eventTime, keyBehavior)
                     return true
                 } else {
                     Timber.d("swipeDebug.ext fail, dX=$dx, dY=$dy")
@@ -1373,7 +1372,7 @@ class KeyboardView(
                     touchX,
                     touchY,
                     eventTime,
-                    if (mOldPointerCount > 1 || mComboMode) KeyEventType.COMBO else KeyEventType.CLICK,
+                    if (mOldPointerCount > 1 || mComboMode) KeyBehavior.COMBO else KeyBehavior.CLICK,
                 )
             }
             invalidateAllKeys()
