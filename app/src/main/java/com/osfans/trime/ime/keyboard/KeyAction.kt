@@ -116,6 +116,7 @@ class KeyAction(
                     option = it.getValue("option")?.getString() ?: ""
                     select = it.getValue("select")?.getString() ?: ""
                     toggle = it.getValue("toggle")?.getString() ?: ""
+                    label = it.getValue("label")?.getString() ?: ""
                     preview = it.getValue("preview")?.getString() ?: ""
                     shiftLock = it.getValue("shift_lock")?.getString() ?: ""
                     commit = it.getValue("commit")?.getString() ?: ""
@@ -138,18 +139,18 @@ class KeyAction(
                         code = KeyEvent.KEYCODE_FUNCTION
                     }
 
-                    if (code == KeyEvent.KEYCODE_SPACE) {
-                        label = Rime.currentSchemaName
-                    } else if (code != KeyEvent.KEYCODE_UNKNOWN) {
-                        label = it
-                            .getValue("label")
-                            ?.getString()
-                            ?.ifEmpty { Keycode.getDisplayLabel(code, modifier) } ?: ""
+                    if (label.isEmpty()) {
+                        if (code == KeyEvent.KEYCODE_SPACE) {
+                            label = Rime.currentSchemaName
+                        } else if (code != KeyEvent.KEYCODE_UNKNOWN) {
+                            label = Keycode.getDisplayLabel(code, modifier)
+                        }
                     }
                 }
             } else {
                 // match like: { x: 1 } or { x: q } ...
                 code = Keycode.keyCodeOf(unbraced)
+                // match like: { x: "(){Left}" } (key sequence to simulate)
                 if (unbraced.isNotEmpty() && code == KeyEvent.KEYCODE_UNKNOWN) {
                     text = raw
                     label = raw.replace(BRACED_STR, "")
