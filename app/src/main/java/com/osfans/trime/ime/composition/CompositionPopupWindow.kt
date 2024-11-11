@@ -56,7 +56,7 @@ class CompositionPopupWindow(
                 updatePopupWindow(x.toInt(), y.toInt())
             }
             setOnSelectCandidateListener { idx ->
-                rime.launchOnReady { it.selectCandidate(idx) }
+                rime.launchOnReady { it.selectPagedCandidate(idx) }
             }
         }
 

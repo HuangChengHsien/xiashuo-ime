@@ -116,6 +116,16 @@ class Rime :
             forgetRimeCandidate(idx).also { if (it) ipcResponseCallback() }
         }
 
+    override suspend fun selectPagedCandidate(idx: Int): Boolean =
+        withRimeContext {
+            selectRimeCandidateOnCurrentPage(idx).also { if (it) ipcResponseCallback() }
+        }
+
+    override suspend fun deletedPagedCandidate(idx: Int): Boolean =
+        withRimeContext {
+            deleteRimeCandidateOnCurrentPage(idx).also { if (it) ipcResponseCallback() }
+        }
+
     override suspend fun availableSchemata(): Array<SchemaItem> = withRimeContext { getAvailableRimeSchemaList() }
 
     override suspend fun enabledSchemata(): Array<SchemaItem> = withRimeContext { getSelectedRimeSchemaList() }

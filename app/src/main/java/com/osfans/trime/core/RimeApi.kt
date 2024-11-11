@@ -37,6 +37,10 @@ interface RimeApi {
 
     suspend fun forgetCandidate(idx: Int): Boolean
 
+    suspend fun selectPagedCandidate(idx: Int): Boolean
+
+    suspend fun deletedPagedCandidate(idx: Int): Boolean
+
     suspend fun availableSchemata(): Array<SchemaItem>
 
     suspend fun enabledSchemata(): Array<SchemaItem>
