@@ -279,8 +279,7 @@ class CommonKeyboardActionListener(
                     shouldReleaseKey = false
 
                     when (keyEventCode) {
-                        KeyEvent.KEYCODE_ENTER -> service.handleReturnKey()
-                        KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> service.requestHideSelf(0)
+                        KeyEvent.KEYCODE_BACK -> service.requestHideSelf(0)
                         else -> {
                             // 小键盘自动增加锁定
                             if (keyEventCode in KeyEvent.KEYCODE_NUMPAD_0..KeyEvent.KEYCODE_NUMPAD_EQUALS) {
