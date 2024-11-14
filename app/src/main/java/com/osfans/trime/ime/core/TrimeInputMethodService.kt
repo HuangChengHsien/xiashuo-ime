@@ -66,7 +66,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import splitties.bitflags.hasFlag
 import splitties.systemservices.inputMethodManager
 import splitties.views.gravityBottom
@@ -85,7 +84,6 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     var inputView: InputView? = null
     private var initializationUi: InitializationUi? = null
     private var mIntentReceiver: IntentReceiver? = null
-    private var isWindowShown = false // 键盘窗口是否已显示
     private var isComposable: Boolean = false
     private val locales = Array(2) { Locale.getDefault() }
 
@@ -123,35 +121,6 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
      * [postRimeJob] ensures that operations are executed sequentially.
      */
     fun postRimeJob(block: suspend RimeApi.() -> Unit) = postJob(rime.lifecycleScope) { rime.runOnReady(block) }
-
-    override fun onWindowShown() {
-        super.onWindowShown()
-        if (isWindowShown) {
-            Timber.i("Ignoring (is already shown)")
-            return
-        } else {
-            Timber.i("onWindowShown...")
-        }
-        postRimeJob {
-            if (currentInputEditorInfo != null) {
-                isWindowShown = true
-                withContext(Dispatchers.Main) {
-                    updateComposing()
-                }
-            }
-        }
-    }
-
-    override fun onWindowHidden() {
-        super.onWindowHidden()
-        if (!isWindowShown) {
-            Timber.d("Ignoring (window is already hidden)")
-            return
-        } else {
-            Timber.d("onWindowHidden")
-        }
-        isWindowShown = false
-    }
 
     private suspend fun updateRimeOption(api: RimeApi) {
         try {
