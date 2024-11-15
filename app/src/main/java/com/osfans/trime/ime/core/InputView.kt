@@ -343,8 +343,8 @@ class InputView(
                         val previous = ctx.menu.run { pageSize * pageNumber }
                         val highlightedIdx = ctx.menu.highlightedCandidateIndex
                         if (composition.isPopupWindowEnabled) {
-                            val sticky = composition.composition.update(ctx)
-                            compactCandidate.adapter.updateCandidates(candidates, isLastPage, previous, highlightedIdx, sticky)
+                            composition.root.update(ctx)
+                            compactCandidate.adapter.updateCandidates(candidates, isLastPage, previous, highlightedIdx)
                         } else {
                             compactCandidate.adapter.updateCandidates(candidates, isLastPage, previous, highlightedIdx)
                         }

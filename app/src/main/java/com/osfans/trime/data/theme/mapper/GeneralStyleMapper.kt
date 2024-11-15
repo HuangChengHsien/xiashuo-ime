@@ -25,7 +25,7 @@ class GeneralStyleMapper(
 
         val candidateSpacing = getFloat("candidate_spacing")
 
-        val candidateTextSize = getInt("candidate_text_size")
+        val candidateTextSize = getFloat("candidate_text_size")
 
         val candidateUseCursor = getBoolean("candidate_use_cursor")
 
@@ -46,7 +46,7 @@ class GeneralStyleMapper(
                 SecondTextPosition.UNKNOWN
             }
 
-        val commentTextSize = getInt("comment_text_size")
+        val commentTextSize = getFloat("comment_text_size")
 
         val hanbFont = getStringList("hanb_font")
 
@@ -103,7 +103,7 @@ class GeneralStyleMapper(
 
         val keyboards = getStringList("keyboards")
 
-        val labelTextSize = getInt("label_text_size")
+        val labelTextSize = getFloat("label_text_size")
 
         val labelFont = getStringList("label_font")
 

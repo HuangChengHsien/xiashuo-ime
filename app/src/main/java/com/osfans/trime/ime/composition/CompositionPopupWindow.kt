@@ -11,7 +11,7 @@ import android.os.Build.VERSION_CODES
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
-import android.view.View
+import android.view.View.MeasureSpec
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.CursorAnchorInfo
@@ -19,7 +19,6 @@ import android.widget.PopupWindow
 import androidx.core.math.MathUtils
 import com.osfans.trime.core.RimeProto
 import com.osfans.trime.daemon.RimeSession
-import com.osfans.trime.daemon.launchOnReady
 import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.Theme
@@ -29,12 +28,6 @@ import com.osfans.trime.ime.dependency.InputScope
 import com.osfans.trime.ime.enums.PopupPosition
 import me.tatarka.inject.annotations.Inject
 import splitties.dimensions.dp
-import splitties.views.dsl.core.add
-import splitties.views.dsl.core.horizontalLayout
-import splitties.views.dsl.core.lParams
-import splitties.views.dsl.core.wrapContent
-import splitties.views.horizontalPadding
-import splitties.views.verticalPadding
 import timber.log.Timber
 
 @InputScope
@@ -50,24 +43,7 @@ class CompositionPopupWindow(
         AppPrefs.defaultInstance().keyboard.popupWindowEnabled &&
             theme.generalStyle.window.isNotEmpty()
 
-    val composition =
-        Composition(ctx, theme).apply {
-            setOnActionMoveListener { x, y ->
-                updatePopupWindow(x.toInt(), y.toInt())
-            }
-            setOnSelectCandidateListener { idx ->
-                rime.launchOnReady { it.selectPagedCandidate(idx) }
-            }
-        }
-
-    private val root =
-        ctx.horizontalLayout {
-            layoutParams = ViewGroup.LayoutParams(wrapContent, wrapContent)
-            visibility = if (isPopupWindowEnabled) View.VISIBLE else View.GONE
-            horizontalPadding = dp(theme.generalStyle.layout.marginX)
-            verticalPadding = dp(theme.generalStyle.layout.marginY)
-            add(composition, lParams(wrapContent, wrapContent))
-        }
+    val root = CandidatesView(ctx, rime, theme)
 
     // 悬浮窗口是否可移動
     private val isPopupWindowMovable = theme.generalStyle.layout.movable
@@ -127,9 +103,10 @@ class CompositionPopupWindow(
                     intArrayOf(0, 0).also {
                         anchor.getLocationInWindow(it)
                     }
-                root.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
-                val selfWidth = root.measuredWidth
-                val selfHeight = root.measuredHeight
+                root.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED)
+                root.requestLayout()
+                val selfWidth = root.width
+                val selfHeight = root.height
 
                 val minX = anchor.dp(popupMarginH)
                 val minY = anchor.dp(popupMargin)
@@ -196,17 +173,6 @@ class CompositionPopupWindow(
             popupWindowPos !== PopupPosition.RIGHT &&
             popupWindowPos !== PopupPosition.LEFT_UP &&
             popupWindowPos !== PopupPosition.RIGHT_UP
-
-    private fun updatePopupWindow(
-        offsetX: Int,
-        offsetY: Int,
-    ) {
-        Timber.d("updatePopupWindow: winX = %s, winY = %s", offsetX, offsetY)
-        popupWindowPos = PopupPosition.DRAG
-        popupWindowX = offsetX
-        popupWindowY = offsetY
-        mPopupWindow.update(popupWindowX, popupWindowY, -1, -1, true)
-    }
 
     override fun onInputContextUpdate(ctx: RimeProto.Context) {
         if (ctx.composition.length > 0) {
