@@ -5,10 +5,13 @@
 package com.osfans.trime.data.prefs
 
 import android.content.SharedPreferences
+import androidx.annotation.StringRes
+import androidx.preference.PreferenceScreen
 
 abstract class PreferenceDelegateOwner(
     protected val sharedPreferences: SharedPreferences,
-) {
+    @StringRes val title: Int = 0,
+) : PreferenceDelegateProvider() {
     protected fun int(
         key: String,
         defaultValue: Int,
@@ -57,4 +60,37 @@ abstract class PreferenceDelegateOwner(
             override fun deserialize(raw: String) = enumValueOf<T>(raw.uppercase())
         },
     )
+
+    // TODO: replace all [enum] with this
+    protected inline fun <reified T> enum(
+        @StringRes title: Int,
+        key: String,
+        defaultValue: T,
+        noinline enableUiOn: (() -> Boolean)? = null,
+    ): PreferenceDelegate.SerializableDelegate<T> where T : Enum<T>, T : PreferenceDelegateEnum {
+        val serializer =
+            object : PreferenceDelegate.Serializer<T> {
+                override fun serialize(t: T) = t.name
+
+                override fun deserialize(raw: String) = enumValueOf<T>(raw.uppercase())
+            }
+        val entryValues = enumValues<T>().toList()
+        val entryLabels = entryValues.map { it.stringRes }
+        val pref = serializable(key, defaultValue, serializer)
+        val ui = PreferenceDelegateUi.StringList(title, key, defaultValue, serializer, entryValues, entryLabels)
+        pref.register()
+        ui.registerUi()
+        return pref
+    }
+
+    override fun createUi(screen: PreferenceScreen) {
+        val ctx = screen.context
+        preferenceDelegatesUi.forEach {
+            screen.addPreference(
+                it.createUi(ctx).apply {
+                    isEnabled = it.isEnabled()
+                },
+            )
+        }
+    }
 }

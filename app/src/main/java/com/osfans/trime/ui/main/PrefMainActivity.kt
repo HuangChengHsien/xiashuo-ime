@@ -105,6 +105,9 @@ class PrefMainActivity : AppCompatActivity() {
                 m.isVisible = it
             }
         }
+        navHostFragment.navController.addOnDestinationChangedListener { _, dest, _ ->
+            dest.label?.let { viewModel.setToolbarTitle(it.toString()) }
+        }
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         if (SetupActivity.shouldSetup()) {
