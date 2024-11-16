@@ -41,6 +41,8 @@ interface RimeApi {
 
     suspend fun deletedPagedCandidate(idx: Int): Boolean
 
+    suspend fun moveCursorPos(position: Int)
+
     suspend fun availableSchemata(): Array<SchemaItem>
 
     suspend fun enabledSchemata(): Array<SchemaItem>

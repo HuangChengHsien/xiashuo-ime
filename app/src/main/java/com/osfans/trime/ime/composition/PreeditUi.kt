@@ -9,31 +9,31 @@ import android.content.Context
 import android.text.Spanned
 import android.text.style.BackgroundColorSpan
 import android.text.style.ForegroundColorSpan
+import android.view.MotionEvent
 import android.view.View
+import android.widget.LinearLayout
 import androidx.core.text.buildSpannedString
 import com.osfans.trime.core.RimeProto
 import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.FontManager
 import com.osfans.trime.data.theme.Theme
-import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
-import splitties.views.dsl.core.horizontalLayout
 import splitties.views.dsl.core.lParams
-import splitties.views.dsl.core.textView
-import splitties.views.horizontalPadding
+import splitties.views.dsl.core.view
+import splitties.views.setPaddingDp
 
 open class PreeditUi(
-    override val ctx: Context,
+    final override val ctx: Context,
     private val theme: Theme,
 ) : Ui {
     private val textColor = ColorManager.getColor("text_color")
     private val highlightTextColor = ColorManager.getColor("hilited_text_color")
     private val highlightBackColor = ColorManager.getColor("hilited_back_color")
 
-    private val preedit =
-        textView {
-            horizontalPadding = dp(8)
+    val preedit =
+        view(::PreeditTextView) {
+            setPaddingDp(3, 1, 3, 1)
             textColor?.let { setTextColor(it) }
             textSize = theme.generalStyle.textSize.toFloat()
             typeface = FontManager.getTypeface("text_font")
@@ -42,9 +42,14 @@ open class PreeditUi(
     var visible = false
         private set
 
-    override val root: View =
-        horizontalLayout {
-            add(preedit, lParams())
+    override val root =
+        object : LinearLayout(ctx) {
+            override fun onInterceptTouchEvent(ev: MotionEvent?): Boolean = false
+
+            init {
+                orientation = HORIZONTAL
+                add(preedit, lParams())
+            }
         }
 
     private fun updatePreeditView(

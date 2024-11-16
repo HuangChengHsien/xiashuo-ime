@@ -35,7 +35,12 @@ class CandidatesView(
     private var menu = RimeProto.Context.Menu()
     private var inputComposition = RimeProto.Context.Composition()
 
-    private val preeditUi = PreeditUi(ctx, theme)
+    private val preeditUi =
+        PreeditUi(ctx, theme).apply {
+            preedit.setOnCursorMoveListener { position ->
+                rime.launchOnReady { it.moveCursorPos(position) }
+            }
+        }
 
     private val candidatesUi =
         PagedCandidatesUi(ctx, theme).apply {

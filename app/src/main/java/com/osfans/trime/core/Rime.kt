@@ -126,6 +126,12 @@ class Rime :
             deleteRimeCandidateOnCurrentPage(idx).also { if (it) ipcResponseCallback() }
         }
 
+    override suspend fun moveCursorPos(position: Int) =
+        withRimeContext {
+            setRimeCaretPos(position)
+            ipcResponseCallback()
+        }
+
     override suspend fun availableSchemata(): Array<SchemaItem> = withRimeContext { getAvailableRimeSchemaList() }
 
     override suspend fun enabledSchemata(): Array<SchemaItem> = withRimeContext { getSelectedRimeSchemaList() }
