@@ -24,8 +24,8 @@ import com.osfans.trime.ime.bar.UnrollButtonStateMachine
 import com.osfans.trime.ime.broadcast.InputBroadcastReceiver
 import com.osfans.trime.ime.candidates.CandidateViewHolder
 import com.osfans.trime.ime.candidates.compact.CompactCandidateModule
-import com.osfans.trime.ime.candidates.unrolled.PagingCandidateViewAdapter
 import com.osfans.trime.ime.candidates.unrolled.CandidatesPagingSource
+import com.osfans.trime.ime.candidates.unrolled.PagingCandidateViewAdapter
 import com.osfans.trime.ime.candidates.unrolled.UnrolledCandidateLayout
 import com.osfans.trime.ime.core.TrimeInputMethodService
 import com.osfans.trime.ime.keyboard.KeyboardSwitcher

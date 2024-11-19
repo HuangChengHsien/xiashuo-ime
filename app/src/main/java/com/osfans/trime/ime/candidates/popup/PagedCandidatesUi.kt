@@ -8,6 +8,7 @@ package com.osfans.trime.ime.candidates.popup
 import android.content.Context
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
 import com.chad.library.adapter4.BaseQuickAdapter
 import com.google.android.flexbox.AlignItems
@@ -25,12 +26,20 @@ class PagedCandidatesUi(
 ) : Ui {
     private var menu = RimeProto.Context.Menu()
 
-    class UiViewHolder(
-        val ui: Ui,
-    ) : RecyclerView.ViewHolder(ui.root)
+    sealed class UiHolder(
+        open val ui: Ui,
+    ) : RecyclerView.ViewHolder(ui.root) {
+        class Candidate(
+            override val ui: LabeledCandidateItemUi,
+        ) : UiHolder(ui)
+
+        class Pagination(
+            override val ui: PaginationUi,
+        ) : UiHolder(ui)
+    }
 
     val candidatesAdapter =
-        object : BaseQuickAdapter<RimeProto.Candidate, UiViewHolder>() {
+        object : BaseQuickAdapter<RimeProto.Candidate, UiHolder>() {
             override fun getItemCount(items: List<RimeProto.Candidate>) =
                 items.size + (if (menu.pageNumber != 0 || !menu.isLastPage) 1 else 0)
 
@@ -43,22 +52,34 @@ class PagedCandidatesUi(
                 context: Context,
                 parent: ViewGroup,
                 viewType: Int,
-            ): UiViewHolder =
+            ): UiHolder =
                 when (viewType) {
-                    0 -> UiViewHolder(LabeledCandidateItemUi(ctx, theme))
-                    else -> UiViewHolder(LabeledCandidateItemUi(ctx, theme))
+                    0 -> UiHolder.Candidate(LabeledCandidateItemUi(ctx, theme))
+                    else ->
+                        UiHolder.Pagination(PaginationUi(ctx, theme)).apply {
+                            val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
+                            ui.root.layoutParams =
+                                FlexboxLayoutManager.LayoutParams(wrap, wrap).apply {
+                                    flexGrow = 1f
+                                }
+                        }
                 }
 
             override fun onBindViewHolder(
-                holder: UiViewHolder,
+                holder: UiHolder,
                 position: Int,
                 item: RimeProto.Candidate?,
             ) {
-                when (getItemViewType(position)) {
-                    0 -> {
-                        holder.ui as LabeledCandidateItemUi
+                when (holder) {
+                    is UiHolder.Candidate -> {
                         val candidate = item ?: return
                         holder.ui.update(candidate, position == menu.highlightedCandidateIndex)
+                    }
+                    is UiHolder.Pagination -> {
+                        holder.ui.update(menu)
+                        holder.ui.root.updateLayoutParams<FlexboxLayoutManager.LayoutParams> {
+                            alignSelf = AlignItems.CENTER
+                        }
                     }
                 }
             }
