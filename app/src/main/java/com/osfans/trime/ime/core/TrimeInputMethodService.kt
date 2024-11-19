@@ -160,9 +160,6 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
 
     override fun onCreate() {
         rime = RimeDaemon.createSession(javaClass.name)
-        postRimeJob {
-            updateRimeOption(this)
-        }
         lifecycleScope.launch {
             jobs.consumeEach { it.join() }
         }
@@ -206,6 +203,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                         2 -> Locale(latinLocale[0], latinLocale[1])
                         else -> Locale.US
                     }
+                updateRimeOption(this)
                 Timber.d("Trime.onCreate  completed")
             }
         } catch (e: Exception) {

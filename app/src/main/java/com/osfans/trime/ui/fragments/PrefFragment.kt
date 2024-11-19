@@ -61,6 +61,10 @@ class PrefFragment : PaddingPreferenceFragment() {
                 findNavController().navigate(R.id.action_prefFragment_to_keyboardFragment)
                 true
             }
+            get<Preference>("pref_candidates")?.setOnPreferenceClickListener {
+                findNavController().navigate(R.id.action_prefFragment_to_candidatesSettingsFragment)
+                true
+            }
             get<Preference>("pref_theme_and_color")?.setOnPreferenceClickListener {
                 findNavController().navigate(R.id.action_prefFragment_to_themeColorFragment)
                 true

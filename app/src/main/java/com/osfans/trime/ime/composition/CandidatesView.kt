@@ -13,8 +13,10 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import com.osfans.trime.core.RimeProto
 import com.osfans.trime.daemon.RimeSession
 import com.osfans.trime.daemon.launchOnReady
+import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.ime.candidates.popup.PagedCandidatesUi
+import com.osfans.trime.ime.candidates.popup.PopupCandidatesMode
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.below
 import splitties.views.dsl.constraintlayout.bottomOfParent
@@ -32,6 +34,8 @@ class CandidatesView(
     val rime: RimeSession,
     val theme: Theme,
 ) : ConstraintLayout(ctx) {
+    private val candidatesMode by AppPrefs.defaultInstance().candidates.mode
+
     private var menu = RimeProto.Context.Menu()
     private var inputComposition = RimeProto.Context.Composition()
 
@@ -62,18 +66,29 @@ class CandidatesView(
     private fun updateUi() {
         if (evaluateVisibility()) {
             preeditUi.update(inputComposition)
-            preeditUi.root.visibility = if (preeditUi.visible) View.VISIBLE else View.GONE
-            candidatesUi.update(menu)
-            // visibility = View.VISIBLE
-        } else {
-            // visibility = View.GONE
+            when (candidatesMode) {
+                PopupCandidatesMode.CURRENT_PAGE -> {
+                    candidatesUi.root.let {
+                        if (it.visibility == View.GONE) {
+                            it.visibility = View.VISIBLE
+                        }
+                    }
+                    candidatesUi.update(menu)
+                }
+
+                PopupCandidatesMode.PREEDIT_ONLY -> {
+                    candidatesUi.root.let {
+                        if (it.visibility != View.GONE) {
+                            it.visibility = View.GONE
+                            candidatesUi.update(RimeProto.Context.Menu())
+                        }
+                    }
+                }
+            }
         }
     }
 
     init {
-        // invisible by default
-        // visibility = GONE
-
         verticalPadding = dp(theme.generalStyle.layout.marginX)
         horizontalPadding = dp(theme.generalStyle.layout.marginY)
         add(

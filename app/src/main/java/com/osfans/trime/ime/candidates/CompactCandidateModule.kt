@@ -17,14 +17,18 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.osfans.trime.R
+import com.osfans.trime.core.CandidateItem
+import com.osfans.trime.core.RimeProto
 import com.osfans.trime.daemon.RimeSession
 import com.osfans.trime.daemon.launchOnReady
+import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.ime.bar.QuickBar
 import com.osfans.trime.ime.bar.UnrollButtonStateMachine
 import com.osfans.trime.ime.broadcast.InputBroadcastReceiver
 import com.osfans.trime.ime.candidates.adapter.CompactCandidateViewAdapter
+import com.osfans.trime.ime.candidates.popup.PopupCandidatesMode
 import com.osfans.trime.ime.candidates.unrolled.decoration.FlexboxVerticalDecoration
 import com.osfans.trime.ime.core.TrimeInputMethodService
 import com.osfans.trime.ime.dependency.InputScope
@@ -48,6 +52,8 @@ class CompactCandidateModule(
     val theme: Theme,
     val bar: QuickBar,
 ) : InputBroadcastReceiver {
+    private val candidatesMode by AppPrefs.defaultInstance().candidates.mode
+
     private val _unrolledCandidateOffset =
         MutableSharedFlow<Int>(
             replay = 1,
@@ -58,7 +64,7 @@ class CompactCandidateModule(
 
     fun refreshUnrolled() {
         runBlocking {
-            _unrolledCandidateOffset.emit(adapter.before + view.childCount)
+            _unrolledCandidateOffset.emit(adapter.previous + view.childCount)
         }
         bar.unrollButtonStateMachine.push(
             UnrollButtonStateMachine.TransitionEvent.UnrolledCandidatesUpdated,
@@ -70,10 +76,10 @@ class CompactCandidateModule(
     val adapter by lazy {
         CompactCandidateViewAdapter(theme).apply {
             setOnItemClickListener { _, _, position ->
-                rime.launchOnReady { it.selectCandidate(before + position) }
+                rime.launchOnReady { it.selectCandidate(previous + position) }
             }
             setOnItemLongClickListener { _, view, position ->
-                showCandidateAction(before + position, items[position].text, view)
+                showCandidateAction(previous + position, items[position].text, view)
                 true
             }
         }
@@ -107,6 +113,18 @@ class CompactCandidateModule(
             adapter = this@CompactCandidateModule.adapter
             layoutManager = this@CompactCandidateModule.layoutManager
             addItemDecoration(FlexboxVerticalDecoration(separatorDrawable))
+        }
+    }
+
+    override fun onInputContextUpdate(ctx: RimeProto.Context) {
+        if (candidatesMode != PopupCandidatesMode.PREEDIT_ONLY) return
+        val candidates = ctx.menu.candidates.map { CandidateItem(it.comment ?: "", it.text) }
+        val isLastPage = ctx.menu.isLastPage
+        val previous = ctx.menu.run { pageSize * pageNumber }
+        val highlightedIdx = ctx.menu.highlightedCandidateIndex
+        adapter.updateCandidates(candidates, isLastPage, previous, highlightedIdx)
+        if (candidates.isEmpty()) {
+            refreshUnrolled()
         }
     }
 

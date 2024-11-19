@@ -266,4 +266,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
     <string name="forget_this_word">忘记该词</string>
     <string name="synchronization">同步</string>
     <string name="profile_timing_background_sync_set_time">设置后台同步时间</string>
+    <string name="current_page_of_candidates">当前页候选词</string>
+    <string name="preedit_only">仅预编辑码</string>
+    <string name="candidates_window">候选词窗口</string>
+    <string name="candidates_mode">候选词显示模式</string>
 </resources>

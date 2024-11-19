@@ -22,7 +22,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
-import com.osfans.trime.core.CandidateItem
 import com.osfans.trime.core.RimeCallback
 import com.osfans.trime.core.RimeEvent
 import com.osfans.trime.core.RimeNotification
@@ -338,19 +337,6 @@ class InputView(
                     val ctx = it.context
                     if (ctx != null) {
                         broadcaster.onInputContextUpdate(ctx)
-                        val candidates = ctx.menu.candidates.map { CandidateItem(it.comment ?: "", it.text) }
-                        val isLastPage = ctx.menu.isLastPage
-                        val previous = ctx.menu.run { pageSize * pageNumber }
-                        val highlightedIdx = ctx.menu.highlightedCandidateIndex
-                        if (composition.isPopupWindowEnabled) {
-                            composition.root.update(ctx)
-                            compactCandidate.adapter.updateCandidates(candidates, isLastPage, previous, highlightedIdx)
-                        } else {
-                            compactCandidate.adapter.updateCandidates(candidates, isLastPage, previous, highlightedIdx)
-                        }
-                        if (candidates.isEmpty()) {
-                            compactCandidate.refreshUnrolled()
-                        }
                     }
                 }
             else -> {}
@@ -362,13 +348,12 @@ class InputView(
     }
 
     fun updateComposing(ic: InputConnection?) {
-        if (composition.isPopupWindowEnabled) {
+        composition.isCursorUpdated =
             if (ic != null && !composition.isWinFixed()) {
                 ic.requestCursorUpdates(InputConnection.CURSOR_UPDATE_IMMEDIATE)
             } else {
                 false
-            }.also { composition.isCursorUpdated = it }
-        }
+            }
     }
 
     fun updateSelection(

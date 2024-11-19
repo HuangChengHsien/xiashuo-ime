@@ -11,7 +11,7 @@ import android.os.Build.VERSION_CODES
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
-import android.view.View.MeasureSpec
+import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.CursorAnchorInfo
@@ -19,7 +19,6 @@ import android.widget.PopupWindow
 import androidx.core.math.MathUtils
 import com.osfans.trime.core.RimeProto
 import com.osfans.trime.daemon.RimeSession
-import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.ime.bar.QuickBar
@@ -38,11 +37,6 @@ class CompositionPopupWindow(
     private val theme: Theme,
     private val bar: QuickBar,
 ) : InputBroadcastReceiver {
-    // 顯示懸浮窗口
-    val isPopupWindowEnabled =
-        AppPrefs.defaultInstance().keyboard.popupWindowEnabled &&
-            theme.generalStyle.window.isNotEmpty()
-
     val root = CandidatesView(ctx, rime, theme)
 
     // 悬浮窗口是否可移動
@@ -60,7 +54,7 @@ class CompositionPopupWindow(
     // 悬浮窗口彈出位置
     private var popupWindowPos = PopupPosition.fromString(theme.generalStyle.layout.position)
 
-    private val mPopupWindow by lazy {
+    private val mPopupWindow =
         PopupWindow(root).apply {
             isClippingEnabled = false
             inputMethodMode = PopupWindow.INPUT_METHOD_NOT_NEEDED
@@ -86,7 +80,6 @@ class CompositionPopupWindow(
                         .toFloat(),
                 )
         }
-    }
 
     var isCursorUpdated = false // 光標是否移動
 
@@ -95,7 +88,7 @@ class CompositionPopupWindow(
 
     private val mPopupTimer =
         Runnable {
-            if (!isPopupWindowEnabled || bar.view.windowToken == null) return@Runnable
+            if (bar.view.windowToken == null) return@Runnable
             bar.view.let { anchor ->
                 var x = 0
                 var y = 0
@@ -103,7 +96,7 @@ class CompositionPopupWindow(
                     intArrayOf(0, 0).also {
                         anchor.getLocationInWindow(it)
                     }
-                root.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED)
+                root.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
                 root.requestLayout()
                 val selfWidth = root.width
                 val selfHeight = root.height
@@ -176,6 +169,7 @@ class CompositionPopupWindow(
 
     override fun onInputContextUpdate(ctx: RimeProto.Context) {
         if (ctx.composition.length > 0) {
+            root.update(ctx)
             updateCompositionView()
         } else {
             hideCompositionView()

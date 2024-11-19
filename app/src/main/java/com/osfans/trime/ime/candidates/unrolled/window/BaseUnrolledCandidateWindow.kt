@@ -124,8 +124,7 @@ abstract class BaseUnrolledCandidateWindow(
 
     private fun updateCandidatesWithOffset(offset: Int) {
         val candidates = compactCandidate.adapter.items
-        val sticky = compactCandidate.adapter.sticky
-        if (candidates.isEmpty() && sticky == 0) {
+        if (candidates.isEmpty()) {
             windowManager.attachWindow(KeyboardWindow)
         } else {
             adapter.refreshWithOffset(offset)
@@ -139,7 +138,7 @@ abstract class BaseUnrolledCandidateWindow(
         bar.unrollButtonStateMachine.push(
             UnrollButtonStateMachine.TransitionEvent.UnrolledCandidatesDetached,
             UnrollButtonStateMachine.BooleanKey.UnrolledCandidatesEmpty to
-                (compactCandidate.adapter.run { isLastPage && (before + itemCount) == adapter.offset }),
+                (compactCandidate.adapter.run { isLastPage && (previous + itemCount) == adapter.offset }),
         )
         offsetJob?.cancel()
         candidatesSubmitJob?.cancel()

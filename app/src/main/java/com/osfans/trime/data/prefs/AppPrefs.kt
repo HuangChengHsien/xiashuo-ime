@@ -9,6 +9,7 @@ import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 import com.osfans.trime.R
 import com.osfans.trime.data.base.DataManager
+import com.osfans.trime.ime.candidates.popup.PopupCandidatesMode
 import com.osfans.trime.ime.enums.FullscreenMode
 import com.osfans.trime.ime.enums.InlinePreeditMode
 import com.osfans.trime.util.appContext
@@ -22,12 +23,27 @@ class AppPrefs(
 ) {
     private val applicationContext: WeakReference<Context> = WeakReference(appContext)
 
+    private val providers = mutableListOf<PreferenceDelegateProvider>()
+
+    fun <T : PreferenceDelegateProvider> registerProvider(providerF: (SharedPreferences) -> T): T {
+        val provider = providerF(shared)
+        providers.add(provider)
+        return provider
+    }
+
+    private fun <T : PreferenceDelegateProvider> T.register() =
+        this.apply {
+            registerProvider { this }
+        }
+
     val internal = Internal(shared)
     val keyboard = Keyboard(shared)
     val theme = Theme(shared)
     val profile = Profile(shared)
     val clipboard = Clipboard(shared)
     val other = Other(shared)
+
+    val candidates = Candidates(shared).register()
 
     companion object {
         private var defaultInstance: AppPrefs? = null
@@ -84,7 +100,6 @@ class AppPrefs(
         companion object {
             const val INLINE_PREEDIT_MODE = "keyboard__inline_preedit"
             const val SOFT_CURSOR_ENABLED = "keyboard__soft_cursor"
-            const val FLOATING_WINDOW_ENABLED = "keyboard__show_window"
             const val POPUP_KEY_PRESS_ENABLED = "keyboard__show_key_popup"
             const val SWITCHES_ENABLED = "keyboard__show_switches"
             const val LANDSCAPE_MODE = "keyboard__landscape_mode"
@@ -122,7 +137,6 @@ class AppPrefs(
         var inlinePreedit by enum(INLINE_PREEDIT_MODE, InlinePreeditMode.PREVIEW)
         var fullscreenMode by enum(FULLSCREEN_MODE, FullscreenMode.AUTO_SHOW)
         val softCursorEnabled by bool(SOFT_CURSOR_ENABLED, true)
-        val popupWindowEnabled by bool(FLOATING_WINDOW_ENABLED, true)
         val popupKeyPressEnabled by bool(POPUP_KEY_PRESS_ENABLED, false)
         val switchesEnabled by bool(SWITCHES_ENABLED, true)
         val switchArrowEnabled by bool(SWITCH_ARROW_ENABLED, true)
@@ -159,6 +173,16 @@ class AppPrefs(
         val repeatInterval by int(REPEAT_INTERVAL, 50)
         var isSpeakKey by bool(SPEAK_KEY_PRESS_ENABLED, false)
         var isSpeakCommit by bool(SPEAK_COMMIT_ENABLED, false)
+    }
+
+    class Candidates(
+        shared: SharedPreferences,
+    ) : PreferenceDelegateOwner(shared, R.string.candidates_window) {
+        companion object {
+            const val MODE = "candidates__mode"
+        }
+
+        val mode = enum(R.string.candidates_mode, MODE, PopupCandidatesMode.PREEDIT_ONLY)
     }
 
     /**

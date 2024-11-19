@@ -60,6 +60,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
         <action
             android:id="@+id/action_prefFragment_to_clipboardFragment"
             app:destination="@id/clipboardFragment" />
+        <action
+            android:id="@+id/action_prefFragment_to_candidatesSettingsFragment"
+            app:destination="@id/candidatesSettingsFragment" />
     </fragment>
     <fragment
         android:id="@+id/profileFragment"
@@ -101,4 +104,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
         android:id="@+id/clipboardFragment"
         android:name="com.osfans.trime.ui.fragments.ClipboardFragment"
         android:label="ClipboardFragment" />
+    <fragment
+        android:id="@+id/candidatesSettingsFragment"
+        android:name="com.osfans.trime.ui.main.settings.CandidatesSettingsFragment"
+        android:label="@string/candidates_window" />
 </navigation>

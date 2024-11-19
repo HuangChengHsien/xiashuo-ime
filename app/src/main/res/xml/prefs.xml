@@ -24,6 +24,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
         android:title="@string/pref_keyboard"
         app:icon="@drawable/ic_baseline_keyboard_24" />
 
+    <Preference android:key="pref_candidates"
+        android:title="@string/candidates_window"
+        app:icon="@drawable/ic_baseline_list_alt_24" />
+
     <Preference android:key="pref_theme_and_color"
         android:title="@string/pref_theme_and_color"
         app:icon="@drawable/ic_pref_theme_color" />

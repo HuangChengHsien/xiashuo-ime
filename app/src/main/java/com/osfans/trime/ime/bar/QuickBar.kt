@@ -24,6 +24,7 @@ import com.osfans.trime.ime.bar.ui.CandidateUi
 import com.osfans.trime.ime.bar.ui.TabUi
 import com.osfans.trime.ime.broadcast.InputBroadcastReceiver
 import com.osfans.trime.ime.candidates.CompactCandidateModule
+import com.osfans.trime.ime.candidates.popup.PopupCandidatesMode
 import com.osfans.trime.ime.candidates.unrolled.window.FlexboxUnrolledCandidateWindow
 import com.osfans.trime.ime.core.TrimeInputMethodService
 import com.osfans.trime.ime.dependency.InputScope
@@ -51,6 +52,7 @@ class QuickBar(
     private val prefs = AppPrefs.defaultInstance()
 
     private val showSwitchers get() = prefs.keyboard.switchesEnabled
+    private val candidatesMode by prefs.candidates.mode
 
     val themedHeight =
         theme.generalStyle.candidateViewHeight + theme.generalStyle.commentHeight
@@ -145,7 +147,8 @@ class QuickBar(
     override fun onInputContextUpdate(ctx: RimeProto.Context) {
         barStateMachine.push(
             QuickBarStateMachine.TransitionEvent.CandidatesUpdated,
-            QuickBarStateMachine.BooleanKey.CandidateEmpty to ctx.menu.candidates.isEmpty(),
+            QuickBarStateMachine.BooleanKey.CandidateEmpty to
+                (ctx.menu.candidates.isEmpty() || candidatesMode == PopupCandidatesMode.CURRENT_PAGE),
         )
     }
 
