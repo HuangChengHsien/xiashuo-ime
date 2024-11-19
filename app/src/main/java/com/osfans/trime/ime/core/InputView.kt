@@ -30,7 +30,7 @@ import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.ime.bar.QuickBar
-import com.osfans.trime.ime.candidates.CompactCandidateModule
+import com.osfans.trime.ime.candidates.compact.CompactCandidateModule
 import com.osfans.trime.ime.composition.CompositionPopupWindow
 import com.osfans.trime.ime.dependency.InputComponent
 import com.osfans.trime.ime.dependency.create

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-package com.osfans.trime.ime.candidates.adapter
+package com.osfans.trime.ime.candidates.compact
 
 import android.content.Context
 import android.view.ViewGroup
