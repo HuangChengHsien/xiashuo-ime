@@ -62,6 +62,10 @@ class PagedCandidatesUi(
                     }
                 }
             }
+        }.apply {
+            // We must do this to avoid ArrayIndexOutOfBoundsException
+            // https://github.com/google/flexbox-layout/issues/363#issuecomment-382949953
+            setHasStableIds(true)
         }
 
     private val candidatesLayoutManager =
@@ -75,6 +79,7 @@ class PagedCandidatesUi(
         recyclerView {
             visibility = View.GONE
 
+            itemAnimator = null
             isFocusable = false
             adapter = candidatesAdapter
             layoutManager = candidatesLayoutManager
