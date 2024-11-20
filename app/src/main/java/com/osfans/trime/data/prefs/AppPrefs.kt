@@ -10,8 +10,8 @@ import androidx.preference.PreferenceManager
 import com.osfans.trime.R
 import com.osfans.trime.data.base.DataManager
 import com.osfans.trime.ime.candidates.popup.PopupCandidatesMode
+import com.osfans.trime.ime.core.ComposingTextMode
 import com.osfans.trime.ime.enums.FullscreenMode
-import com.osfans.trime.ime.enums.InlinePreeditMode
 import com.osfans.trime.util.appContext
 import java.lang.ref.WeakReference
 
@@ -37,6 +37,7 @@ class AppPrefs(
         }
 
     val internal = Internal(shared)
+    val general = General(shared).register()
     val keyboard = Keyboard(shared)
     val theme = Theme(shared)
     val profile = Profile(shared)
@@ -91,6 +92,16 @@ class AppPrefs(
         var pid by int(PID, 0)
     }
 
+    class General(
+        shared: SharedPreferences,
+    ) : PreferenceDelegateOwner(shared, R.string.general) {
+        companion object {
+            const val COMPOSING_TEXT_MODE = "composing_text_mode"
+        }
+
+        val composingTextMode = enum(R.string.composing_text_mode, COMPOSING_TEXT_MODE, ComposingTextMode.DISABLE)
+    }
+
     /**
      *  Wrapper class of keyboard settings.
      */
@@ -98,7 +109,6 @@ class AppPrefs(
         shared: SharedPreferences,
     ) : PreferenceDelegateOwner(shared) {
         companion object {
-            const val INLINE_PREEDIT_MODE = "keyboard__inline_preedit"
             const val SOFT_CURSOR_ENABLED = "keyboard__soft_cursor"
             const val POPUP_KEY_PRESS_ENABLED = "keyboard__show_key_popup"
             const val SWITCHES_ENABLED = "keyboard__show_switches"
@@ -134,7 +144,6 @@ class AppPrefs(
             const val REPEAT_INTERVAL = "keyboard__key_repeat_interval"
         }
 
-        var inlinePreedit by enum(INLINE_PREEDIT_MODE, InlinePreeditMode.PREVIEW)
         var fullscreenMode by enum(FULLSCREEN_MODE, FullscreenMode.AUTO_SHOW)
         val softCursorEnabled by bool(SOFT_CURSOR_ENABLED, true)
         val popupKeyPressEnabled by bool(POPUP_KEY_PRESS_ENABLED, false)

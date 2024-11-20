@@ -227,7 +227,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     <string name="simple_key_unpin">取消置頂</string>
     <string name="simple_key_pin">置頂</string>
     <string name="delete_all">刪除全部</string>
-    <string name="disable">禁用</string>
+    <string name="disable">停用</string>
     <string name="found_some_problems">但是我們似乎發現了些問題，請檢查：</string>
     <string name="pref_clipboard_summary">收藏夾和草稿箱也在這裡管理</string>
     <string name="a_regular_expression_per_line">一行一條正則表示式</string>
@@ -271,4 +271,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
     <string name="preedit_only">僅預編輯碼</string>
     <string name="candidates_window">候选词窗口</string>
     <string name="candidates_mode">候選詞顯示模式</string>
+    <string name="general">常規</string>
+    <string name="preedit">預編輯碼</string>
+    <string name="commit_text_preview">首選詞預覽</string>
+    <string name="raw_input">原始輸入碼</string>
+    <string name="composing_text_mode">在程式中顯示撰寫文字</string>
 </resources>

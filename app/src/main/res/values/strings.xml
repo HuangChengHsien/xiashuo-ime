@@ -271,4 +271,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
     <string name="preedit_only">Preedit only</string>
     <string name="candidates_window">Candidates Window</string>
     <string name="candidates_mode">Candidates mode</string>
+    <string name="general">General</string>
+    <string name="preedit">Preedit</string>
+    <string name="commit_text_preview">Commit text preview</string>
+    <string name="raw_input">Raw input</string>
+    <string name="composing_text_mode">Show composing text in editor</string>
 </resources>

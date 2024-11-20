@@ -270,4 +270,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
     <string name="preedit_only">仅预编辑码</string>
     <string name="candidates_window">候选词窗口</string>
     <string name="candidates_mode">候选词显示模式</string>
+    <string name="general">常规</string>
+    <string name="preedit">预编辑码</string>
+    <string name="commit_text_preview">首选词预览</string>
+    <string name="raw_input">原始输入码</string>
+    <string name="composing_text_mode">在程序中显示撰写文本</string>
 </resources>

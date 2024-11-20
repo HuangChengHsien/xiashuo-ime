@@ -63,6 +63,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
         <action
             android:id="@+id/action_prefFragment_to_candidatesSettingsFragment"
             app:destination="@id/candidatesSettingsFragment" />
+        <action
+            android:id="@+id/action_prefFragment_to_generalSettingsFragment"
+            app:destination="@id/generalSettingsFragment" />
     </fragment>
     <fragment
         android:id="@+id/profileFragment"
@@ -108,4 +111,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
         android:id="@+id/candidatesSettingsFragment"
         android:name="com.osfans.trime.ui.main.settings.CandidatesSettingsFragment"
         android:label="@string/candidates_window" />
+    <fragment
+        android:id="@+id/generalSettingsFragment"
+        android:name="com.osfans.trime.ui.main.settings.GeneralSettingsFragment"
+        android:label="@string/general" />
 </navigation>

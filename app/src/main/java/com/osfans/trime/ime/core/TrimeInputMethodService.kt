@@ -52,7 +52,6 @@ import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.data.theme.ThemeManager
 import com.osfans.trime.ime.broadcast.IntentReceiver
 import com.osfans.trime.ime.enums.FullscreenMode
-import com.osfans.trime.ime.enums.InlinePreeditMode
 import com.osfans.trime.ime.keyboard.InitializationUi
 import com.osfans.trime.ime.keyboard.InputFeedbackManager
 import com.osfans.trime.util.ShortcutUtils
@@ -883,14 +882,16 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         return false
     }
 
+    private val composingTextMode by prefs.general.composingTextMode
+
     private fun updateComposingText(ctx: RimeProto.Context) {
         val ic = currentInputConnection ?: return
         val text =
-            when (prefs.keyboard.inlinePreedit) {
-                InlinePreeditMode.PREVIEW -> ctx.composition.commitTextPreview ?: ""
-                InlinePreeditMode.COMPOSITION -> ctx.composition.preedit ?: ""
-                InlinePreeditMode.INPUT -> ctx.input
-                InlinePreeditMode.NONE -> ""
+            when (composingTextMode) {
+                ComposingTextMode.DISABLE -> ""
+                ComposingTextMode.PREEDIT -> ctx.composition.preedit ?: ""
+                ComposingTextMode.COMMIT_TEXT_PREVIEW -> ctx.composition.commitTextPreview ?: ""
+                ComposingTextMode.RAW_INPUT -> ctx.input
             }
         if (ic.getSelectedText(0).isNullOrEmpty() || text.isNotEmpty()) {
             ic.setComposingText(text, 1)

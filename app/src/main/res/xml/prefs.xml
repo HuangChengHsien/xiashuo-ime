@@ -20,6 +20,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
         app:icon="@drawable/ic_baseline_snippet_folder_24"
         android:summary="@string/pref_profile_summary"/>
 
+    <Preference android:key="pref_general"
+        android:title="@string/general"
+        app:icon="@drawable/ic_baseline_tune_24" />
+
     <Preference android:key="pref_keyboard"
         android:title="@string/pref_keyboard"
         app:icon="@drawable/ic_baseline_keyboard_24" />

@@ -57,6 +57,10 @@ class PrefFragment : PaddingPreferenceFragment() {
                 findNavController().navigate(R.id.action_prefFragment_to_profileFragment)
                 true
             }
+            get<Preference>("pref_general")?.setOnPreferenceClickListener {
+                findNavController().navigate(R.id.action_prefFragment_to_generalSettingsFragment)
+                true
+            }
             get<Preference>("pref_keyboard")?.setOnPreferenceClickListener {
                 findNavController().navigate(R.id.action_prefFragment_to_keyboardFragment)
                 true
