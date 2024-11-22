@@ -268,12 +268,18 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         commitTextByChar(checkNotNull(ShortcutUtils.pasteFromClipboard(this)).toString())
     }
 
+    private fun setupInputView(theme: Theme): InputView {
+        updateComposing() // 切換主題時刷新候選
+        val newInputView = InputView(this, rime, theme)
+        inputView = newInputView
+        return newInputView
+    }
+
     /** Must be called on the UI thread
      *
      * 重置鍵盤、候選條、狀態欄等 !!注意，如果其中調用Rime.setOption，切換方案會卡住  */
     fun recreateInputView(theme: Theme) {
-        updateComposing() // 切換主題時刷新候選
-        setInputView(InputView(this, rime, theme).also { inputView = it })
+        setInputView(setupInputView(theme))
         initializationUi = null
     }
 

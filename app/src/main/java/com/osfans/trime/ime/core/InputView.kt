@@ -151,6 +151,8 @@ class InputView(
 
         windowManager.cacheResidentWindow(keyboardWindow, createView = true)
         windowManager.cacheResidentWindow(liquidKeyboard)
+        // show KeyboardWindow by default
+        windowManager.attachWindow(KeyboardWindow)
 
         service.window.window!!.also {
             when (navbarBackground) {
