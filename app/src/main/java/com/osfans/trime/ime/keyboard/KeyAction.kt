@@ -151,7 +151,7 @@ class KeyAction(
                 // match like: { x: 1 } or { x: q } ...
                 code = Keycode.keyCodeOf(unbraced)
                 // match like: { x: "(){Left}" } (key sequence to simulate)
-                if (unbraced.isNotEmpty() && code == KeyEvent.KEYCODE_UNKNOWN) {
+                if (unbraced.isNotEmpty() && !Keycode.isStdKey(code)) {
                     text = raw
                     label = raw.replace(BRACED_STR, "")
                 } else {
