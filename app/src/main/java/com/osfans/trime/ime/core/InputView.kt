@@ -51,7 +51,6 @@ import splitties.views.dsl.constraintlayout.constraintLayout
 import splitties.views.dsl.constraintlayout.endOfParent
 import splitties.views.dsl.constraintlayout.endToStartOf
 import splitties.views.dsl.constraintlayout.lParams
-import splitties.views.dsl.constraintlayout.matchConstraints
 import splitties.views.dsl.constraintlayout.startOfParent
 import splitties.views.dsl.constraintlayout.startToEndOf
 import splitties.views.dsl.constraintlayout.topOfParent
@@ -98,6 +97,7 @@ class InputView(
         }
 
     private val callbackHandlerJob: Job
+    private val updateWindowViewHeightJob: Job
 
     private val themedContext = context.withTheme(android.R.style.Theme_DeviceDefault_Settings)
     private val inputComponent = InputComponent::class.create(this, themedContext, theme, service, rime)
@@ -230,7 +230,7 @@ class InputView(
                 )
                 add(
                     windowManager.view,
-                    lParams(matchConstraints, wrapContent) {
+                    lParams {
                         below(quickBar.view)
                         above(bottomPaddingSpace)
                     },
@@ -243,6 +243,15 @@ class InputView(
                         bottomOfParent()
                     },
                 )
+            }
+
+        updateWindowViewHeightJob =
+            service.lifecycleScope.launch {
+                keyboardWindow.currentKeyboardHeight.collect {
+                    windowManager.view.updateLayoutParams {
+                        height = it
+                    }
+                }
             }
 
         updateKeyboardSize()
@@ -400,6 +409,7 @@ class InputView(
         // cancel the notification job and clear all broadcast receivers,
         // implies that InputView should not be attached again after detached.
         callbackHandlerJob.cancel()
+        updateWindowViewHeightJob.cancel()
         broadcaster.clear()
         super.onDetachedFromWindow()
     }

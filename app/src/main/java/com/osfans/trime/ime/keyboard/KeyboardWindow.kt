@@ -28,6 +28,10 @@ import com.osfans.trime.ime.keyboard.KeyboardPrefs.isLandscapeMode
 import com.osfans.trime.ime.window.BoardWindow
 import com.osfans.trime.ime.window.BoardWindowManager
 import com.osfans.trime.ime.window.ResidentWindow
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.runBlocking
 import me.tatarka.inject.annotations.Inject
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.frameLayout
@@ -59,6 +63,14 @@ class KeyboardWindow(
 
     val mainKeyboardView by lazy { KeyboardView(context, theme) }
 
+    private val _currentKeyboardHeight =
+        MutableSharedFlow<Int>(
+            replay = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
+
+    val currentKeyboardHeight = _currentKeyboardHeight.asSharedFlow()
+
     private lateinit var keyboardView: FrameLayout
 
     companion object : ResidentWindow.Key
@@ -89,6 +101,9 @@ class KeyboardWindow(
         currentKeyboardId = target
         lastKeyboardId = target
         currentKeyboard?.let {
+            runBlocking {
+                _currentKeyboardHeight.emit(it.keyboardHeight)
+            }
             if (it.isLock) lastLockKeyboardId = target
             dispatchCapsState(it::setShifted)
             if (Rime.isAsciiMode != it.currentAsciiMode) {

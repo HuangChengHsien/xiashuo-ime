@@ -8,7 +8,6 @@ import android.content.Context
 import android.view.KeyEvent
 import android.view.View
 import androidx.core.content.ContextCompat
-import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
@@ -27,7 +26,6 @@ import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.ime.core.TrimeInputMethodService
 import com.osfans.trime.ime.dependency.InputScope
 import com.osfans.trime.ime.keyboard.CommonKeyboardActionListener
-import com.osfans.trime.ime.keyboard.KeyboardSwitcher
 import com.osfans.trime.ime.keyboard.KeyboardWindow
 import com.osfans.trime.ime.window.BoardWindow
 import com.osfans.trime.ime.window.BoardWindowManager
@@ -120,9 +118,6 @@ class LiquidKeyboard(
     override fun onCreateBarView() = liquidLayout.tabsUi.root
 
     override fun onAttached() {
-        liquidLayout.updateLayoutParams {
-            height = KeyboardSwitcher.currentKeyboard.keyboardHeight
-        }
         // 注册剪贴板更新监听器
         ClipboardHelper.addOnUpdateListener(this)
     }
