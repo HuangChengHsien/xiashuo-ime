@@ -88,7 +88,7 @@ class GeneralStyleMapper(
 
         val keyLongTextSize = getFloat("key_long_text_size")
 
-        val keyTextSize = getInt("key_text_size")
+        val keyTextSize = getFloat("key_text_size")
 
         val keyTextOffsetX = getInt("key_text_offset_x")
         val keyTextOffsetY = getInt("key_text_offset_y")
@@ -137,7 +137,7 @@ class GeneralStyleMapper(
 
         val symbolFont = getStringList("symbol_font")
 
-        val symbolTextSize = getInt("symbol_text_size")
+        val symbolTextSize = getFloat("symbol_text_size")
 
         val textFont = getStringList("text_font")
 

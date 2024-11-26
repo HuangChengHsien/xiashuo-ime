@@ -666,19 +666,6 @@ class Keyboard(
     val isOnlyShiftOn: Boolean
         get() = mShiftKey != null && mShiftKey!!.isOn && modifier and MASK_META_WITHOUT_SHIFT == 0
 
-    fun resetShifted(): Boolean = if (mShiftKey != null && !mShiftKey!!.isOn) setModifier(KeyEvent.META_SHIFT_ON, false) else false
-
-    fun resetModifer(): Boolean {
-        // 这里改为了一次性重置全部修饰键状态并返回TRUE刷新UI，可能有bug
-        modifier = 0
-        if (mShiftKey != null && mShiftKey!!.isOn) modifier = KeyEvent.META_SHIFT_ON
-        if (mAltKey != null && mAltKey!!.isOn) modifier = modifier or KeyEvent.META_ALT_ON
-        if (mCtrlKey != null && mCtrlKey!!.isOn) modifier = modifier or KeyEvent.META_CTRL_ON
-        if (mMetaKey != null && mMetaKey!!.isOn) modifier = modifier or KeyEvent.META_META_ON
-        if (mSymKey != null && mSymKey!!.isOn) modifier = modifier or KeyEvent.KEYCODE_SYM
-        return true
-    }
-
     fun refreshModifier(): Boolean {
         // 这里改为了一次性重置全部修饰键状态并返回TRUE刷新UI，可能有bug
         var result = false

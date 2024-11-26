@@ -146,7 +146,7 @@ class AppPrefs(
 
         var fullscreenMode by enum(FULLSCREEN_MODE, FullscreenMode.AUTO_SHOW)
         val softCursorEnabled by bool(SOFT_CURSOR_ENABLED, true)
-        val popupKeyPressEnabled by bool(POPUP_KEY_PRESS_ENABLED, false)
+        val popupKeyPressEnabled = bool(POPUP_KEY_PRESS_ENABLED, false)
         val switchesEnabled by bool(SWITCHES_ENABLED, true)
         val switchArrowEnabled by bool(SWITCH_ARROW_ENABLED, true)
 
@@ -175,11 +175,11 @@ class AppPrefs(
         val vibrationEnabled by bool(VIBRATION_ENABLED, false)
         val vibrationDuration by int(VIBRATION_DURATION, 10)
         val vibrationAmplitude by int(VIBRATION_AMPLITUDE, -1)
-        val swipeEnabled by bool(SWIPE_ENABLED, true)
-        val swipeTravel by int(SWIPE_TRAVEL, 80)
-        val swipeVelocity by int(SWIPE_VELOCITY, 800)
-        val longPressTimeout by int(LONG_PRESS_TIMEOUT, 400)
-        val repeatInterval by int(REPEAT_INTERVAL, 50)
+        val swipeEnabled = bool(SWIPE_ENABLED, true)
+        val swipeTravel = int(SWIPE_TRAVEL, 80)
+        val swipeVelocity = int(SWIPE_VELOCITY, 800)
+        val longPressTimeout = int(LONG_PRESS_TIMEOUT, 400)
+        val repeatInterval = int(REPEAT_INTERVAL, 50)
         var isSpeakKey by bool(SPEAK_KEY_PRESS_ENABLED, false)
         var isSpeakCommit by bool(SPEAK_COMMIT_ENABLED, false)
     }

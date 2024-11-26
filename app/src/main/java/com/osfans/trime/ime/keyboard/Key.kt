@@ -5,7 +5,6 @@
 package com.osfans.trime.ime.keyboard
 
 import android.graphics.drawable.Drawable
-import android.text.TextUtils
 import android.view.KeyEvent
 import com.osfans.trime.core.Rime.Companion.hasLeft
 import com.osfans.trime.core.Rime.Companion.hasMenu
@@ -17,8 +16,6 @@ import com.osfans.trime.data.theme.KeyActionManager
 import com.osfans.trime.util.CollectionUtils.obtainBoolean
 import com.osfans.trime.util.CollectionUtils.obtainFloat
 import com.osfans.trime.util.CollectionUtils.obtainString
-import com.osfans.trime.util.appContext
-import com.osfans.trime.util.sp
 import java.text.MessageFormat
 
 /** [鍵盤][Keyboard]中的各個按鍵，包含單擊、長按、滑動等多種[事件][KeyAction]  */
@@ -43,8 +40,8 @@ class Key(
     var row = 0
 
     var column = 0
-    private var label: String? = null
-    var hint: String? = null
+    private var label = ""
+    var hint: String = ""
         private set
     private lateinit var keyMap: Map<String, Any?>
     private val keyBackColor get() = ColorManager.getDrawable(keyMap, "key_back_color")
@@ -55,11 +52,11 @@ class Key(
     private val hilitedKeyTextColor get() = ColorManager.getColor(keyMap, "hilited_key_text_color")
     private val hilitedKeySymbolColor get() = ColorManager.getColor(keyMap, "hilited_key_symbol_color")
 
-    var keyTextSize: Int? = null
+    var keyTextSize: Float = 0f
         private set
-    var symbolTextSize: Int? = null
+    var symbolTextSize: Float = 0f
         private set
-    var roundCorner: Float? = null
+    var roundCorner: Float = 0f
         private set
     var keyTextOffsetX = 0
         get() = field + keyOffsetX
@@ -86,12 +83,7 @@ class Key(
     var isOn = false
         private set
 
-    @JvmField
-    val popupCharacters: String? = null
-
-    @JvmField
-    val popupResId = 0
-    private var labelSymbol: String? = null
+    private var labelSymbol = ""
 
     /**
      * Create an empty key with no attributes.
@@ -113,17 +105,17 @@ class Key(
             }
         }
         if (hasComposingKey) mKeyboard.composingKeys.add(this)
-        label = obtainString(externalKeyMap, "label", "")
-        labelSymbol = obtainString(externalKeyMap, "label_symbol", "")
-        hint = obtainString(externalKeyMap, "hint", "")
+        label = obtainString(externalKeyMap, "label")
+        labelSymbol = obtainString(externalKeyMap, "label_symbol")
+        hint = obtainString(externalKeyMap, "hint")
         if (externalKeyMap.containsKey("send_bindings")) {
             sendBindings = obtainBoolean(externalKeyMap, "send_bindings", true)
         } else if (!hasComposingKey) {
             sendBindings = false
         }
         mKeyboard.setModiferKey(this.code, this)
-        keyTextSize = appContext.sp(obtainFloat(externalKeyMap, "key_text_size")).toInt()
-        symbolTextSize = appContext.sp(obtainFloat(externalKeyMap, "symbol_text_size")).toInt()
+        keyTextSize = obtainFloat(externalKeyMap, "key_text_size")
+        symbolTextSize = obtainFloat(externalKeyMap, "symbol_text_size")
         roundCorner = obtainFloat(externalKeyMap, "round_corner")
     }
 
@@ -386,16 +378,16 @@ class Key(
 
     fun getCode(behavior: KeyBehavior): Int = getAction(behavior)!!.code
 
-    fun getLabel(): String? {
-        val event = keyAction
-        return if (!TextUtils.isEmpty(label) &&
-            event === click &&
+    fun getLabel(): String {
+        keyAction
+        return if (label.isNotEmpty() &&
+            keyAction === click &&
             keyActions[KeyBehavior.ASCII.ordinal] == null &&
             !showAsciiPunch()
         ) {
             label
         } else {
-            event!!.getLabel(mKeyboard) // 中文狀態顯示標籤
+            keyAction!!.getLabel(mKeyboard) // 中文狀態顯示標籤
         }
     }
 
@@ -406,9 +398,9 @@ class Key(
             getAction(behavior)!!.getPreview(mKeyboard)
         }
 
-    val symbolLabel: String?
+    val symbolLabel: String
         get() {
-            if (labelSymbol!!.isEmpty()) {
+            if (labelSymbol.isEmpty()) {
                 val longClick = longClick
                 if (longClick != null) return longClick.getLabel(mKeyboard)
             }
