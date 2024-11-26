@@ -13,6 +13,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.Rect
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
 import android.os.Message
@@ -82,15 +83,8 @@ class KeyboardView(
     private val keySymbolColor = ColorManager.getColor("key_symbol_color")!!
     private val hilitedKeySymbolColor = ColorManager.getColor("hilited_key_symbol_color")!!
     private val symbolTextSize = theme.generalStyle.symbolTextSize
-    private val symbolPaint =
-        Paint().apply {
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-            typeface = FontManager.getTypeface("symbol_font")
-        }
     private val mShadowRadius = theme.generalStyle.shadowRadius
     private val mShadowColor = ColorManager.getColor("shadow_color")!!
-    private val mBackgroundDimAmount = theme.generalStyle.backgroundDimAmount
 
     private val mPreviewText =
         textView {
@@ -146,12 +140,6 @@ class KeyboardView(
      * adjacent keys. When disabled, only the primary key code will be reported.
      */
     private val enableProximityCorrection = theme.generalStyle.proximityCorrection
-    private val textPaint =
-        Paint().apply {
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-            typeface = FontManager.getTypeface("key_font")
-        }
     private var mDownTime: Long = 0
     private var mLastMoveTime: Long = 0
     private var mLastKey = 0
@@ -165,7 +153,6 @@ class KeyboardView(
     private val mKeyIndices = IntArray(12)
     private var mRepeatKeyIndex = -1
     private var mAbortKey = true
-    private var mInvalidatedKey: Key? = null
     private val mDisambiguateSwipe = false
 
     // Variables for dealing with multiple pointers
@@ -179,20 +166,26 @@ class KeyboardView(
     private var mLastSentIndex = -1
     private var mLastTapTime: Long = -1
 
-    /** Whether the keyboard bitmap needs to be redrawn before it's blitted. */
-    private var mDrawPending = false
+    /** True if all keys should be drawn */
+    private var invalidateAllKeys = false
+
+    /** The keys that should be drawn  */
+    private val invalidatedKeys = hashSetOf<Key>()
 
     /** The dirty region in the keyboard bitmap */
-    private val mDirtyRect = Rect()
+    private val dirtyRect = Rect()
 
     /** The keyboard bitmap for faster updates */
-    private var mBuffer: Bitmap? = null
+    private var drawingBuffer: Bitmap? = null
 
     /** The canvas for the above mutable keyboard bitmap  */
-    private var mCanvas: Canvas? = null
+    private val drawingCanvas = Canvas()
 
-    /** 位图中实际绘制的区域 */
-    private var mRect: Rect = Rect()
+    private val basePaint =
+        Paint().apply {
+            isAntiAlias = true
+            textAlign = Paint.Align.CENTER
+        }
 
     var showKeyHint = !Rime.getOption("_hide_key_hint")
     var showKeySymbol = !Rime.getOption("_hide_key_symbol")
@@ -462,154 +455,71 @@ class KeyboardView(
         mProximityThreshold = (dimensionSum * Keyboard.SEARCH_DISTANCE / mKeys.size).pow(2).toInt() // Square it
     }
 
-    public override fun onSizeChanged(
-        w: Int,
-        h: Int,
-        oldw: Int,
-        oldh: Int,
-    ) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        mRect.union(0, 0, w, h)
-    }
-
     public override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        onBufferDraw()
-        if (mRect.isEmpty) mRect.union(0, 0, width, height)
-        mBuffer?.also {
-            canvas.drawBitmap(it, mRect, mRect, null)
+        if (canvas.isHardwareAccelerated) {
+            onDrawKeyboard(canvas)
+            return
+        }
+        val bufferNeedsUpdates = invalidateAllKeys || invalidatedKeys.isNotEmpty()
+        if (bufferNeedsUpdates || drawingBuffer == null) {
+            if (maybeAllocateDrawingBuffer()) {
+                invalidateAllKeys = true
+                drawingCanvas.setBitmap(drawingBuffer)
+            }
+            onDrawKeyboard(drawingCanvas)
+        }
+        canvas.drawBitmap(drawingBuffer!!, 0.0f, 0.0f, null)
+    }
+
+    private fun maybeAllocateDrawingBuffer(): Boolean {
+        if (width == 0 || height == 0) {
+            return false
+        }
+        if (drawingBuffer != null && drawingBuffer!!.width == width && drawingBuffer!!.height == height) {
+            return false
+        }
+        freeDrawingBuffer()
+        drawingBuffer = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        return true
+    }
+
+    private fun freeDrawingBuffer() {
+        drawingCanvas.setBitmap(null)
+        drawingCanvas.setMatrix(null)
+        if (drawingBuffer != null) {
+            drawingBuffer!!.recycle()
+            drawingBuffer = null
         }
     }
 
-    private fun onBufferDraw() {
-        if (mBuffer == null || mCanvas == null) {
-            // 初始化
-            if (width == 0 || height == 0) return
-            mBuffer = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-            mCanvas = Canvas(mBuffer!!)
-            invalidateAllKeys()
-        } else if (mBuffer!!.width < width || mBuffer!!.height < height) {
-            // 位图尺寸不够，重新创建
-            val newWidth = max(width, mBuffer!!.width)
-            val newHeight = max(height, mBuffer!!.height)
-            mBuffer?.recycle()
-            mBuffer = null
-            mBuffer = Bitmap.createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888)
-            mCanvas?.setBitmap(mBuffer)
-            invalidateAllKeys()
-        }
-        mCanvas!!.save()
-        mCanvas!!.clipRect(mDirtyRect)
-        val clipRegion = Rect().also { mCanvas!!.getClipBounds(it) }
-        val invalidatedKey = mInvalidatedKey
-        var drawSingleKey = false
-        if (invalidatedKey != null) {
-            // Is clipRegion completely contained within the invalidated key?
-            if (invalidatedKey.x + paddingLeft - 1 <= clipRegion.left &&
-                invalidatedKey.y + paddingTop - 1 <= clipRegion.top &&
-                invalidatedKey.x + invalidatedKey.width + paddingLeft + 1 >= clipRegion.right &&
-                invalidatedKey.y + invalidatedKey.height + paddingLeft + 1 >= clipRegion.bottom
-            ) {
-                drawSingleKey = true
+    private fun onDrawKeyboard(canvas: Canvas) {
+        val paint = basePaint
+        val drawAllKeys = invalidateAllKeys || invalidatedKeys.isEmpty()
+        val isHardwareAccelerated = canvas.isHardwareAccelerated
+        if (drawAllKeys || isHardwareAccelerated) {
+            if (!isHardwareAccelerated && background != null) {
+                canvas.drawColor(Color.BLACK, PorterDuff.Mode.CLEAR)
+                background.draw(canvas)
             }
-        }
-        mCanvas!!.drawColor(0x00000000, PorterDuff.Mode.CLEAR)
-        val symbolBase = -symbolPaint.fontMetrics.top
-        val hintBase = -symbolPaint.fontMetrics.bottom
-        Timber.d("onBufferDraw: keys.size=${mKeys.size}, drawSingleKey=$drawSingleKey, isInvalidedKeyNull=${invalidatedKey == null}")
-        keyboard.printModifierKeyState("onBufferDraw, drawSingleKey=$drawSingleKey")
-        for (key in mKeys) {
-            if (drawSingleKey && invalidatedKey != key) {
-                continue
+            for (key in mKeys) {
+                onDrawKey(key, canvas, paint)
             }
-            val currentKeyDrawableState = key.currentDrawableState
-            val keyBackground =
-                key.run { getBackColorForState(currentKeyDrawableState) }
-                    ?: mKeyBackColor.run { stateDrawableAt(indexOfStateSet(currentKeyDrawableState)) }
-            if (keyBackground is GradientDrawable) {
-                keyBackground.cornerRadius =
-                    if (key.roundCorner > 0) {
-                        key.roundCorner
-                    } else {
-                        keyboard.roundCorner
-                    }
-            }
-            // Switch the character to uppercase if shift is pressed
-            val keyLabel =
-                key.getLabel().let {
-                    if (it == "enter_labels") {
-                        labelEnter
-                    } else {
-                        it
-                    }
+        } else {
+            for (key in invalidatedKeys) {
+                if (!mKeys.contains(key)) continue
+                if (background != null) {
+                    val x = key.x + paddingLeft
+                    val y = key.y + paddingTop
+                    dirtyRect.set(x, y, x + key.width, y + key.height)
+                    canvas.save()
+                    canvas.clipRect(dirtyRect)
+                    canvas.drawColor(Color.BLACK, PorterDuff.Mode.CLEAR)
+                    background.draw(canvas)
+                    canvas.restore()
                 }
-            val bounds = keyBackground.bounds
-            if (key.width != bounds.right || key.height != bounds.bottom) {
-                keyBackground.setBounds(0, 0, key.width, key.height)
+                onDrawKey(key, canvas, paint)
             }
-            mCanvas!!.translate((key.x + paddingLeft).toFloat(), (key.y + paddingTop).toFloat())
-            keyBackground.draw(mCanvas!!)
-            if (keyLabel.isNotEmpty()) {
-                textPaint.color = key.getTextColorForState(currentKeyDrawableState)
-                    ?: mKeyTextColor.getColorForState(currentKeyDrawableState, Color.TRANSPARENT)
-                // For characters, use large font. For labels like "Done", use small font.
-                textPaint.textSize =
-                    if (key.keyTextSize > 0) {
-                        sp(key.keyTextSize)
-                    } else {
-                        sp(if (keyLabel.length > 1) labelTextSize else keyTextSize)
-                    }
-                // Draw a drop shadow for the text
-                textPaint.setShadowLayer(mShadowRadius, 0f, 0f, mShadowColor)
-                // Draw the text
-                mCanvas!!.drawText(
-                    keyLabel,
-                    (key.width / 2f + key.keyTextOffsetX),
-                    (key.height) / 2f +
-                        (textPaint.run { textSize - descent() }) / 2f + key.keyTextOffsetY,
-                    textPaint,
-                )
-                // Turn off drop shadow
-                textPaint.setShadowLayer(0f, 0f, 0f, 0)
-
-                symbolPaint.color = key.getSymbolColorForState(currentKeyDrawableState)
-                    ?: if (key.isPressed) hilitedKeySymbolColor else keySymbolColor
-                symbolPaint.textSize =
-                    if (key.symbolTextSize > 0) {
-                        sp(key.symbolTextSize)
-                    } else {
-                        sp(symbolTextSize)
-                    }
-                symbolPaint.setShadowLayer(mShadowRadius, 0f, 0f, mShadowColor)
-
-                if (showKeySymbol) {
-                    if (key.symbolLabel.isNotEmpty()) {
-                        mCanvas!!.drawText(
-                            key.symbolLabel,
-                            (key.width / 2f + key.keySymbolOffsetX),
-                            symbolBase + key.keySymbolOffsetY,
-                            symbolPaint,
-                        )
-                    }
-                }
-                if (showKeyHint) {
-                    if (key.hint.isNotEmpty()) {
-                        mCanvas!!.drawText(
-                            key.hint,
-                            (key.width / 2f + key.keyHintOffsetX),
-                            key.height + hintBase + key.keyHintOffsetY,
-                            symbolPaint,
-                        )
-                    }
-                }
-            }
-            mCanvas!!.translate((-key.x - paddingLeft).toFloat(), (-key.y - paddingTop).toFloat())
-        }
-        mInvalidatedKey = null
-        // Overlay a dark rectangle to dim the keyboard
-        if (mMiniKeyboardOnScreen) {
-            textPaint.color = (mBackgroundDimAmount * 0xFF).toInt() shl 24
-            mCanvas?.drawRect(0f, 0f, width.toFloat(), height.toFloat(), textPaint)
         }
 
         // debug: show touch points
@@ -621,13 +531,117 @@ class KeyboardView(
 //        canvas.drawCircle(mLastX.toFloat(), mLastY.toFloat(), 3f, paint)
 //        paint.color = -0xff0100
 //        canvas.drawCircle((mStartX + mLastX) / 2f, (mStartY + mLastY) / 2f, 2f, paint)
-        try {
-            mCanvas!!.restore()
-        } catch (e: Exception) {
-            Timber.w(e, "Exception on restoring KeyboardView's canvas")
+        invalidatedKeys.clear()
+        invalidateAllKeys = false
+    }
+
+    private fun onDrawKey(
+        key: Key,
+        canvas: Canvas,
+        paint: Paint,
+    ) {
+        val keyDrawX = (key.x + paddingLeft).toFloat()
+        val keyDrawY = (key.y + paddingTop).toFloat()
+        canvas.translate(keyDrawX, keyDrawY)
+
+        val currentKeyDrawableState = key.currentDrawableState
+        val keyBackground =
+            key.run { getBackColorForState(currentKeyDrawableState) }
+                ?: mKeyBackColor.run { stateDrawableAt(indexOfStateSet(currentKeyDrawableState)) }
+        if (keyBackground is GradientDrawable) {
+            keyBackground.cornerRadius =
+                if (key.roundCorner > 0) {
+                    key.roundCorner
+                } else {
+                    keyboard.roundCorner
+                }
         }
-        mDrawPending = false
-        mDirtyRect.setEmpty()
+        onDrawKeyBackground(key, canvas, keyBackground)
+        // Switch the character to uppercase if shift is pressed
+
+        val centerX = key.width * 0.5f
+        val centerY = key.height * 0.5f
+        val keyLabel =
+            key.getLabel().let {
+                if (it == "enter_labels") {
+                    labelEnter
+                } else {
+                    it
+                }
+            }
+        if (keyLabel.isNotEmpty()) {
+            paint.typeface = FontManager.getTypeface("key_font")
+            // For characters, use large font. For labels like "Done", use small font.
+            paint.textSize =
+                if (key.keyTextSize > 0) {
+                    sp(key.keyTextSize)
+                } else {
+                    sp(if (keyLabel.length > 1) labelTextSize else keyTextSize)
+                }
+
+            val labelX = centerX + key.keyTextOffsetX
+            val labelBaseline = centerY + key.keyTextOffsetY
+
+            paint.color = key.getTextColorForState(currentKeyDrawableState)
+                ?: mKeyTextColor.getColorForState(currentKeyDrawableState, Color.TRANSPARENT)
+
+            // Draw a drop shadow for the text
+            if (mShadowRadius > 0f) {
+                paint.setShadowLayer(mShadowRadius, 0f, 0f, mShadowColor)
+            } else {
+                paint.clearShadowLayer()
+            }
+
+            val adjustmentY = paint.run { textSize - descent() } / 2f
+            // Draw the text
+            canvas.drawText(keyLabel, labelX, labelBaseline + adjustmentY, paint)
+            // Turn off drop shadow
+            paint.clearShadowLayer()
+
+            if (showKeySymbol || showKeyHint) {
+                paint.typeface = FontManager.getTypeface("symbol_font")
+                paint.textSize =
+                    if (key.symbolTextSize > 0) {
+                        sp(key.symbolTextSize)
+                    } else {
+                        sp(symbolTextSize)
+                    }
+                paint.color = key.getSymbolColorForState(currentKeyDrawableState)
+                    ?: if (key.isPressed) hilitedKeySymbolColor else keySymbolColor
+
+                val fontMetrics = paint.fontMetrics
+
+                val symbolLabel = key.symbolLabel
+                if (showKeySymbol && symbolLabel.isNotEmpty()) {
+                    val symbolX = centerX + key.keySymbolOffsetX
+                    val symbolBaseline = -fontMetrics.top
+                    canvas.drawText(symbolLabel, symbolX, symbolBaseline + key.keySymbolOffsetY, paint)
+                }
+                val hintLabel = key.hint
+                if (showKeyHint && hintLabel.isNotEmpty()) {
+                    val hintX = centerX + key.keyHintOffsetX
+                    val hintBaseline = -fontMetrics.bottom
+                    canvas.drawText(hintLabel, hintX, hintBaseline + key.height + key.keyHintOffsetY, paint)
+                }
+            }
+        }
+        canvas.translate(-keyDrawX, -keyDrawY)
+    }
+
+    private fun onDrawKeyBackground(
+        key: Key,
+        canvas: Canvas,
+        background: Drawable,
+    ) {
+        val padding = Rect().also { background.getPadding(it) }
+        val bgWidth = key.width + padding.left + padding.right
+        val bgHeight = key.height + padding.top + padding.right
+        val bgX = -padding.left.toFloat()
+        val bgY = -padding.top.toFloat()
+        background.setBounds(0, 0, bgWidth, bgHeight)
+        canvas.translate(bgX, bgY)
+        background.draw(canvas)
+        canvas.translate(-bgX, -bgY)
     }
 
     private fun getKeyIndices(
@@ -722,12 +736,12 @@ class KeyboardView(
             if (oldKeyIndex in keys.indices) {
                 val oldKey = keys[oldKeyIndex]
                 oldKey.onReleased()
-                invalidateKey(oldKeyIndex)
+                invalidateKey(oldKey)
             }
             if (mCurrentKeyIndex in keys.indices) {
                 val newKey = keys[mCurrentKeyIndex]
                 newKey.onPressed()
-                invalidateKey(mCurrentKeyIndex)
+                invalidateKey(newKey)
             }
         }
         // If key changed and preview is on ...
@@ -819,16 +833,16 @@ class KeyboardView(
     }
 
     /**
-     * Requests a redraw of the entire keyboard. Calling [.invalidate] is not sufficient because
+     * Requests a redraw of the entire keyboard. Calling [invalidate] is not sufficient because
      * the keyboard renders the keys to an off-screen buffer and an invalidate() only draws the cached
      * buffer.
      *
-     * @see .invalidateKey
+     * @see invalidateKey
      */
     fun invalidateAllKeys() {
         Timber.d("invalidateAllKeys")
-        mDirtyRect.union(0, 0, width, height)
-        mDrawPending = true
+        invalidatedKeys.clear()
+        invalidateAllKeys = true
         invalidate()
     }
 
@@ -837,24 +851,12 @@ class KeyboardView(
      * key is changing it's content. Any changes that affect the position or size of the key may not
      * be honored.
      *
-     * @param index the index of the key in the attached [Keyboard].
-     * @see .invalidateAllKeys
+     * @param key the key in the attached [Keyboard].
+     * @see invalidateAllKeys
      */
-    private fun invalidateKey(index: Int) {
-        Timber.d("invalidateKey: index=$index")
-        if (index !in mKeys.indices) {
-            return
-        }
-        val key = mKeys[index]
-        mInvalidatedKey = key
-        mDirtyRect.union(
-            key.x + paddingLeft,
-            key.y + paddingTop,
-            key.x + key.width + paddingLeft,
-            key.y + key.height + paddingTop,
-        )
-        onBufferDraw()
-        Timber.d("invalidateKey: invalidate")
+    private fun invalidateKey(key: Key?) {
+        if (invalidateAllKeys || key == null) return
+        invalidatedKeys.add(key)
         invalidate()
     }
 
@@ -1160,7 +1162,7 @@ class KeyboardView(
                 dismissPopupKeyboard()
                 mAbortKey = true
                 showPreview(NOT_A_KEY)
-                invalidateKey(mCurrentKey)
+                invalidateKey(mKeys[mCurrentKey])
             }
         }
         mLastX = touchX
@@ -1187,9 +1189,12 @@ class KeyboardView(
         }
         removeMessages()
         dismissPopupKeyboard()
-        mBuffer?.recycle()
-        mBuffer = null
-        mCanvas = null
+        freeDrawingBuffer()
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        freeDrawingBuffer()
     }
 
     private fun dismissPopupKeyboard() {
