@@ -49,9 +49,9 @@ import kotlin.math.pow
 class KeyboardView(
     context: Context,
     private val theme: Theme,
+    private val keyboard: Keyboard,
 ) : View(context),
     View.OnClickListener {
-    private var mKeyboard: Keyboard? = null
     private var mCurrentKeyIndex = NOT_A_KEY
     private val keyTextSize = theme.generalStyle.keyTextSize
     private val labelTextSize =
@@ -122,7 +122,7 @@ class KeyboardView(
     private var mPopupParent: View = this
     private var mMiniKeyboardOffsetX = 0
     private var mMiniKeyboardOffsetY = 0
-    private var mKeys: Array<Key>? = null
+    private val mKeys get() = keyboard.keys
 
     var keyboardActionListener: KeyboardActionListener? = null
     private val mVerticalCorrection = theme.generalStyle.verticalCorrection
@@ -163,8 +163,8 @@ class KeyboardView(
     private var mCurrentKeyTime: Long = 0
     private var mLastUpTime: Long = 0
     private val mKeyIndices = IntArray(12)
-    private var mRepeatKeyIndex = NOT_A_KEY
-    private var mAbortKey = false
+    private var mRepeatKeyIndex = -1
+    private var mAbortKey = true
     private var mInvalidatedKey: Key? = null
     private val mDisambiguateSwipe = false
 
@@ -193,9 +193,6 @@ class KeyboardView(
 
     /** 位图中实际绘制的区域 */
     private var mRect: Rect = Rect()
-
-    /** Notes if the keyboard just changed, so that we could possibly reallocate the mBuffer.  */
-    private var mKeyboardChanged = false
 
     var showKeyHint = !Rime.getOption("_hide_key_hint")
     var showKeySymbol = !Rime.getOption("_hide_key_symbol")
@@ -231,6 +228,8 @@ class KeyboardView(
     }
 
     init {
+        setKeyboardBackground()
+        computeProximityThreshold(keyboard)
         invalidateAllKeys()
     }
 
@@ -274,14 +273,14 @@ class KeyboardView(
                             absY < absX ||
                                 (
                                     deltaY > 0 &&
-                                        mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_UP.ordinal] == null
+                                        mKeys[mDownKey].keyActions[KeyBehavior.SWIPE_UP.ordinal] == null
                                 ) ||
                                 (
                                     deltaY < 0 &&
-                                        mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_DOWN.ordinal] == null
+                                        mKeys[mDownKey].keyActions[KeyBehavior.SWIPE_DOWN.ordinal] == null
                                 )
                         ) &&
-                        mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_RIGHT.ordinal] != null
+                        mKeys[mDownKey].keyActions[KeyBehavior.SWIPE_RIGHT.ordinal] != null
                     ) {
                         // I should have implement mDisambiguateSwipe as a config option, but the logic
                         // here is really weird, and I don't really know
@@ -299,14 +298,14 @@ class KeyboardView(
                             absY < absX ||
                                 (
                                     deltaY > 0 &&
-                                        mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_UP.ordinal] == null
+                                        mKeys[mDownKey].keyActions[KeyBehavior.SWIPE_UP.ordinal] == null
                                 ) ||
                                 (
                                     deltaY < 0 &&
-                                        mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_DOWN.ordinal] == null
+                                        mKeys[mDownKey].keyActions[KeyBehavior.SWIPE_DOWN.ordinal] == null
                                 )
                         ) &&
-                        mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_LEFT.ordinal] != null
+                        mKeys[mDownKey].keyActions[KeyBehavior.SWIPE_LEFT.ordinal] != null
                     ) {
                         if (mDisambiguateSwipe && endingVelocityX < velocityX / 4) {
                             return true
@@ -319,14 +318,14 @@ class KeyboardView(
                             absX < absY ||
                                 (
                                     deltaX > 0 &&
-                                        mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_RIGHT.ordinal] == null
+                                        mKeys[mDownKey].keyActions[KeyBehavior.SWIPE_RIGHT.ordinal] == null
                                 ) ||
                                 (
                                     deltaX < 0 &&
-                                        mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_LEFT.ordinal] == null
+                                        mKeys[mDownKey].keyActions[KeyBehavior.SWIPE_LEFT.ordinal] == null
                                 )
                         ) &&
-                        mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_UP.ordinal] != null
+                        mKeys[mDownKey].keyActions[KeyBehavior.SWIPE_UP.ordinal] != null
                     ) {
                         if (mDisambiguateSwipe && endingVelocityY < velocityY / 4) {
                             return true
@@ -339,14 +338,14 @@ class KeyboardView(
                             absX < absY ||
                                 (
                                     deltaX > 0 &&
-                                        mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_RIGHT.ordinal] == null
+                                        mKeys[mDownKey].keyActions[KeyBehavior.SWIPE_RIGHT.ordinal] == null
                                 ) ||
                                 (
                                     deltaX < 0 &&
-                                        mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_LEFT.ordinal] == null
+                                        mKeys[mDownKey].keyActions[KeyBehavior.SWIPE_LEFT.ordinal] == null
                                 )
                         ) &&
-                        mKeys!![mDownKey].keyActions[KeyBehavior.SWIPE_DOWN.ordinal] != null
+                        mKeys[mDownKey].keyActions[KeyBehavior.SWIPE_DOWN.ordinal] != null
                     ) {
                         if (mDisambiguateSwipe && endingVelocityY > velocityY / 4) {
                             return true
@@ -370,51 +369,12 @@ class KeyboardView(
         ).apply { setIsLongpressEnabled(false) }
 
     private fun setKeyboardBackground() {
-        if (mKeyboard == null) return
         val d = mPreviewText.background
         if (d is GradientDrawable) {
-            d.cornerRadius = mKeyboard!!.roundCorner
+            d.cornerRadius = keyboard.roundCorner
             mPreviewText.background = d
         }
     }
-
-    var keyboard: Keyboard?
-        /**
-         * Returns the current keyboard being displayed by this view.
-         *
-         * @return the currently attached keyboard
-         * @see .setKeyboard
-         */
-        get() = mKeyboard
-
-        /**
-         * Attaches a keyboard to this view. The keyboard can be switched at any time and the view will
-         * re-layout itself to accommodate the keyboard.
-         *
-         * @see Keyboard
-         *
-         * @see .getKeyboard
-         * @param keyboard the keyboard to display in this view
-         */
-        set(keyboard) {
-            if (mKeyboard != null) {
-                showPreview(NOT_A_KEY)
-            }
-            // Remove any pending messages
-            removeMessages()
-            mRepeatKeyIndex = NOT_A_KEY
-            mKeyboard = keyboard
-            mKeys = keyboard!!.keys.toTypedArray<Key>()
-            setKeyboardBackground()
-            // Hint to reallocate the buffer if the size changed
-            mKeyboardChanged = true
-            computeProximityThreshold(keyboard)
-            // Switching to a different keyboard should abort any pending keys so that the key up
-            // doesn't get delivered to the old or new keyboard
-            mAbortKey = true // Until the next ACTION_DOWN
-            invalidateAllKeys()
-            requestLayout()
-        }
 
     /**
      * 设置键盘修饰键的状态
@@ -423,7 +383,7 @@ class KeyboardView(
      * @return
      */
     private fun setModifier(key: Key): Boolean =
-        if (mKeyboard?.clikModifierKey(key.isShiftLock, key.modifierKeyOnMask) == true) {
+        if (keyboard.clikModifierKey(key.isShiftLock, key.modifierKeyOnMask)) {
             invalidateAllKeys()
             true
         } else {
@@ -443,7 +403,7 @@ class KeyboardView(
         shifted: Boolean,
     ): Boolean {
         // todo 扩展为设置全部修饰键的状态
-        return if (mKeyboard?.setShifted(on, shifted) == true) {
+        return if (keyboard.setShifted(on, shifted)) {
             // The whole keyboard probably needs to be redrawn
             invalidateAllKeys()
             true
@@ -454,7 +414,7 @@ class KeyboardView(
 
     // 重置全部修饰键的状态(如果有锁定则不重置）
     private fun refreshModifier() {
-        if (mKeyboard?.refreshModifier() == true) {
+        if (keyboard.refreshModifier()) {
             invalidateAllKeys()
         }
     }
@@ -463,7 +423,7 @@ class KeyboardView(
      * 返回鍵盤是否爲大寫狀態
      */
     val isCapsOn: Boolean
-        get() = mKeyboard?.mShiftKey?.isOn ?: false
+        get() = keyboard.mShiftKey?.isOn ?: false
 
     /**
      * 關閉彈出鍵盤
@@ -479,22 +439,15 @@ class KeyboardView(
         heightMeasureSpec: Int,
     ) {
         // Round up a little
-        if (mKeyboard == null) {
-            setMeasuredDimension(
-                paddingLeft + paddingRight,
-                paddingTop + paddingBottom,
-            )
-        } else {
-            val fullWidth = mKeyboard!!.minWidth + paddingLeft + paddingRight
-            val fullHeight = mKeyboard!!.height + paddingTop + paddingBottom
-            val measuredWidth =
-                if (MeasureSpec.getSize(widthMeasureSpec) < fullWidth + 10) {
-                    MeasureSpec.getSize(widthMeasureSpec)
-                } else {
-                    fullWidth
-                }
-            setMeasuredDimension(measuredWidth, fullHeight)
-        }
+        val fullWidth = keyboard.minWidth + paddingLeft + paddingRight
+        val fullHeight = keyboard.height + paddingTop + paddingBottom
+        val measuredWidth =
+            if (MeasureSpec.getSize(widthMeasureSpec) < fullWidth + 10) {
+                MeasureSpec.getSize(widthMeasureSpec)
+            } else {
+                fullWidth
+            }
+        setMeasuredDimension(measuredWidth, fullHeight)
     }
 
     /**
@@ -503,10 +456,10 @@ class KeyboardView(
      * @param keyboard 鍵盤
      */
     private fun computeProximityThreshold(keyboard: Keyboard?) {
-        if (keyboard == null && mKeys.isNullOrEmpty()) return
-        val dimensionSum = mKeys!!.sumOf { key -> min(key.width, key.height) + key.gap }
+        if (keyboard == null && mKeys.isEmpty()) return
+        val dimensionSum = mKeys.sumOf { key -> min(key.width, key.height) + key.gap }
         if (dimensionSum < 0) return
-        mProximityThreshold = (dimensionSum * Keyboard.SEARCH_DISTANCE / mKeys!!.size).pow(2).toInt() // Square it
+        mProximityThreshold = (dimensionSum * Keyboard.SEARCH_DISTANCE / mKeys.size).pow(2).toInt() // Square it
     }
 
     public override fun onSizeChanged(
@@ -535,20 +488,16 @@ class KeyboardView(
             mBuffer = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             mCanvas = Canvas(mBuffer!!)
             invalidateAllKeys()
-        } else if (mBuffer!!.width < width || mBuffer!!.height < height || mKeyboardChanged) {
+        } else if (mBuffer!!.width < width || mBuffer!!.height < height) {
             // 位图尺寸不够，重新创建
-            if (!mKeyboardChanged) {
-                val newWidth = max(width, mBuffer!!.width)
-                val newHeight = max(height, mBuffer!!.height)
-                mBuffer?.recycle()
-                mBuffer = null
-                mBuffer = Bitmap.createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888)
-                mCanvas?.setBitmap(mBuffer)
-            }
+            val newWidth = max(width, mBuffer!!.width)
+            val newHeight = max(height, mBuffer!!.height)
+            mBuffer?.recycle()
+            mBuffer = null
+            mBuffer = Bitmap.createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888)
+            mCanvas?.setBitmap(mBuffer)
             invalidateAllKeys()
-            mKeyboardChanged = false
         }
-        if (mKeyboard == null || mKeys == null) return
         mCanvas!!.save()
         mCanvas!!.clipRect(mDirtyRect)
         val clipRegion = Rect().also { mCanvas!!.getClipBounds(it) }
@@ -567,9 +516,9 @@ class KeyboardView(
         mCanvas!!.drawColor(0x00000000, PorterDuff.Mode.CLEAR)
         val symbolBase = -symbolPaint.fontMetrics.top
         val hintBase = -symbolPaint.fontMetrics.bottom
-        Timber.d("onBufferDraw: keys.size=${mKeys!!.size}, drawSingleKey=$drawSingleKey, isInvalidedKeyNull=${invalidatedKey == null}")
-        mKeyboard!!.printModifierKeyState("onBufferDraw, drawSingleKey=$drawSingleKey")
-        for (key in mKeys!!) {
+        Timber.d("onBufferDraw: keys.size=${mKeys.size}, drawSingleKey=$drawSingleKey, isInvalidedKeyNull=${invalidatedKey == null}")
+        keyboard.printModifierKeyState("onBufferDraw, drawSingleKey=$drawSingleKey")
+        for (key in mKeys) {
             if (drawSingleKey && invalidatedKey != key) {
                 continue
             }
@@ -582,7 +531,7 @@ class KeyboardView(
                     if (key.roundCorner > 0) {
                         key.roundCorner
                     } else {
-                        mKeyboard!!.roundCorner
+                        keyboard.roundCorner
                     }
             }
             // Switch the character to uppercase if shift is pressed
@@ -689,9 +638,9 @@ class KeyboardView(
         var closestKey = -1
         var closestKeyDist = mProximityThreshold + 1
         mDistances.fill(Int.MAX_VALUE)
-        val nearestKeyIndices = mKeyboard!!.getNearestKeys(x, y)
+        val nearestKeyIndices = keyboard.getNearestKeys(x, y)
         for (nearestKeyIndex in nearestKeyIndices!!) {
-            val key = mKeys!![nearestKeyIndex]
+            val key = mKeys[nearestKeyIndex]
             val isInside = key.isInside(x, y)
             if (isInside) {
                 primaryIndex = nearestKeyIndex
@@ -734,9 +683,9 @@ class KeyboardView(
         eventTime: Long,
         behavior: KeyBehavior = KeyBehavior.CLICK,
     ) {
-        Timber.d("detectAndSendKey: index=$index, x=$x, y=$y, type=$behavior, mKeys.size=${mKeys!!.size}")
-        if (index in mKeys!!.indices) {
-            val key = mKeys!![index]
+        Timber.d("detectAndSendKey: index=$index, x=$x, y=$y, type=$behavior, mKeys.size=${mKeys.size}")
+        if (index in mKeys.indices) {
+            val key = mKeys[index]
             if (Key.isTrimeModifierKey(key.code) && !key.sendBindings(behavior)) {
                 Timber.d("detectAndSendKey: ModifierKey, key.getEvent, keyLabel=${key.getLabel()}")
                 setModifier(key)
@@ -768,7 +717,7 @@ class KeyboardView(
         val previewPopup = mPreviewPopup
         mCurrentKeyIndex = keyIndex
         // Release the old key and press the new key
-        val keys = mKeys!!
+        val keys = mKeys
         if (oldKeyIndex != mCurrentKeyIndex) {
             if (oldKeyIndex in keys.indices) {
                 val oldKey = keys[oldKeyIndex]
@@ -811,8 +760,8 @@ class KeyboardView(
         behavior: KeyBehavior,
     ) {
         val previewPopup = mPreviewPopup
-        if (index !in mKeys!!.indices) return
-        val key = mKeys!![index]
+        if (index !in mKeys.indices) return
+        val key = mKeys[index]
         mPreviewText.setCompoundDrawables(null, null, null, null)
         mPreviewText.text = key.getPreviewText(behavior)
         mPreviewText.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED)
@@ -888,16 +837,15 @@ class KeyboardView(
      * key is changing it's content. Any changes that affect the position or size of the key may not
      * be honored.
      *
-     * @param keyIndex the index of the key in the attached [Keyboard].
+     * @param index the index of the key in the attached [Keyboard].
      * @see .invalidateAllKeys
      */
-    private fun invalidateKey(keyIndex: Int) {
-        Timber.d("invalidateKey: keyIndex=$keyIndex, mKeysExist=${mKeys != null}")
-        if (mKeys == null) return
-        if (keyIndex !in mKeys!!.indices) {
+    private fun invalidateKey(index: Int) {
+        Timber.d("invalidateKey: index=$index")
+        if (index !in mKeys.indices) {
             return
         }
-        val key = mKeys!![keyIndex]
+        val key = mKeys[index]
         mInvalidatedKey = key
         mDirtyRect.union(
             key.x + paddingLeft,
@@ -912,12 +860,12 @@ class KeyboardView(
 
     private fun openPopupIfRequired(): Boolean {
         // Check if we have a popup layout specified first.
-        if (mCurrentKey !in mKeys!!.indices) {
+        if (mCurrentKey !in mKeys.indices) {
             return false
         }
         showPreview(NOT_A_KEY)
         showPreview(mCurrentKey, KeyBehavior.LONG_CLICK)
-        val popupKey = mKeys!![mCurrentKey]
+        val popupKey = mKeys[mCurrentKey]
         return onLongPress(popupKey).also {
             if (it) {
                 mAbortKey = true
@@ -1073,8 +1021,8 @@ class KeyboardView(
             touchOnePoint = false
             if (action == MotionEvent.ACTION_POINTER_DOWN) return // 並擊鬆開前的虛擬按鍵事件
             checkMultiTap(eventTime, keyIndex)
-            keyboardActionListener?.onPress(if (keyIndex != NOT_A_KEY) mKeys!![keyIndex].code else 0)
-            if (mCurrentKey >= 0 && mKeys!![mCurrentKey].click!!.isRepeatable) {
+            keyboardActionListener?.onPress(if (keyIndex != NOT_A_KEY) mKeys[keyIndex].code else 0)
+            if (mCurrentKey >= 0 && mKeys[mCurrentKey].click!!.isRepeatable) {
                 mRepeatKeyIndex = mCurrentKey
                 val msg = mHandler.obtainMessage(MSG_REPEAT)
                 val repeatStartDelay = longPressTimeout + 1
@@ -1222,20 +1170,9 @@ class KeyboardView(
 
     private fun repeatKey(): Boolean {
         Timber.d("repeatKey")
-        val key = mKeys!![mRepeatKeyIndex]
+        val key = mKeys[mRepeatKeyIndex]
         detectAndSendKey(mCurrentKey, key.x, key.y, mLastTapTime)
         return true
-    }
-
-    fun finishInput() {
-        if (mPreviewPopup.isShowing) {
-            mPreviewPopup.dismiss()
-        }
-        removeMessages()
-        dismissPopupKeyboard()
-        mBuffer?.recycle()
-        mBuffer = null
-        mCanvas = null
     }
 
     private fun removeMessages() {
@@ -1244,9 +1181,15 @@ class KeyboardView(
         mHandler.removeMessages(MSG_SHOW_PREVIEW)
     }
 
-    public override fun onDetachedFromWindow() {
-        super.onDetachedFromWindow()
-        finishInput()
+    fun onDetach() {
+        if (mPreviewPopup.isShowing) {
+            mPreviewPopup.dismiss()
+        }
+        removeMessages()
+        dismissPopupKeyboard()
+        mBuffer?.recycle()
+        mBuffer = null
+        mCanvas = null
     }
 
     private fun dismissPopupKeyboard() {

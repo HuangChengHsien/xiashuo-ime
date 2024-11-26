@@ -61,8 +61,6 @@ class KeyboardWindow(
                 }
             }
 
-    val mainKeyboardView by lazy { KeyboardView(context, theme) }
-
     private val _currentKeyboardHeight =
         MutableSharedFlow<Int>(
             replay = 1,
@@ -79,39 +77,52 @@ class KeyboardWindow(
         get() = KeyboardWindow
 
     private val presetKeyboardIds = theme.presetKeyboards?.keys?.toTypedArray() ?: emptyArray()
-    private val keyboardsCached: HashMap<String, Keyboard> by lazy {
-        hashMapOf(
-            "default" to Keyboard(theme, "default"),
-            "number" to Keyboard(theme, "number"),
-        )
-    }
     private var currentKeyboardId = ""
     private var lastKeyboardId = ""
     private var lastLockKeyboardId = ""
-    private val currentKeyboard: Keyboard? get() = keyboardsCached[currentKeyboardId]
+    private val cachedKeyboards = mutableMapOf<String, Pair<Keyboard, KeyboardView>>()
+    private val currentKeyboard: Keyboard? get() = cachedKeyboards[currentKeyboardId]?.first
+    private val currentKeyboardView: KeyboardView? get() = cachedKeyboards[currentKeyboardId]?.second
+
+    private val keyboardActionListener = ListenerDecorator(commonKeyboardActionListener.listener)
 
     override fun onCreateView(): View {
         keyboardView = context.frameLayout(R.id.keyboard_view)
         attachKeyboard(evalKeyboard(".default"))
-        keyboardView.apply { add(mainKeyboardView, lParams(matchParent, matchParent)) }
         return keyboardView
+    }
+
+    private fun detachCurrentView() {
+        currentKeyboardView?.also {
+            it.onDetach()
+            keyboardView.removeView(it)
+            it.keyboardActionListener = null
+        }
     }
 
     private fun attachKeyboard(target: String) {
         currentKeyboardId = target
         lastKeyboardId = target
-        currentKeyboard?.let {
-            runBlocking {
-                _currentKeyboardHeight.emit(it.keyboardHeight)
+        val newKeyboard =
+            (currentKeyboard ?: Keyboard(theme, target)).also {
+                runBlocking {
+                    _currentKeyboardHeight.emit(it.keyboardHeight)
+                }
+                if (it.isLock) lastLockKeyboardId = target
+                dispatchCapsState(it::setShifted)
+                if (Rime.isAsciiMode != it.currentAsciiMode) {
+                    Rime.setOption("ascii_mode", it.currentAsciiMode)
+                }
+                // TODO：为避免过量重构，这里暂时将 currentKeyboard 同步到 KeyboardSwitcher
+                KeyboardSwitcher.currentKeyboard = it
             }
-            if (it.isLock) lastLockKeyboardId = target
-            dispatchCapsState(it::setShifted)
-            if (Rime.isAsciiMode != it.currentAsciiMode) {
-                Rime.setOption("ascii_mode", it.currentAsciiMode)
+        val newView =
+            currentKeyboardView ?: KeyboardView(context, theme, newKeyboard).also {
+                cachedKeyboards[target] = newKeyboard to it
             }
-            // TODO：为避免过量重构，这里暂时将 currentKeyboard 同步到 KeyboardSwitcher
-            KeyboardSwitcher.currentKeyboard = it
-            mainKeyboardView.keyboard = it
+        newView.let {
+            it.keyboardActionListener = keyboardActionListener
+            keyboardView.apply { add(it, lParams(matchParent, matchParent)) }
         }
     }
 
@@ -176,11 +187,10 @@ class KeyboardWindow(
     fun switchKeyboard(to: String) {
         val target = evalKeyboard(to)
         ContextCompat.getMainExecutor(service).execute {
-            if (keyboardsCached.containsKey(target)) {
+            if (cachedKeyboards.containsKey(target)) {
                 if (target == currentKeyboardId) return@execute
-            } else {
-                keyboardsCached[target] = Keyboard(theme, target)
             }
+            detachCurrentView()
             attachKeyboard(target)
             if (windowManager.isAttached(this)) {
                 service.updateComposing()
@@ -239,7 +249,7 @@ class KeyboardWindow(
     }
 
     private fun dispatchCapsState(setShift: (Boolean, Boolean) -> Unit) {
-        if (theme.generalStyle.autoCaps.toBoolean() && Rime.isAsciiMode && !mainKeyboardView.isCapsOn) {
+        if (theme.generalStyle.autoCaps.toBoolean() && Rime.isAsciiMode && currentKeyboardView?.isCapsOn == false) {
             setShift(false, cursorCapsMode != 0)
         }
     }
@@ -248,7 +258,7 @@ class KeyboardWindow(
         start: Int,
         end: Int,
     ) {
-        dispatchCapsState(mainKeyboardView::setShifted)
+        dispatchCapsState { on, shifted -> currentKeyboardView?.setShifted(on, shifted) }
     }
 
     override fun onRimeSchemaUpdated(schema: SchemaItem) {
@@ -258,8 +268,8 @@ class KeyboardWindow(
     override fun onRimeOptionUpdated(value: OptionNotification.Value) {
         when (val opt = value.option) {
             "ascii_mode" -> currentKeyboard?.currentAsciiMode = value.value
-            "_hide_key_hint" -> mainKeyboardView.showKeyHint = !value.value
-            "_hide_key_symbol" -> mainKeyboardView.showKeySymbol = !value.value
+            "_hide_key_hint" -> currentKeyboardView?.showKeyHint = !value.value
+            "_hide_key_symbol" -> currentKeyboardView?.showKeySymbol = !value.value
             else -> {
                 when {
                     opt.startsWith("_keyboard_") -> {
@@ -279,19 +289,22 @@ class KeyboardWindow(
                 }
             }
         }
-        mainKeyboardView.invalidateAllKeys()
+        currentKeyboardView?.invalidateAllKeys()
     }
 
     override fun onEnterKeyLabelUpdate(label: String) {
-        mainKeyboardView.onEnterKeyLabelUpdate(label)
+        currentKeyboardView?.onEnterKeyLabelUpdate(label)
     }
 
     override fun onAttached() {
-        mainKeyboardView.keyboardActionListener = ListenerDecorator(commonKeyboardActionListener.listener)
+        currentKeyboardView?.keyboardActionListener = keyboardActionListener
     }
 
     override fun onDetached() {
-        mainKeyboardView.keyboardActionListener = null
+        currentKeyboardView?.let {
+            it.onDetach()
+            it.keyboardActionListener = null
+        }
     }
 
     inner class ListenerDecorator(

@@ -399,7 +399,6 @@ class InputView(
 
     fun finishInput() {
         showingDialog?.dismiss()
-        keyboardWindow.mainKeyboardView.finishInput()
     }
 
     override fun onDetachedFromWindow() {
