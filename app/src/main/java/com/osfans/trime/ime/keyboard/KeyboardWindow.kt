@@ -88,7 +88,7 @@ class KeyboardWindow(
 
     override fun onCreateView(): View {
         keyboardView = context.frameLayout(R.id.keyboard_view)
-        attachKeyboard(evalKeyboard(".default"))
+        attachKeyboard(evalKeyboard(rime.run { schemaItemCached.id }))
         return keyboardView
     }
 
@@ -262,7 +262,7 @@ class KeyboardWindow(
     }
 
     override fun onRimeSchemaUpdated(schema: SchemaItem) {
-        switchKeyboard(smartMatchKeyboard())
+        switchKeyboard(schema.id)
     }
 
     override fun onRimeOptionUpdated(value: OptionNotification.Value) {
