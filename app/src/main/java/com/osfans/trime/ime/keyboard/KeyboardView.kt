@@ -51,8 +51,7 @@ class KeyboardView(
     context: Context,
     private val theme: Theme,
     private val keyboard: Keyboard,
-) : View(context),
-    View.OnClickListener {
+) : View(context) {
     private var mCurrentKeyIndex = NOT_A_KEY
     private val keyTextSize = theme.generalStyle.keyTextSize
     private val labelTextSize =
@@ -111,11 +110,7 @@ class KeyboardView(
 
     // Working variable
     private val mCoordinates = IntArray(2)
-    private val mPopupKeyboard = PopupWindow(context)
-    private var mMiniKeyboardOnScreen = false
     private var mPopupParent: View = this
-    private var mMiniKeyboardOffsetX = 0
-    private var mMiniKeyboardOffsetY = 0
     private val mKeys get() = keyboard.keys
 
     var keyboardActionListener: KeyboardActionListener? = null
@@ -417,15 +412,6 @@ class KeyboardView(
      */
     val isCapsOn: Boolean
         get() = keyboard.mShiftKey?.isOn ?: false
-
-    /**
-     * 關閉彈出鍵盤
-     *
-     * @param v 鍵盤視圖
-     */
-    override fun onClick(v: View) {
-        dismissPopupKeyboard()
-    }
 
     public override fun onMeasure(
         widthMeasureSpec: Int,
@@ -802,8 +788,6 @@ class KeyboardView(
         }
         mHandler.removeMessages(MSG_REMOVE_PREVIEW)
         getLocationInWindow(mCoordinates)
-        mCoordinates[0] += mMiniKeyboardOffsetX // Offset may be zero
-        mCoordinates[1] += mMiniKeyboardOffsetY // Offset may be zero
 
         // Set the preview background state
         mPreviewText.background.setState(EMPTY_STATE_SET)
@@ -1001,12 +985,6 @@ class KeyboardView(
             }
         }
 
-        // Needs to be called after the gesture detector gets a turn, as it may have
-        // displayed the mini keyboard
-        if (mMiniKeyboardOnScreen && action != MotionEvent.ACTION_CANCEL) {
-            return true
-        }
-
         fun modifiedPointerDown() {
             mAbortKey = false
             mStartX = touchX
@@ -1089,7 +1067,7 @@ class KeyboardView(
             showPreview(NOT_A_KEY)
             Arrays.fill(mKeyIndices, NOT_A_KEY)
             if (mRepeatKeyIndex != NOT_A_KEY && !mAbortKey) repeatKey()
-            if (mRepeatKeyIndex == NOT_A_KEY && !mMiniKeyboardOnScreen && !mAbortKey) {
+            if (mRepeatKeyIndex == NOT_A_KEY && !mAbortKey) {
                 Timber.d("onModifiedTouchEvent: detectAndSendKey")
                 detectAndSendKey(
                     mCurrentKey,
@@ -1159,7 +1137,6 @@ class KeyboardView(
 
             MotionEvent.ACTION_CANCEL -> {
                 removeMessages()
-                dismissPopupKeyboard()
                 mAbortKey = true
                 showPreview(NOT_A_KEY)
                 invalidateKey(mKeys[mCurrentKey])
@@ -1188,21 +1165,12 @@ class KeyboardView(
             mPreviewPopup.dismiss()
         }
         removeMessages()
-        dismissPopupKeyboard()
         freeDrawingBuffer()
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         freeDrawingBuffer()
-    }
-
-    private fun dismissPopupKeyboard() {
-        if (mPopupKeyboard.isShowing) {
-            mPopupKeyboard.dismiss()
-            mMiniKeyboardOnScreen = false
-            invalidateAllKeys()
-        }
     }
 
     private fun resetMultiTap() {
