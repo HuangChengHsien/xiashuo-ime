@@ -93,7 +93,7 @@ class KeyAction(
     init {
         val unbraced = raw.removeSurrounding("{", "}")
         // match like: { x: "{Control+a}" }
-        if (raw.matches(SINGLE_BRACED_STR)) {
+        if (raw.matches(BRACED_STR)) {
             val (c, m) = Keycode.parseSend(unbraced)
             if (c != KeyEvent.KEYCODE_UNKNOWN || m > 0) {
                 code = c
@@ -177,7 +177,6 @@ class KeyAction(
     }
 
     companion object {
-        private val SINGLE_BRACED_STR = Regex("""^\{[^{}]+\}$""")
         private val BRACED_STR = Regex("""\{[^{}]+\}""")
         private val KV_PATTERN = Regex("""(\\w+)=(\\w+)""")
 
