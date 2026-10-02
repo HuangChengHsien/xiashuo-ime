@@ -16,10 +16,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
     <color name="grey_700">#616161</color>
 
     <!-- 本色彩方案取自 Rime 官网（https://rime.im） -->
-    <color name="colorPrimary">#37393C</color> <!-- 浅主题色 -->
-    <color name="colorPrimaryDark">#2D2F30</color> <!-- 深主题色 -->
-    <color name="colorAccent">#009BD1</color>  <!-- 浅强调色 -->
-    <color name="colorAccentDark">#317086</color> <!-- 深强调色 -->
-
-    <color name="toolbarForegroundColor">#FFFFFF</color>  <!-- 工具栏前景色 -->
+    <color name="colorPrimary">#F5F8F6</color>
+    <color name="colorPrimaryDark">#E8F0EC</color>
+    <color name="colorAccent">#216E61</color>
+    <color name="colorAccentDark">#19584E</color>
+    <color name="settings_background">#F5F8F6</color>
+    <color name="settings_surface">#FFFFFF</color>
+    <color name="toolbarForegroundColor">#1B2A26</color>
 </resources>

@@ -24,6 +24,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.osfans.trime.R
 import com.osfans.trime.core.SchemaItem
 import com.osfans.trime.ui.common.OnItemChangedListener
+import com.osfans.trime.ui.common.settingsBackgroundColor
 import splitties.dimensions.dp
 import splitties.resources.drawable
 import splitties.resources.styledColor
@@ -176,6 +177,7 @@ class SchemaListUi(
             layoutManager = verticalLayoutManager()
             adapter = this@SchemaListUi.adapter
             clipToPadding = false
+            setPadding(0, ctx.dp(8), 0, ctx.dp(12))
         }
 
     private fun updateViewMargin(insets: WindowInsetsCompat? = null) {
@@ -189,7 +191,7 @@ class SchemaListUi(
 
     override val root =
         coordinatorLayout {
-            backgroundColor = styledColor(android.R.attr.colorBackground)
+            backgroundColor = ctx.settingsBackgroundColor()
             add(
                 list,
                 defaultLParams {

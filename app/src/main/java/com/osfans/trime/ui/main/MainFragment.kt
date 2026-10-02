@@ -32,10 +32,11 @@ class MainFragment : PaddingPreferenceFragment() {
 
     private fun PreferenceGroup.addDestinationPreference(
         @StringRes title: Int,
+        @StringRes summary: Int,
         @DrawableRes icon: Int,
         route: NavigationRoute,
     ) {
-        addPreference(title, icon = icon) {
+        addPreference(title, summary = summary, icon = icon) {
             findNavController().navigateWithAnim(route)
         }
     }
@@ -45,52 +46,49 @@ class MainFragment : PaddingPreferenceFragment() {
         rootKey: String?,
     ) {
         preferenceScreen = preferenceManager.createPreferenceScreen(requireContext()).apply {
-            addDestinationPreference(
-                R.string.schemata,
-                R.drawable.ic_round_view_list_24,
-                NavigationRoute.SchemaList,
-            )
-            addDestinationPreference(
-                R.string.user_dictionary,
-                R.drawable.ic_baseline_book_24,
-                NavigationRoute.UserDict,
-            )
-            addDestinationPreference(
-                R.string.profile,
-                R.drawable.ic_baseline_snippet_folder_24,
-                NavigationRoute.Profile,
-            )
-            addCategory("") {
+            addCategory(R.string.settings_section_data) {
                 isIconSpaceReserved = false
                 addDestinationPreference(
-                    R.string.general,
-                    R.drawable.ic_baseline_tune_24,
-                    NavigationRoute.General,
+                    R.string.schemata, R.string.settings_summary_schemata,
+                    R.drawable.ic_round_view_list_24, NavigationRoute.SchemaList,
                 )
                 addDestinationPreference(
-                    R.string.virtual_keyboard,
-                    R.drawable.ic_baseline_keyboard_24,
-                    NavigationRoute.VirtualKeyboard,
+                    R.string.user_dictionary, R.string.settings_summary_user_dictionary,
+                    R.drawable.ic_baseline_book_24, NavigationRoute.UserDict,
                 )
                 addDestinationPreference(
-                    R.string.candidates_window,
-                    R.drawable.ic_baseline_list_alt_24,
-                    NavigationRoute.CandidatesWindow,
+                    R.string.profile, R.string.settings_summary_profile,
+                    R.drawable.ic_baseline_snippet_folder_24, NavigationRoute.Profile,
+                )
+            }
+            addCategory(R.string.settings_section_keyboard) {
+                isIconSpaceReserved = false
+                addDestinationPreference(
+                    R.string.general, R.string.settings_summary_general,
+                    R.drawable.ic_baseline_tune_24, NavigationRoute.General,
                 )
                 addDestinationPreference(
-                    R.string.theme,
-                    R.drawable.ic_baseline_color_lens_24,
-                    NavigationRoute.Theme,
+                    R.string.virtual_keyboard, R.string.settings_summary_virtual_keyboard,
+                    R.drawable.ic_baseline_keyboard_24, NavigationRoute.VirtualKeyboard,
                 )
                 addDestinationPreference(
-                    R.string.clipboard,
-                    R.drawable.ic_clipboard_24,
-                    NavigationRoute.Clipboard,
+                    R.string.candidates_window, R.string.settings_summary_candidates_window,
+                    R.drawable.ic_baseline_list_alt_24, NavigationRoute.CandidatesWindow,
                 )
                 addDestinationPreference(
-                    R.string.advanced,
-                    R.drawable.ic_baseline_more_horiz_24,
-                    NavigationRoute.Advanced,
+                    R.string.theme, R.string.settings_summary_theme,
+                    R.drawable.ic_baseline_color_lens_24, NavigationRoute.Theme,
+                )
+            }
+            addCategory(R.string.settings_section_more) {
+                isIconSpaceReserved = false
+                addDestinationPreference(
+                    R.string.clipboard, R.string.settings_summary_clipboard,
+                    R.drawable.ic_clipboard_24, NavigationRoute.Clipboard,
+                )
+                addDestinationPreference(
+                    R.string.advanced, R.string.settings_summary_advanced,
+                    R.drawable.ic_baseline_more_horiz_24, NavigationRoute.Advanced,
                 )
             }
         }

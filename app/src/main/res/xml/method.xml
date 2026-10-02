@@ -11,7 +11,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     android:settingsActivity="com.osfans.trime.ui.main.MainActivity">
 
     <!-- Add default system subtype so we can properly set the icon and label -->
-    <subtype android:label="@string/trime_app_slogan"
+    <subtype android:label="@string/app_name_release"
         android:name="@string/trime_app_name"
         android:icon="@mipmap/ic_app_icon"
         android:imeSubtypeMode="keyboard"

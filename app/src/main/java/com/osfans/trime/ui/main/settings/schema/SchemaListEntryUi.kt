@@ -8,6 +8,7 @@ package com.osfans.trime.ui.main.settings.schema
 import android.content.Context
 import android.view.View
 import android.view.ViewGroup
+import com.osfans.trime.ui.common.settingsCardBackground
 import splitties.dimensions.dp
 import splitties.resources.resolveThemeAttribute
 import splitties.resources.styledColor
@@ -40,8 +41,10 @@ class SchemaListEntryUi(
 
     override val root: View =
         constraintLayout {
-            layoutParams = ViewGroup.LayoutParams(matchParent, wrapContent)
-            backgroundColor = styledColor(android.R.attr.colorBackground)
+            layoutParams = ViewGroup.MarginLayoutParams(matchParent, wrapContent).apply {
+                setMargins(ctx.dp(16), ctx.dp(4), ctx.dp(16), ctx.dp(4))
+            }
+            background = ctx.settingsCardBackground()
             minHeight = styledDimenPxSize(android.R.attr.listPreferredItemHeightSmall)
 
             val paddingStart = styledDimenPxSize(android.R.attr.listPreferredItemPaddingStart)

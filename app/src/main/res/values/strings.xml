@@ -7,8 +7,8 @@
 
 <resources xmlns:xliff="urn:oasis:names:en:xliff:document:1.2">
     <!-- Input Method Platform Tittle  -->
-    <string name="app_name_release">Trime</string>
-    <string name="app_name_debug">Trime (Debug)</string>
+    <string name="app_name_release">蝦說輸入</string>
+    <string name="app_name_debug">蝦說輸入</string>
     <!-- Preference settings -->
     <string name="qq_group_1">Trime QQ group 1</string>
     <string name="qq_group_2">Trime QQ group 2</string>
@@ -65,7 +65,6 @@
     <string name="open_source_licenses">Open Source Licenses</string>
     <string name="system_default">System default</string>
     <string name="key_swipe_travel">Min travel for gesture</string>
-    <string name="trime_app_slogan">Rimes with Your Keystrokes on Android</string>
     <string name="custom_sound_effect_name">Custom key Sound Effect</string>
     <string name="setup__next">Next</string>
     <string name="done">Done</string>
@@ -115,6 +114,15 @@
     <string name="developer">Developer</string>
     <string name="profile">Profile</string>
     <string name="virtual_keyboard">Virtual Keyboard</string>
+    <string name="voice_engine">Voice Engine</string>
+    <string name="voice_bubble">Voice Bubble</string>
+    <string name="voice_bubble_description">Hold for 1 second to start offline speech; tap to stop; drag down to close</string>
+    <string name="voice_bubble_hold_to_start">Hold for 1 second to start offline speech</string>
+    <string name="voice_bubble_tap_to_stop">Tap to stop recording</string>
+    <string name="voice_bubble_drag_to_close">Release here to close voice bubble</string>
+    <string name="voice_bubble_notification">Trime Voice Bubble</string>
+    <string name="voice_bubble_notification_text">Hold to start speech or drag down to close.</string>
+    <string name="voice_bubble_ime_unavailable">Switch to Trime before using the voice bubble.</string>
     <string name="theme">Keyboard Style</string>
     <string name="about">About</string>
     <string name="storage">Storage</string>
@@ -246,10 +254,32 @@
     <string name="always">Always</string>
     <string name="preferred_voice_input">Preferred voice input</string>
     <string name="no_voice_input_installed">No voice input installed</string>
+    <string name="voice_input_title">On-device voice input</string>
+    <string name="voice_listening">Listening…</string>
+    <string name="voice_processing">Processing speech…</string>
+    <string name="voice_finish">Finish</string>
+    <string name="voice_no_result">No speech recognized</string>
+    <string name="voice_recognition_failed">Speech recognition failed (%1$d)</string>
+    <string name="voice_recognizer_unavailable">On-device speech recognition is unavailable on this phone</string>
+    <string name="voice_language_unavailable">No on-device Taiwan Mandarin model is installed</string>
+    <string name="voice_permission_granted">Microphone ready. Tap the microphone again to dictate.</string>
+    <string name="voice_permission_denied">Microphone permission is required for voice input.</string>
     <string name="inline_suggestions">Show inline autofill suggestions</string>
     <string name="update_config">Update config</string>
     <string name="share">Share</string>
     <string name="word_segment">Word segment</string>
     <string name="star_success">Star success</string>
     <string name="ignore_system_gesture_insets">Ignore system gesture insets</string>
+    <string name="settings_section_data">Input data</string>
+    <string name="settings_section_keyboard">Keyboard and appearance</string>
+    <string name="settings_section_more">Other settings</string>
+    <string name="settings_summary_schemata">Choose input methods and their order</string>
+    <string name="settings_summary_user_dictionary">Import, back up, and manage words</string>
+    <string name="settings_summary_profile">Storage and synchronization</string>
+    <string name="settings_summary_general">Typing behavior and display</string>
+    <string name="settings_summary_virtual_keyboard">Keys, sound, and gestures</string>
+    <string name="settings_summary_candidates_window">Candidate display and layout</string>
+    <string name="settings_summary_theme">Themes and colors</string>
+    <string name="settings_summary_clipboard">History and paste options</string>
+    <string name="settings_summary_advanced">Appearance mode and advanced options</string>
 </resources>

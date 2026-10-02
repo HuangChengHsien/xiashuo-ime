@@ -15,4 +15,5 @@ SPDX-License-Identifier: GPL-3.0-or-later
     </style>
 
     <style name="Theme.DialogTheme" parent="@android:style/Theme.DeviceDefault.Light.Dialog" />
+    <style name="ThemeOverlay.TrimeToolbar" parent="ThemeOverlay.AppCompat.Light" />
 </resources>

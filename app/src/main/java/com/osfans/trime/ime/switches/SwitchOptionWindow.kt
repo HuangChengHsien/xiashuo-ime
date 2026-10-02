@@ -64,6 +64,16 @@ class SwitchOptionWindow :
                 R.drawable.ic_baseline_keyboard_24,
                 SwitchOptionEntry.Static.Type.Keyboard,
             ),
+            SwitchOptionEntry.Static(
+                context.getString(R.string.voice_engine),
+                R.drawable.ic_baseline_mic_24,
+                SwitchOptionEntry.Static.Type.VoiceEngine,
+            ),
+            SwitchOptionEntry.Static(
+                context.getString(R.string.voice_bubble),
+                R.drawable.ic_baseline_mic_24,
+                SwitchOptionEntry.Static.Type.VoiceBubble,
+            ),
         )
     }
 
@@ -121,6 +131,8 @@ class SwitchOptionWindow :
                                 r.commitComposition()
                             }
                         }
+                        SwitchOptionEntry.Static.Type.VoiceEngine -> service.showVoiceEnginePicker(view)
+                        SwitchOptionEntry.Static.Type.VoiceBubble -> service.toggleVoiceBubble()
                     }
                     is SwitchOptionEntry.Custom -> {
                         val options = entry.switch.options

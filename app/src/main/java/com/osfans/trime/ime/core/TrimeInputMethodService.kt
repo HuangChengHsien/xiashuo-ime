@@ -7,6 +7,7 @@ package com.osfans.trime.ime.core
 
 import android.annotation.SuppressLint
 import android.app.Dialog
+import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
@@ -15,6 +16,7 @@ import android.inputmethodservice.InputMethodService
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
+import android.provider.Settings
 import android.text.InputType
 import android.view.InputDevice
 import android.view.KeyCharacterMap
@@ -49,6 +51,10 @@ import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.data.theme.ThemeManager
 import com.osfans.trime.ime.composition.CandidatesView
 import com.osfans.trime.ime.keyboard.InputFeedbackManager
+import com.osfans.trime.ime.voice.VoiceInputController
+import com.osfans.trime.ime.voice.VoiceBubbleBridge
+import com.osfans.trime.ime.voice.VoiceBubbleService
+import com.osfans.trime.ime.voice.VoiceBubblePermissionActivity
 import com.osfans.trime.receiver.RimeIntentReceiver
 import com.osfans.trime.util.any
 import com.osfans.trime.util.findSectionFrom
@@ -77,6 +83,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     private lateinit var contentView: FrameLayout
     private lateinit var lastKnownConfig: Configuration
     private var inputView: InputView? = null
+    private val voiceInput by lazy { VoiceInputController(this) }
     private var candidatesView: CandidatesView? = null
     private val navBarManager = NavigationBarManager()
     private val inputDeviceManager = InputDeviceManager { useVirtualKeyboard, useCandidatesView ->
@@ -195,6 +202,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         InputFeedbackManager.init(this)
         registerReceiver()
         super.onCreate()
+        VoiceBubbleBridge.bind({ voiceInput.onBubbleTap() }, { voiceInput.cancel() }, { _, _ -> })
         Timber.d("onCreate")
         decorView = window.window!!.decorView
         contentView = decorView.findViewById(android.R.id.content)
@@ -301,6 +309,9 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onDestroy() {
+        voiceInput.cancel()
+        VoiceBubbleBridge.unbind()
+        stopService(Intent(this, VoiceBubbleService::class.java))
         InputFeedbackManager.destroy()
         inputView = null
         recreateInputViewPrefs.forEach {
@@ -566,6 +577,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
+        if (finishingInput) voiceInput.cancel()
         Timber.d("onFinishInputView: finishingInput=$finishingInput")
         decorLocationUpdated = false
         inputView?.dismissCandidateActionMenu()
@@ -594,6 +606,40 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         lastCommittedText = text
         composingText = ""
         InputFeedbackManager.textCommitSpeak(text)
+    }
+
+    fun startVoiceInput() {
+        voiceInput.start()
+    }
+
+    fun showVoiceEnginePicker(anchor: View? = null) {
+        voiceInput.showEnginePicker(anchor)
+    }
+
+    fun toggleVoiceBubble() {
+        if (VoiceBubbleBridge.isRunning()) {
+            startService(Intent(this, VoiceBubbleService::class.java).setAction(VoiceBubbleService.ACTION_TOGGLE))
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            startActivity(Intent(this, VoiceBubblePermissionActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            return
+        }
+        ContextCompat.startForegroundService(this, Intent(this, VoiceBubbleService::class.java))
+    }
+
+    fun showVoiceKeyboard() {
+        forceShowSelf()
+    }
+
+    fun hideVoiceKeyboard() {
+        requestHideSelf(0)
+    }
+
+    fun commitVoiceText(text: String) {
+        currentInputConnection?.finishComposingText()
+        commitText(text)
+        postRimeJob { clearComposition() }
     }
 
     /**

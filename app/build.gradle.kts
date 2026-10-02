@@ -133,6 +133,7 @@ ksp {
 }
 
 dependencies {
+    implementation(files("libs/sherpa-onnx-1.13.8.aar"))
     ksp(project(":codegen"))
     implementation(libs.kotlinx.coroutines)
     implementation(libs.kotlinx.serialization.json)
