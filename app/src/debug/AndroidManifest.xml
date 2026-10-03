@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <application>
         <activity
             android:name="com.osfans.trime.ime.voice.BreezeBenchmarkActivity"
             android:exported="true"
             android:process=":breeze_benchmark" />
+        <!-- Debug builds let adb open the model manager for device testing. -->
+        <activity
+            android:name="com.osfans.trime.ime.voice.VoiceModelManagerActivity"
+            android:exported="true"
+            tools:replace="android:exported" />
     </application>
 </manifest>

@@ -115,6 +115,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
+        <activity
+            android:name=".ime.voice.VoiceModelManagerActivity"
+            android:exported="false"
+            android:label="語音模型管理"
+            android:taskAffinity=".ime.voice.VoiceModelManagerActivity" />
+
         <!-- Using an activity alias to disable/enable the app icon in the launcher -->
         <activity-alias
             android:name="com.osfans.trime.MainLauncherAlias"

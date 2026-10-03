@@ -18,6 +18,8 @@ import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.os.SystemClock
+import android.util.Log
 import android.widget.Toast
 import android.widget.LinearLayout
 import android.widget.PopupWindow
@@ -26,17 +28,12 @@ import android.widget.Button
 import android.view.Gravity
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
-import androidx.preference.PreferenceManager
-import com.k2fsa.sherpa.onnx.FeatureConfig
-import com.k2fsa.sherpa.onnx.OfflineModelConfig
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
-import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
-import com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig
-import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
 import com.osfans.trime.data.opencc.OpenCCDictManager
 import com.osfans.trime.R
 import com.osfans.trime.ime.core.TrimeInputMethodService
-import java.io.File
+import com.osfans.trime.ime.voice.VoiceModels.ENGINE_GOOGLE
+import com.osfans.trime.ime.voice.VoiceModels.engineName
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** Lets the user switch recognition engines without leaving the active Trime keyboard. */
@@ -61,7 +58,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         }
         loadSelectedEngine()
         if (selected == ENGINE_GOOGLE && !hasAndroidOnDeviceRecognizer()) {
-            Toast.makeText(service, "此裝置沒有可用的 Android 本機語音辨識器；請選 SenseVoice 或 Breeze。", Toast.LENGTH_LONG).show()
+            Toast.makeText(service, "此裝置沒有可用的 Android 本機語音辨識器；請改選離線模型。", Toast.LENGTH_LONG).show()
             VoiceBubbleBridge.setStatus("無系統離線辨識", false)
             return
         }
@@ -94,24 +91,22 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
     }
 
     private fun loadSelectedEngine() {
-        val prefs = PreferenceManager.getDefaultSharedPreferences(service)
-        val storedEngine = prefs.getString(PREF_ENGINE, ENGINE_GOOGLE) ?: ENGINE_GOOGLE
-        selected = when (storedEngine) {
-            ENGINE_BREEZE, ENGINE_SENSEVOICE -> storedEngine
-            LEGACY_ZIPFORMER -> ENGINE_SENSEVOICE.also { prefs.edit().putString(PREF_ENGINE, it).apply() }
-            else -> ENGINE_GOOGLE
-        }
+        selected = VoiceModels.selectedEngine(service)
+    }
+
+    private fun openModelManager() {
+        service.startActivity(Intent(service, VoiceModelManagerActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     fun showEnginePicker(anchor: android.view.View? = null) {
-        val labels = arrayOf("Android 系統語音", "Breeze ASR 25（離線）", "SenseVoice Small（離線）", "管理／匯入模型")
-        val prefs = PreferenceManager.getDefaultSharedPreferences(service)
-        val storedEngine = prefs.getString(PREF_ENGINE, ENGINE_GOOGLE) ?: ENGINE_GOOGLE
-        val current = if (storedEngine == LEGACY_ZIPFORMER) ENGINE_SENSEVOICE else storedEngine
-        if (current != storedEngine) prefs.edit().putString(PREF_ENGINE, current).apply()
+        val current = VoiceModels.selectedEngine(service)
+        val engineIds = listOf(ENGINE_GOOGLE) + VoiceModels.all.map { it.id }
+        val labels = listOf("Android 系統語音") +
+            VoiceModels.all.map { it.title + if (it.isInstalled(service)) "（離線）" else "（未安裝）" } +
+            "管理／匯入／刪除模型"
         val options = LinearLayout(service).apply { orientation = LinearLayout.VERTICAL }
         labels.forEachIndexed { index, label ->
-            val checked = index < ENGINE_IDS.size && ENGINE_IDS[index] == current
+            val checked = index < engineIds.size && engineIds[index] == current
             options.addView(TextView(service).apply {
                 text = (if (checked) "●  " else "○  ") + label
                 textSize = 16f
@@ -121,15 +116,16 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 setOnClickListener {
                     enginePopup?.dismiss()
                     enginePopup = null
+                    val model = engineIds.getOrNull(index)?.let(VoiceModels::find)
                     if (index == labels.lastIndex) {
-                        service.startActivity(
-                            Intent().setClassName(service, "com.osfans.trime.ime.voice.BreezeBenchmarkActivity")
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                        )
+                        openModelManager()
+                    } else if (model != null && !model.isInstalled(service)) {
+                        Toast.makeText(service, "${model.title} 尚未安裝，請先匯入模型", Toast.LENGTH_LONG).show()
+                        openModelManager()
                     } else {
-                        selected = ENGINE_IDS[index]
-                        prefs.edit().putString(PREF_ENGINE, selected).apply()
-                        Toast.makeText(service, "語音引擎已設定：${labels[index]}", Toast.LENGTH_SHORT).show()
+                        selected = engineIds[index]
+                        VoiceModels.setSelectedEngine(service, selected)
+                        Toast.makeText(service, "語音引擎已設定：${engineName(selected)}", Toast.LENGTH_SHORT).show()
                     }
                 }
             }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -240,10 +236,10 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && SpeechRecognizer.isOnDeviceRecognitionAvailable(service)
 
     private fun startLocal() {
-        val files = modelFiles(selected)
-        if (files.any { !it.isFile }) {
+        val model = VoiceModels.find(selected)
+        if (model == null || !model.isInstalled(service)) {
             if (bubbleMode) VoiceBubbleBridge.setRecordingActive(false)
-            Toast.makeText(service, "尚未匯入此模型；請先選「管理／匯入模型」", Toast.LENGTH_LONG).show()
+            Toast.makeText(service, "尚未匯入此模型；請先選「管理／匯入／刪除模型」", Toast.LENGTH_LONG).show()
             VoiceBubbleBridge.setStatus("尚未匯入模型", false)
             return
         }
@@ -265,8 +261,9 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
             var offline: OfflineRecognizer? = null
             var offlineStream: com.k2fsa.sherpa.onnx.OfflineStream? = null
             try {
-                if (selected == ENGINE_BREEZE) offline = createBreeze(files)
-                else offline = createSenseVoice(files)
+                val loadStart = SystemClock.elapsedRealtime()
+                offline = model.createRecognizer(service)
+                val loadMs = SystemClock.elapsedRealtime() - loadStart
                 offlineStream = offline.createStream()
                 val rate = 16000
                 check(active) { "錄音已取消" }
@@ -307,8 +304,14 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 val stream = requireNotNull(offlineStream)
                 stream.acceptWaveform(samples, rate)
                 val engine = requireNotNull(offline)
+                val decodeStart = SystemClock.elapsedRealtime()
                 engine.decode(stream)
                 val result = engine.getResult(stream).text
+                Log.i(
+                    TAG,
+                    "engine=${model.id} loadMs=$loadMs audioMs=${samples.size * 1000L / rate} " +
+                        "decodeMs=${SystemClock.elapsedRealtime() - decodeStart} chars=${result.length}",
+                )
                 completeResult(result)
             } catch (error: Throwable) {
                 service.mainExecutor.execute {
@@ -324,49 +327,6 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 offline?.release()
             }
         }, "TrimeLocalASR").also { it.start() }
-    }
-
-    private fun createBreeze(files: List<File>): OfflineRecognizer = OfflineRecognizer(
-        config = OfflineRecognizerConfig(
-            featConfig = FeatureConfig(sampleRate = 16000, featureDim = 80),
-            modelConfig = OfflineModelConfig(
-                whisper = OfflineWhisperModelConfig(encoder = files[0].absolutePath, decoder = files[1].absolutePath, language = "zh", task = "transcribe", tailPaddings = 300),
-                tokens = files[2].absolutePath,
-                modelType = "whisper",
-                numThreads = 4,
-                provider = "cpu",
-            ),
-        ),
-    )
-
-    private fun createSenseVoice(files: List<File>): OfflineRecognizer = OfflineRecognizer(
-        config = OfflineRecognizerConfig(
-            featConfig = FeatureConfig(sampleRate = 16000, featureDim = 80),
-            modelConfig = OfflineModelConfig(
-                senseVoice = OfflineSenseVoiceModelConfig(model = files[0].absolutePath, language = "auto", useInverseTextNormalization = true),
-                tokens = files[1].absolutePath,
-                modelType = "sense_voice",
-                numThreads = 4,
-                provider = "cpu",
-            ),
-        ),
-    )
-
-    private fun modelDirectory(engine: String) = File(service.getExternalFilesDir(null), "models/$engine")
-
-    private fun modelFiles(engine: String): List<File> {
-        val dir = modelDirectory(engine)
-        return when (engine) {
-            ENGINE_BREEZE -> listOf("breeze-asr-25-half-encoder.int8.onnx", "breeze-asr-25-half-decoder.int8.onnx", "breeze-asr-25-half-tokens.txt").map { File(dir, it) }
-            ENGINE_SENSEVOICE -> listOf("model.int8.onnx", "tokens.txt").map { File(dir, it) }
-            else -> emptyList()
-        }
-    }
-
-    private fun engineName(engine: String) = when (engine) {
-        ENGINE_BREEZE -> "Breeze ASR 25"
-        ENGINE_SENSEVOICE -> "SenseVoice Small"
-        else -> "Android 系統語音"
     }
 
     private fun completeResult(text: String) = service.mainExecutor.execute {
@@ -432,11 +392,6 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
     override fun onEvent(eventType: Int, params: Bundle?) = Unit
 
     companion object {
-        private const val PREF_ENGINE = "voice_recognition_engine"
-        private const val ENGINE_GOOGLE = "google"
-        private const val ENGINE_BREEZE = "breeze-asr-25"
-        private const val LEGACY_ZIPFORMER = "zipformer-small-ctc-zh"
-        private const val ENGINE_SENSEVOICE = "sensevoice-small"
-        private val ENGINE_IDS = listOf(ENGINE_GOOGLE, ENGINE_BREEZE, ENGINE_SENSEVOICE)
+        private const val TAG = "VoiceInput"
     }
 }
