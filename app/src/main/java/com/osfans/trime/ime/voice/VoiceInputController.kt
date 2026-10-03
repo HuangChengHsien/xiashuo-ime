@@ -15,6 +15,7 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
+import android.os.Parcelable
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -32,6 +33,8 @@ import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.osfans.trime.data.opencc.OpenCCDictManager
 import com.osfans.trime.R
 import com.osfans.trime.ime.core.TrimeInputMethodService
+import com.osfans.trime.ui.main.MainActivity
+import com.osfans.trime.ui.main.NavigationRoute
 import com.osfans.trime.ime.voice.VoiceModels.ENGINE_GOOGLE
 import com.osfans.trime.ime.voice.VoiceModels.engineName
 import java.util.concurrent.ExecutionException
@@ -99,7 +102,11 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
     }
 
     private fun openModelManager() {
-        service.startActivity(Intent(service, VoiceModelManagerActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        service.startActivity(
+            Intent(Intent.ACTION_RUN, null, service, MainActivity::class.java)
+                .putExtra(MainActivity.EXTRA_SETTINGS_ROUTE, NavigationRoute.VoiceModels as Parcelable)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+        )
     }
 
     fun showEnginePicker(anchor: android.view.View? = null) {
@@ -107,7 +114,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         val engineIds = listOf(ENGINE_GOOGLE) + VoiceModels.all.map { it.id }
         val labels = listOf("Android 系統語音") +
             VoiceModels.all.map { it.title + if (it.isInstalled(service)) "（離線）" else "（未安裝）" } +
-            "管理／匯入／刪除模型"
+            "管理模型（下載、選用、刪除）…"
         val options = LinearLayout(service).apply { orientation = LinearLayout.VERTICAL }
         labels.forEachIndexed { index, label ->
             val checked = index < engineIds.size && engineIds[index] == current
@@ -124,7 +131,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                     if (index == labels.lastIndex) {
                         openModelManager()
                     } else if (model != null && !model.isInstalled(service)) {
-                        Toast.makeText(service, "${model.title} 尚未安裝，請先匯入模型", Toast.LENGTH_LONG).show()
+                        Toast.makeText(service, "${model.title} 尚未安裝，請先下載", Toast.LENGTH_LONG).show()
                         openModelManager()
                     } else {
                         selected = engineIds[index]
@@ -243,7 +250,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         val model = VoiceModels.find(selected)
         if (model == null || !model.isInstalled(service)) {
             if (bubbleMode) VoiceBubbleBridge.setRecordingActive(false)
-            Toast.makeText(service, "尚未匯入此模型；請先選「管理／匯入／刪除模型」", Toast.LENGTH_LONG).show()
+            Toast.makeText(service, "尚未安裝此模型；請到設定「語音模型」下載", Toast.LENGTH_LONG).show()
             VoiceBubbleBridge.setStatus("尚未匯入模型", false)
             return
         }

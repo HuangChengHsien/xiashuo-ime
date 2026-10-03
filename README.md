@@ -16,24 +16,26 @@ Rime 方案（例如嘸蝦米）修字。
 
 - **鍵盤麥克風與語音懸浮球**：在任何文字欄位按住懸浮球 1 秒開始說話，點一下停止，
   拖到下方關閉。
-- **完全離線**：APK 沒有 `INTERNET` 權限，錄音只在手機上處理。
+- **辨識都在手機上**：錄音與辨識都在手機上處理，錄音不會上傳；只有下載語音模型時會連網。
 - **可選語音引擎**：
   - Android 系統本機辨識（需手機已安裝臺灣華語離線模型）
   - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 1.13.8 執行的離線模型：
     Fun-ASR-Nano、SenseVoice Small、Breeze ASR 25
-- **語音模型管理**：從鍵盤選單「語音引擎 → 管理／匯入／刪除模型」匯入、切換、刪除模型；
-  匯入時核對檔案大小與 SHA-256。
+- **語音模型管理**：在設定首頁「語音輸入 → 語音模型」（或鍵盤選單「語音引擎 → 管理模型」）
+  下載、選用、刪除模型。下載在背景進行、可中斷續傳；使用行動數據時會先詢問；
+  每個檔案都核對大小與 SHA-256 後才安裝。
 - **邊錄音邊載入**：按下麥克風立即收音，模型同時在背景載入。
 - 離線模型的輸出經 OpenCC `s2tw` 轉為臺灣正體。
 
 ## 語音模型
 
-模型不包含在 APK 裡，需另外下載後在「語音模型管理」匯入（可選多個檔案，或選整個資料夾）。
+模型不包含在 APK 裡。在「語音模型」頁按「下載」即可；也可以自行下載後按「從檔案匯入」
+（可選多個檔案，或選整個資料夾）。下載來源固定在下列 Hugging Face 版本。
 
 | 模型 | 大小 | 下載 | 備註 |
 |---|---|---|---|
 | Fun-ASR-Nano INT8 | 約 1 GB | [Hugging Face](https://huggingface.co/csukuangfj/sherpa-onnx-funasr-nano-int8-2025-12-30/tree/main) | 需 `encoder_adaptor`、`llm`、`embedding` 三個 `.int8.onnx` 與 `Qwen3-0.6B/` 內的 `tokenizer.json`、`vocab.json`、`merges.txt` |
-| SenseVoice Small INT8 | 約 230 MB | [sherpa-onnx 說明](https://k2-fsa.github.io/sherpa/onnx/sense-voice/pretrained.html) | `model.int8.onnx`、`tokens.txt` |
+| SenseVoice Small INT8 | 約 230 MB | [Hugging Face](https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/tree/main) | `model.int8.onnx`、`tokens.txt` |
 | Breeze ASR 25 | 約 1.7 GB | [Hugging Face](https://huggingface.co/MediaTek-Research/Breeze-ASR-25-onnx-250806/tree/main) | 選檔名含 `half` 與 `int8` 的 encoder、decoder 與 tokens |
 
 Pixel 8 Pro 實測（單次量測，僅供參考）：Fun-ASR-Nano 載入約 6–7 秒、6–9 秒語音辨識約 1.1–1.3 秒；

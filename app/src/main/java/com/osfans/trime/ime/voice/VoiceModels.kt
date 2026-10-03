@@ -16,44 +16,47 @@ import com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig
 import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
 import java.io.File
 
-/**
- * One file a model needs, relative to the model directory. [size] and [sha256] are pinned only for
- * models published as a single fixed release; otherwise [maxSize] bounds an import.
- */
+/** One file a model needs, relative to the model directory, pinned to one published release. */
 data class VoiceModelFile(
     val path: String,
-    val size: Long? = null,
-    val sha256: String? = null,
-    val maxSize: Long = size ?: 10_000_000L,
+    val size: Long,
+    val sha256: String,
 ) {
     val name: String get() = path.substringAfterLast('/')
 }
 
+/**
+ * An offline model published on Hugging Face. Downloads use [revision] instead of `main`, so the
+ * pinned sizes and hashes keep matching even if the upstream repository changes.
+ */
 data class VoiceModel(
     val id: String,
     val title: String,
     val note: String,
-    val downloadUrl: String,
+    val repo: String,
+    val revision: String,
     val files: List<VoiceModelFile>,
     private val factory: (File) -> OfflineRecognizer,
 ) {
+    val totalBytes: Long get() = files.sumOf { it.size }
+
+    val pageUrl: String get() = "https://huggingface.co/$repo/tree/$revision"
+
+    fun url(file: VoiceModelFile) = "https://huggingface.co/$repo/resolve/$revision/${file.path}"
+
     fun directory(context: Context) = File(context.getExternalFilesDir(null), "models/$id")
 
-    fun isInstalled(context: Context): Boolean {
-        val dir = directory(context)
-        return files.all { spec ->
-            val file = File(dir, spec.path)
-            file.isFile && (spec.size == null || file.length() == spec.size)
-        }
-    }
+    fun target(context: Context, file: VoiceModelFile) = File(directory(context), file.path)
 
-    fun missingFiles(context: Context): List<VoiceModelFile> {
-        val dir = directory(context)
-        return files.filter { spec ->
-            val file = File(dir, spec.path)
-            !file.isFile || (spec.size != null && file.length() != spec.size)
-        }
-    }
+    fun isInstalled(context: Context): Boolean = missingFiles(context).isEmpty()
+
+    /** Files that are absent or have a different size, e.g. from another release of the model. */
+    fun missingFiles(context: Context): List<VoiceModelFile> =
+        files.filter { spec -> target(context, spec).let { !it.isFile || it.length() != spec.size } }
+
+    /** True when some required file exists but belongs to a different release. */
+    fun hasMismatchedFiles(context: Context): Boolean =
+        files.any { spec -> target(context, spec).let { it.isFile && it.length() != spec.size } }
 
     fun diskBytes(context: Context): Long = directory(context).walkBottomUp().filter { it.isFile }.sumOf { it.length() }
 
@@ -74,8 +77,9 @@ object VoiceModels {
         VoiceModel(
             id = ENGINE_BREEZE,
             title = "Breeze ASR 25",
-            note = "Whisper 架構，約 1.7 GB；辨識較慢，載入時占用大量記憶體。",
-            downloadUrl = "https://huggingface.co/MediaTek-Research/Breeze-ASR-25-onnx-250806/tree/main",
+            note = "Whisper 架構；辨識較慢（約 10 秒），載入時占用大量記憶體。",
+            repo = "MediaTek-Research/Breeze-ASR-25-onnx-250806",
+            revision = "a3a2256b20854a2009ca9b4e1d22a05aa7ba992e",
             files = listOf(
                 VoiceModelFile("breeze-asr-25-half-encoder.int8.onnx", 765942323L, "fc3e99d1d3abf553d355fe35cc72ff943c6b2b77eeeea97e8d56338bff132fea"),
                 VoiceModelFile("breeze-asr-25-half-decoder.int8.onnx", 1008223031L, "be492b3bf597690dcd9871ac20c555faa9b78514d3e830402afdf2be0689fb20"),
@@ -101,11 +105,12 @@ object VoiceModels {
         VoiceModel(
             id = ENGINE_SENSEVOICE,
             title = "SenseVoice Small",
-            note = "約 230 MB；速度快，輸出經 OpenCC 轉為臺灣正體。",
-            downloadUrl = "https://k2-fsa.github.io/sherpa/onnx/sense-voice/pretrained.html",
+            note = "檔案小、速度快。",
+            repo = "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17",
+            revision = "2365baeacb507f821a0c8120fcee3d484dba7a07",
             files = listOf(
-                VoiceModelFile("model.int8.onnx", maxSize = 1_500_000_000L),
-                VoiceModelFile("tokens.txt"),
+                VoiceModelFile("model.int8.onnx", 239233841L, "c71f0ce00bec95b07744e116345e33d8cbbe08cef896382cf907bf4b51a2cd51"),
+                VoiceModelFile("tokens.txt", 315894L, "f449eb28dc567533d7fa59be34e2abca8784f771850c78a47fb731a31429a1dc"),
             ),
         ) { dir ->
             recognizer(
@@ -125,8 +130,9 @@ object VoiceModels {
         VoiceModel(
             id = ENGINE_FUNASR_NANO,
             title = "Fun-ASR-Nano",
-            note = "Fun-ASR-Nano-2512 INT8，約 1 GB；以 Qwen3-0.6B 解碼，輸出經 OpenCC 轉為臺灣正體。",
-            downloadUrl = "https://huggingface.co/csukuangfj/sherpa-onnx-funasr-nano-int8-2025-12-30/tree/main",
+            note = "Fun-ASR-Nano-2512 INT8；辨識約 1 秒，載入約 6 秒（可邊說邊載入）。",
+            repo = "csukuangfj/sherpa-onnx-funasr-nano-int8-2025-12-30",
+            revision = "6f16bd378457e13f36ccf3910df9017f96c346fb",
             files = listOf(
                 VoiceModelFile("encoder_adaptor.int8.onnx", 237792748L, "f36dea2e30fbc33b5db1d7a7265cc976c5e5586c77b042d5adb1ad27c72db422"),
                 VoiceModelFile("llm.int8.onnx", 600356593L, "dfbf9aa3be41bccc257587f151e15c63fbe1b549f2b517f5ccd5bdce3bf4322a"),

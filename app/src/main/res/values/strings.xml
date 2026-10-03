@@ -272,6 +272,9 @@
     <string name="ignore_system_gesture_insets">Ignore system gesture insets</string>
     <string name="settings_section_data">Input data</string>
     <string name="settings_section_keyboard">Keyboard and appearance</string>
+    <string name="settings_section_voice">Voice input</string>
+    <string name="voice_models">Voice models</string>
+    <string name="settings_summary_voice_bubble">Hold the bubble to dictate into any text field</string>
     <string name="settings_section_more">Other settings</string>
     <string name="settings_summary_schemata">Choose input methods and their order</string>
     <string name="settings_summary_user_dictionary">Import, back up, and manage words</string>

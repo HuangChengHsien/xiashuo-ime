@@ -272,6 +272,9 @@
     <string name="ignore_system_gesture_insets">忽略系統手勢邊緣保留區</string>
     <string name="settings_section_data">輸入資料</string>
     <string name="settings_section_keyboard">鍵盤與外觀</string>
+    <string name="settings_section_voice">語音輸入</string>
+    <string name="voice_models">語音模型</string>
+    <string name="settings_summary_voice_bubble">在任何文字欄位按住懸浮球說話</string>
     <string name="settings_section_more">其他設定</string>
     <string name="settings_summary_schemata">選擇輸入方案並調整順序</string>
     <string name="settings_summary_user_dictionary">匯入、備份與管理自訂詞彙</string>

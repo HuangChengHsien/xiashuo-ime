@@ -5,13 +5,20 @@
 
 package com.osfans.trime.ui.main
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
+import androidx.preference.Preference
 import androidx.preference.PreferenceGroup
+import androidx.preference.SwitchPreferenceCompat
 import com.osfans.trime.R
+import com.osfans.trime.ime.voice.VoiceBubbleBridge
+import com.osfans.trime.ime.voice.VoiceBubblePermissionActivity
+import com.osfans.trime.ime.voice.VoiceBubbleService
+import com.osfans.trime.ime.voice.VoiceModels
 import com.osfans.trime.ui.common.PaddingPreferenceFragment
 import com.osfans.trime.util.addCategory
 import com.osfans.trime.util.addPreference
@@ -19,6 +26,34 @@ import com.osfans.trime.util.navigateWithAnim
 
 class MainFragment : PaddingPreferenceFragment() {
     private val viewModel: MainViewModel by activityViewModels()
+    private var voiceModelsPreference: Preference? = null
+    private var voiceBubblePreference: SwitchPreferenceCompat? = null
+
+    override fun onResume() {
+        super.onResume()
+        refreshVoiceSection()
+        // The bubble service attaches shortly after its permission screen closes.
+        view?.postDelayed(::refreshVoiceSection, 600)
+    }
+
+    private fun refreshVoiceSection() {
+        val ctx = context ?: return
+        val selected = VoiceModels.selectedEngine(ctx)
+        val installed = VoiceModels.all.count { it.isInstalled(ctx) }
+        voiceModelsPreference?.summary = "使用中：${VoiceModels.engineName(selected)} · 已安裝 $installed 個模型"
+        voiceBubblePreference?.isChecked = VoiceBubbleBridge.isRunning()
+    }
+
+    private fun setVoiceBubble(enabled: Boolean) {
+        val ctx = requireContext()
+        if (enabled == VoiceBubbleBridge.isRunning()) return
+        if (enabled) {
+            // Requests overlay access first when needed, then starts the bubble.
+            startActivity(Intent(ctx, VoiceBubblePermissionActivity::class.java))
+        } else {
+            ctx.startService(Intent(ctx, VoiceBubbleService::class.java).setAction(VoiceBubbleService.ACTION_TOGGLE))
+        }
+    }
 
     override fun onStart() {
         super.onStart()
@@ -79,6 +114,23 @@ class MainFragment : PaddingPreferenceFragment() {
                     R.string.theme, R.string.settings_summary_theme,
                     R.drawable.ic_baseline_color_lens_24, NavigationRoute.Theme,
                 )
+            }
+            addCategory(R.string.settings_section_voice) {
+                isIconSpaceReserved = false
+                addPreference(R.string.voice_models, icon = R.drawable.ic_baseline_mic_24) {
+                    findNavController().navigateWithAnim(NavigationRoute.VoiceModels)
+                }
+                voiceModelsPreference = getPreference(preferenceCount - 1)
+                voiceBubblePreference = SwitchPreferenceCompat(context).apply {
+                    setTitle(R.string.voice_bubble)
+                    setSummary(R.string.settings_summary_voice_bubble)
+                    isPersistent = false
+                    isIconSpaceReserved = false
+                    setOnPreferenceChangeListener { _, value ->
+                        setVoiceBubble(value as Boolean)
+                        true
+                    }
+                }.also(::addPreference)
             }
             addCategory(R.string.settings_section_more) {
                 isIconSpaceReserved = false

@@ -16,6 +16,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- Network access is used only to download offline speech models; audio never leaves the phone. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <queries>
         <intent>
@@ -115,11 +119,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
-        <activity
-            android:name=".ime.voice.VoiceModelManagerActivity"
-            android:exported="false"
-            android:label="語音模型管理"
-            android:taskAffinity=".ime.voice.VoiceModelManagerActivity" />
+        <!-- WorkManager runs voice model downloads as a data sync foreground service. -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
 
         <!-- Using an activity alias to disable/enable the app icon in the launcher -->
         <activity-alias
