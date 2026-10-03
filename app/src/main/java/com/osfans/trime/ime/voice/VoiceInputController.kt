@@ -33,7 +33,6 @@ import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.SileroVadModelConfig
 import com.k2fsa.sherpa.onnx.Vad
 import com.k2fsa.sherpa.onnx.VadModelConfig
-import com.osfans.trime.data.opencc.OpenCCDictManager
 import com.osfans.trime.data.phrase.PhraseCorrector
 import com.osfans.trime.data.phrase.PhraseHotwords
 import com.osfans.trime.R
@@ -459,12 +458,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
             if (fromBubble) VoiceBubbleBridge.setState(VoiceBubbleState.Problem("沒有辨識到語音"))
             else Toast.makeText(service, "沒有辨識到語音", Toast.LENGTH_SHORT).show()
         } else {
-            val converted = if (selected != ENGINE_GOOGLE) {
-                runCatching { OpenCCDictManager.convertLine(text.trim(), "s2tw.json") }
-                    .getOrDefault(text.trim())
-            } else {
-                text.trim()
-            }
+            val converted = if (selected != ENGINE_GOOGLE) VoiceText.toTaiwan(text.trim()) else text.trim()
             // Put the user's own names and terms back where the recognizer chose a homophone.
             val output = PhraseCorrector.correct(PhraseCorrector.tidy(converted), PhraseHotwords.collect())
             service.commitVoiceText(output)

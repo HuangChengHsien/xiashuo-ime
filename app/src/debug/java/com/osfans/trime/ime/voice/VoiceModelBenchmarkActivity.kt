@@ -39,6 +39,15 @@ class VoiceModelBenchmarkActivity : Activity() {
             setTextIsSelectable(true)
         }
         setContentView(ScrollView(this).apply { addView(output) })
+        // `--es convert <a|b>` compares the old glyph-only conversion with the Taiwan wording one.
+        intent.getStringExtra("convert")?.let { text ->
+            text.split('|').forEach {
+                val old = com.osfans.trime.data.opencc.OpenCCDictManager.convertLine(it, "s2tw.json")
+                report("convert: $it\n  s2tw : $old\n  new  : ${VoiceText.toTaiwan(it)}")
+            }
+            report("done")
+            return
+        }
         // `--es correct <text>` only runs the homophone correction against the custom phrases.
         intent.getStringExtra("correct")?.let { text ->
             val words = PhraseHotwords.collect()
