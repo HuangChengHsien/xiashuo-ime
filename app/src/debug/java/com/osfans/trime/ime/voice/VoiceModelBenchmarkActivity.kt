@@ -12,6 +12,8 @@ import android.os.SystemClock
 import android.util.Log
 import android.widget.ScrollView
 import android.widget.TextView
+import com.osfans.trime.data.phrase.PhraseCorrector
+import com.osfans.trime.data.phrase.PhraseHotwords
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -37,6 +39,13 @@ class VoiceModelBenchmarkActivity : Activity() {
             setTextIsSelectable(true)
         }
         setContentView(ScrollView(this).apply { addView(output) })
+        // `--es correct <text>` only runs the homophone correction against the custom phrases.
+        intent.getStringExtra("correct")?.let { text ->
+            val words = PhraseHotwords.collect()
+            text.split('|').forEach { report("correct: $it -> ${PhraseCorrector.correct(it, words)}") }
+            report("done")
+            return
+        }
         val model = VoiceModels.find(intent.getStringExtra("model") ?: VoiceModels.ENGINE_FUNASR_NANO)
         val wav = File(intent.getStringExtra("wav").orEmpty())
         val threads = intent.getStringExtra("threads")?.split(',')?.mapNotNull { it.trim().toIntOrNull() } ?: listOf(4)
