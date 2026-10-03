@@ -34,6 +34,8 @@ import com.osfans.trime.R
 import com.osfans.trime.ime.core.TrimeInputMethodService
 import com.osfans.trime.ime.voice.VoiceModels.ENGINE_GOOGLE
 import com.osfans.trime.ime.voice.VoiceModels.engineName
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.FutureTask
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** Lets the user switch recognition engines without leaving the active Trime keyboard. */
@@ -244,27 +246,31 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
             return
         }
         active = true
-        localStop = AtomicBoolean(false)
+        val stop = AtomicBoolean(false)
+        localStop = stop
         if (bubbleMode) {
-            VoiceBubbleBridge.setStatus("載入模型", false)
+            VoiceBubbleBridge.setStatus("準備麥克風", false)
         } else {
-            showRecordingDialog(
-                engineName(selected),
-                "正在載入模型，尚未收音；載入完成後會顯示「請開始說話」。",
-                finishEnabled = false,
-            ) { _ ->
-                localStop?.set(true)
+            showRecordingDialog(engineName(selected), "正在開啟麥克風…") { _ -> stop.set(true) }
+        }
+        // Load the model while the user speaks, so its multi-second load overlaps the recording
+        // instead of delaying it. A load failure stops the recording early and is reported below.
+        var loadMs = 0L
+        val loader = FutureTask {
+            val loadStart = SystemClock.elapsedRealtime()
+            try {
+                model.createRecognizer(service).also { loadMs = SystemClock.elapsedRealtime() - loadStart }
+            } catch (error: Throwable) {
+                stop.set(true)
+                throw error
             }
         }
+        Thread(loader, "TrimeLocalASRLoad").start()
         captureThread = Thread({
             var audioRecord: AudioRecord? = null
             var offline: OfflineRecognizer? = null
             var offlineStream: com.k2fsa.sherpa.onnx.OfflineStream? = null
             try {
-                val loadStart = SystemClock.elapsedRealtime()
-                offline = model.createRecognizer(service)
-                val loadMs = SystemClock.elapsedRealtime() - loadStart
-                offlineStream = offline.createStream()
                 val rate = 16000
                 check(active) { "錄音已取消" }
                 val minBuffer = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
@@ -278,13 +284,10 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 service.mainExecutor.execute {
                     if (active) {
                         if (bubbleMode) VoiceBubbleBridge.setStatus("聆聽中", true)
-                        else {
-                            recordingMessage?.text = "模型已就緒，請開始說話。說完按「停止並輸入」。"
-                            recordingFinishButton?.isEnabled = true
-                        }
+                        else recordingMessage?.text = "請開始說話（模型同時在背景載入）。說完按「停止並輸入」。"
                     }
                 }
-                while (localStop?.get() == false) {
+                while (!stop.get()) {
                     val count = audioRecord.read(chunk, 0, chunk.size)
                     check(count > 0) { "麥克風讀取失敗：$count" }
                     val samples = FloatArray(count) { chunk[it] / 32768.0f }
@@ -293,23 +296,41 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 }
                 if (!active) return@Thread
                 audioRecord.stop()
+                val stillLoading = !loader.isDone
                 service.mainExecutor.execute {
                     if (bubbleMode) {
                         VoiceBubbleBridge.setRecordingActive(false)
-                        VoiceBubbleBridge.setStatus("辨識中", false)
+                        VoiceBubbleBridge.setStatus(if (stillLoading) "等待模型載入" else "辨識中", false)
+                    } else if (stillLoading) {
+                        recordingMessage?.text = "錄音完成，正在等待模型載入…"
+                    }
+                }
+                val waitStart = SystemClock.elapsedRealtime()
+                val engine = try {
+                    loader.get()
+                } catch (error: ExecutionException) {
+                    throw error.cause ?: error
+                }
+                offline = engine
+                val waitMs = SystemClock.elapsedRealtime() - waitStart
+                if (stillLoading) {
+                    service.mainExecutor.execute {
+                        if (active) {
+                            if (bubbleMode) VoiceBubbleBridge.setStatus("辨識中", false)
+                            else recordingMessage?.text = "正在辨識，請稍候…"
+                        }
                     }
                 }
                 val samples = FloatArray(offlineAudio.size) { offlineAudio[it] }
                 require(samples.isNotEmpty()) { "沒有錄到語音" }
-                val stream = requireNotNull(offlineStream)
+                val stream = engine.createStream().also { offlineStream = it }
                 stream.acceptWaveform(samples, rate)
-                val engine = requireNotNull(offline)
                 val decodeStart = SystemClock.elapsedRealtime()
                 engine.decode(stream)
                 val result = engine.getResult(stream).text
                 Log.i(
                     TAG,
-                    "engine=${model.id} loadMs=$loadMs audioMs=${samples.size * 1000L / rate} " +
+                    "engine=${model.id} loadMs=$loadMs waitMs=$waitMs audioMs=${samples.size * 1000L / rate} " +
                         "decodeMs=${SystemClock.elapsedRealtime() - decodeStart} chars=${result.length}",
                 )
                 completeResult(result)
@@ -324,7 +345,8 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 runCatching { audioRecord?.stop() }
                 audioRecord?.release()
                 offlineStream?.release()
-                offline?.release()
+                // A cancelled session still owns the model being loaded; wait for it so it is freed.
+                (offline ?: runCatching { loader.get() }.getOrNull())?.release()
             }
         }, "TrimeLocalASR").also { it.start() }
     }
