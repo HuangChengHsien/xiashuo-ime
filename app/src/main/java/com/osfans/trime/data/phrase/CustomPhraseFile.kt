@@ -76,12 +76,22 @@ enum class CustomPhraseKind(
     fun load(userDataDir: File): CustomPhraseDocument {
         val file = file(userDataDir)
         val text = if (file.isFile) file.readText() else template
-        return CustomPhraseDocument(this, text.removeSuffix("\n").split('\n').toMutableList())
+        return CustomPhraseDocument(
+            this,
+            text.removeSuffix("\n").split('\n').toMutableList(),
+            endsWithNewline = text.isEmpty() || text.endsWith("\n"),
+        )
     }
 }
 
 /** A phrase file held as its original lines, with the indexes of the lines that are phrases. */
-class CustomPhraseDocument(val kind: CustomPhraseKind, private val lines: MutableList<String>) {
+class CustomPhraseDocument(
+    val kind: CustomPhraseKind,
+    private val lines: MutableList<String>,
+    private val endsWithNewline: Boolean,
+) {
+    /** New lines follow the file's existing line ending so Windows-edited files stay CRLF. */
+    private val lineEnd = if (lines.any { it.endsWith("\r") }) "\r" else ""
     data class Entry(val line: Int, val phrase: CustomPhrase)
 
     val entries: List<Entry>
@@ -118,19 +128,35 @@ class CustomPhraseDocument(val kind: CustomPhraseKind, private val lines: Mutabl
     }
 
     private fun format(phrase: CustomPhrase) =
-        if (kind.hasWeight) "${phrase.text}\t${phrase.code}\t${phrase.weight ?: DEFAULT_WEIGHT}"
-        else "${phrase.text}\t${phrase.code}"
+        (if (kind.hasWeight) "${phrase.text}\t${phrase.code}\t${phrase.weight ?: DEFAULT_WEIGHT}" else "${phrase.text}\t${phrase.code}") +
+            lineEnd
 
-    /** Writes through a temporary file and keeps the previous version as `<name>.bak`. */
+    /**
+     * Writes through a temporary file. The previous version is kept as a timestamped backup in
+     * `phrase-backups/`, of which the newest [BACKUPS_KEPT] survive.
+     */
     fun save(userDataDir: File) {
         val target = kind.file(userDataDir)
         val temp = File(userDataDir, ".${kind.fileName}.saving")
-        temp.writeText(lines.joinToString("\n", postfix = "\n"))
-        if (target.isFile) target.copyTo(File(userDataDir, "${kind.fileName}.bak"), overwrite = true)
-        check(temp.renameTo(target)) { "無法寫入 ${kind.fileName}" }
+        temp.writeText(lines.joinToString("\n", postfix = if (endsWithNewline) "\n" else ""))
+        if (target.isFile) {
+            val dir = File(userDataDir, BACKUP_DIR).apply { mkdirs() }
+            val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.ROOT).format(java.util.Date())
+            target.copyTo(File(dir, "${kind.fileName}.$stamp.bak"), overwrite = true)
+            dir.listFiles { file -> file.name.startsWith("${kind.fileName}.") && file.name.endsWith(".bak") }
+                ?.sortedByDescending { it.name }
+                ?.drop(BACKUPS_KEPT)
+                ?.forEach { it.delete() }
+        }
+        if (!temp.renameTo(target)) {
+            temp.delete()
+            error("無法寫入 ${kind.fileName}")
+        }
     }
 
     companion object {
         const val DEFAULT_WEIGHT = 100
+        const val BACKUP_DIR = "phrase-backups"
+        private const val BACKUPS_KEPT = 5
     }
 }

@@ -32,6 +32,7 @@ import com.osfans.trime.data.phrase.CustomPhraseKind
 import com.osfans.trime.data.sync.RimeDataSync
 import com.osfans.trime.util.toast
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import splitties.dimensions.dp
@@ -55,6 +56,9 @@ class CustomPhraseFragment : Fragment() {
     private lateinit var addButton: Button
     private var readOnly = false
 
+    /** Set while a save runs; edits wait so two saves never race over the same file. */
+    private var saving: Job? = null
+
     private val exportBackup = registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         if (uri != null) export(uri)
     }
@@ -65,7 +69,8 @@ class CustomPhraseFragment : Fragment() {
     }
 
     override fun onDestroy() {
-        RimeDaemon.destroySession(SESSION)
+        // A save in flight still needs the session to apply the change; release it afterwards.
+        saving?.invokeOnCompletion { RimeDaemon.destroySession(SESSION) } ?: RimeDaemon.destroySession(SESSION)
         super.onDestroy()
     }
 
@@ -123,7 +128,7 @@ class CustomPhraseFragment : Fragment() {
         addButton = Button(ctx, null, android.R.attr.borderlessButtonStyle).apply {
             text = "新增詞語"
             isEnabled = !readOnly
-            setOnClickListener { edit(null) }
+            setOnClickListener { if (saving == null) edit(null) }
         }
         actions.addView(addButton)
         actions.addView(Button(ctx, null, android.R.attr.borderlessButtonStyle).apply {
@@ -160,7 +165,7 @@ class CustomPhraseFragment : Fragment() {
                 orientation = LinearLayout.VERTICAL
                 setPadding(0, ctx.dp(10), 0, ctx.dp(10))
                 isClickable = !readOnly
-                if (!readOnly) setOnClickListener { edit(entry) }
+                if (!readOnly) setOnClickListener { if (saving == null) edit(entry) }
                 addView(TextView(ctx).apply {
                     text = entry.phrase.text
                     textSize = 17f
@@ -250,19 +255,35 @@ class CustomPhraseFragment : Fragment() {
             .show()
     }
 
-    /** Saves the file and restarts Rime so the schemas read it again; no full deploy is needed. */
+    /**
+     * Saves the file and restarts Rime so the schemas read it again; no full deploy is needed.
+     * Runs in Rime's scope rather than the fragment's, so leaving the page cannot cut it short.
+     */
     private fun saveAndApply() {
         val ctx = requireContext().applicationContext
+        val session = rime
+        val pending = document
+        addButton.isEnabled = false
         render()
         status.text = "正在儲存並套用…"
-        lifecycleScope.launch {
-            val error = runCatching {
-                withContext(Dispatchers.IO) { document.save(DataManager.userDataDir) }
-                rime.runOnReady { updateConfig() }
-            }.exceptionOrNull()
-            if (error != null) Timber.w(error, "custom phrase save failed")
-            ctx.toast(if (error == null) "已儲存並套用" else "儲存失敗：${error.message}")
-            reload()
+        saving = session.lifecycleScope.launch {
+            val saveError = withContext(Dispatchers.IO) { runCatching { pending.save(DataManager.userDataDir) }.exceptionOrNull() }
+            val applyError = if (saveError == null) runCatching { session.runOnReady { updateConfig() } }.exceptionOrNull() else null
+            (saveError ?: applyError)?.let { Timber.w(it, "custom phrase save failed") }
+            withContext(Dispatchers.Main) {
+                ctx.toast(
+                    when {
+                        saveError != null -> "儲存失敗，檔案未變更：${saveError.message}"
+                        applyError != null -> "已儲存，但尚未套用；請在鍵盤選單按「更新設定」"
+                        else -> "已儲存並套用"
+                    },
+                )
+                saving = null
+                if (isAdded) {
+                    addButton.isEnabled = !readOnly
+                    reload()
+                }
+            }
         }
     }
 
