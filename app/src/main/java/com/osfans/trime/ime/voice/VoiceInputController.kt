@@ -46,6 +46,8 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
     private var recordingFinishButton: Button? = null
     private var enginePopup: PopupWindow? = null
     @Volatile private var active = false
+    /** Bumped for every recording so callbacks from an older, cancelled one cannot touch the current one. */
+    @Volatile private var session = 0
     private var localStop: AtomicBoolean? = null
     private var captureThread: Thread? = null
     private var selected = ENGINE_GOOGLE
@@ -246,7 +248,12 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
             return
         }
         active = true
+        val id = ++session
+        fun current() = active && session == id
         val stop = AtomicBoolean(false)
+        // A cancelled recording may still be loading or releasing its model. Wait for it before
+        // loading another one, so two native models never sit in memory together.
+        val previous = captureThread
         localStop = stop
         if (bubbleMode) {
             VoiceBubbleBridge.setStatus("準備麥克風", false)
@@ -257,6 +264,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         // instead of delaying it. A load failure stops the recording early and is reported below.
         var loadMs = 0L
         val loader = FutureTask {
+            previous?.join()
             val loadStart = SystemClock.elapsedRealtime()
             try {
                 model.createRecognizer(service).also { loadMs = SystemClock.elapsedRealtime() - loadStart }
@@ -282,7 +290,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 check(active) { "錄音已取消" }
                 audioRecord.startRecording()
                 service.mainExecutor.execute {
-                    if (active) {
+                    if (current()) {
                         if (bubbleMode) VoiceBubbleBridge.setStatus("聆聽中", true)
                         else recordingMessage?.text = "請開始說話（模型同時在背景載入）。說完按「停止並輸入」。"
                     }
@@ -294,10 +302,11 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                     check(offlineAudio.size + samples.size <= rate * 120) { "單次離線錄音最多 2 分鐘" }
                     samples.forEach(offlineAudio::add)
                 }
-                if (!active) return@Thread
+                if (!current()) return@Thread
                 audioRecord.stop()
                 val stillLoading = !loader.isDone
                 service.mainExecutor.execute {
+                    if (!current()) return@execute
                     if (bubbleMode) {
                         VoiceBubbleBridge.setRecordingActive(false)
                         VoiceBubbleBridge.setStatus(if (stillLoading) "等待模型載入" else "辨識中", false)
@@ -315,7 +324,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 val waitMs = SystemClock.elapsedRealtime() - waitStart
                 if (stillLoading) {
                     service.mainExecutor.execute {
-                        if (active) {
+                        if (current()) {
                             if (bubbleMode) VoiceBubbleBridge.setStatus("辨識中", false)
                             else recordingMessage?.text = "正在辨識，請稍候…"
                         }
@@ -333,12 +342,12 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                     "engine=${model.id} loadMs=$loadMs waitMs=$waitMs audioMs=${samples.size * 1000L / rate} " +
                         "decodeMs=${SystemClock.elapsedRealtime() - decodeStart} chars=${result.length}",
                 )
-                completeResult(result)
+                completeResult(result, id)
             } catch (error: Throwable) {
                 service.mainExecutor.execute {
-                    if (active) {
+                    if (current()) {
                         cancel()
-                        Toast.makeText(service, "${engineName(selected)} 失敗：${error.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(service, "${model.title} 失敗：${error.message}", Toast.LENGTH_LONG).show()
                     }
                 }
             } finally {
@@ -351,8 +360,8 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         }, "TrimeLocalASR").also { it.start() }
     }
 
-    private fun completeResult(text: String) = service.mainExecutor.execute {
-        if (!active) return@execute
+    private fun completeResult(text: String, id: Int = session) = service.mainExecutor.execute {
+        if (!active || session != id) return@execute
         val fromBubble = bubbleMode
         cancel()
         if (text.isBlank()) Toast.makeText(service, "沒有辨識到語音", Toast.LENGTH_SHORT).show()
