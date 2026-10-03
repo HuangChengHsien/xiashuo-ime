@@ -5,5 +5,9 @@
             android:name="com.osfans.trime.ime.voice.BreezeBenchmarkActivity"
             android:exported="true"
             android:process=":breeze_benchmark" />
+        <activity
+            android:name="com.osfans.trime.ime.voice.VoiceModelBenchmarkActivity"
+            android:exported="true"
+            android:process=":voice_benchmark" />
     </application>
 </manifest>

@@ -20,12 +20,17 @@ import java.io.File
 object RimeWorkspaceStamp {
     private const val KEY = "var/last_build_time"
 
-    private fun lastModifiedSeconds(): Long = listOf(DataManager.userDataDir, DataManager.sharedDataDir)
+    private fun watched(): List<File> = listOf(DataManager.userDataDir, DataManager.sharedDataDir)
         .flatMap { dir ->
             listOf(dir) + (dir.listFiles { file: File -> file.isFile && file.extension == "yaml" && file.name != "user.yaml" }
                 ?.toList() ?: emptyList())
         }
-        .maxOf { it.lastModified() } / 1000
+
+    private fun lastModifiedSeconds(): Long = watched().maxOf { it.lastModified() } / 1000
+
+    /** Newest modification among watched `.yaml` files other than [except], in seconds. */
+    fun lastModifiedExcept(except: File): Long =
+        watched().filter { it.isFile && it != except }.maxOfOrNull { it.lastModified() / 1000 } ?: 0
 
     private fun lastBuildTime(): Long = RimeConfig.openUserConfig("user").use { it.getInt(KEY) ?: 0 }.toLong()
 
@@ -37,8 +42,16 @@ object RimeWorkspaceStamp {
         return modified > built
     }
 
-    /** Records the workspace as built up to now, after a save that no schema depends on. */
-    fun markCurrent() {
+    /**
+     * Records the workspace as built up to now, after a save that no schema depends on. Callers
+     * pass the newest other `.yaml` time seen before saving; if another file changed meanwhile,
+     * it may need a real rebuild, so nothing is recorded.
+     */
+    fun markCurrent(saved: File, othersBefore: Long) {
+        if (lastModifiedExcept(saved) > othersBefore) {
+            Timber.i("Rime workspace: another file changed during the save; leaving rebuild pending")
+            return
+        }
         val stamp = lastModifiedSeconds().coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         RimeConfig.openUserConfig("user").use { it.setInt(KEY, stamp) }
         Timber.i("Rime workspace: recorded last build %d", stamp)

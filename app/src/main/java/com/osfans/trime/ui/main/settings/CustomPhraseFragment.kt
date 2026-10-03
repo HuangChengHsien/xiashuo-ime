@@ -272,9 +272,11 @@ class CustomPhraseFragment : Fragment() {
         saving = session.lifecycleScope.launch {
             // Only skip the next startup rebuild when nothing else was already waiting for one.
             val pendingBefore = runCatching { session.runOnReady { RimeWorkspaceStamp.hasPendingChanges() } }.getOrDefault(true)
+            val savedFile = pending.kind.file(DataManager.userDataDir)
+            val othersBefore = RimeWorkspaceStamp.lastModifiedExcept(savedFile)
             val saveError = withContext(Dispatchers.IO) { runCatching { pending.save(DataManager.userDataDir, backupDir) }.exceptionOrNull() }
             if (saveError == null && !pendingBefore) {
-                runCatching { session.runOnReady { RimeWorkspaceStamp.markCurrent() } }
+                runCatching { session.runOnReady { RimeWorkspaceStamp.markCurrent(savedFile, othersBefore) } }
                     .onFailure { Timber.w(it, "could not record the workspace as current") }
             }
             val applyError = if (saveError == null) runCatching { session.runOnReady { reloadUserData() } }.exceptionOrNull() else null

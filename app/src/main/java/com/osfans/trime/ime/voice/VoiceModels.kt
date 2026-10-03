@@ -31,6 +31,13 @@ data class VoiceModelFile(
  * An offline model published on Hugging Face. Downloads use [revision] instead of `main`, so the
  * pinned sizes and hashes keep matching even if the upstream repository changes.
  */
+/** How a recognizer runs on the phone; [VoiceTuning.DEFAULT] is what the keyboard uses. */
+data class VoiceTuning(val numThreads: Int = 4, val provider: String = "cpu") {
+    companion object {
+        val DEFAULT = VoiceTuning()
+    }
+}
+
 data class VoiceModel(
     val id: String,
     val title: String,
@@ -38,7 +45,9 @@ data class VoiceModel(
     val repo: String,
     val revision: String,
     val files: List<VoiceModelFile>,
-    private val factory: (File) -> OfflineRecognizer,
+    /** How the keyboard runs this model; measured per model on the Pixel 8 Pro. */
+    val tuning: VoiceTuning = VoiceTuning.DEFAULT,
+    private val factory: (File, VoiceTuning) -> OfflineRecognizer,
 ) {
     val totalBytes: Long get() = files.sumOf { it.size }
 
@@ -62,7 +71,8 @@ data class VoiceModel(
 
     fun diskBytes(context: Context): Long = directory(context).walkBottomUp().filter { it.isFile }.sumOf { it.length() }
 
-    fun createRecognizer(context: Context): OfflineRecognizer = factory(directory(context))
+    fun createRecognizer(context: Context, tuning: VoiceTuning = this.tuning): OfflineRecognizer =
+        factory(directory(context), tuning)
 }
 
 object VoiceModels {
@@ -87,7 +97,7 @@ object VoiceModels {
                 VoiceModelFile("breeze-asr-25-half-decoder.int8.onnx", 1008223031L, "be492b3bf597690dcd9871ac20c555faa9b78514d3e830402afdf2be0689fb20"),
                 VoiceModelFile("breeze-asr-25-half-tokens.txt", 816730L, "b34b360dbb493e781e479794586d661700670d65564001f23024971d1f2fa126"),
             ),
-        ) { dir ->
+        ) { dir, tuning ->
             recognizer(
                 OfflineModelConfig(
                     whisper = OfflineWhisperModelConfig(
@@ -99,8 +109,8 @@ object VoiceModels {
                     ),
                     tokens = File(dir, "breeze-asr-25-half-tokens.txt").absolutePath,
                     modelType = "whisper",
-                    numThreads = 4,
-                    provider = "cpu",
+                    numThreads = tuning.numThreads,
+                    provider = tuning.provider,
                 ),
             )
         },
@@ -114,7 +124,7 @@ object VoiceModels {
                 VoiceModelFile("model.int8.onnx", 239233841L, "c71f0ce00bec95b07744e116345e33d8cbbe08cef896382cf907bf4b51a2cd51"),
                 VoiceModelFile("tokens.txt", 315894L, "f449eb28dc567533d7fa59be34e2abca8784f771850c78a47fb731a31429a1dc"),
             ),
-        ) { dir ->
+        ) { dir, tuning ->
             recognizer(
                 OfflineModelConfig(
                     senseVoice = OfflineSenseVoiceModelConfig(
@@ -124,8 +134,8 @@ object VoiceModels {
                     ),
                     tokens = File(dir, "tokens.txt").absolutePath,
                     modelType = "sense_voice",
-                    numThreads = 4,
-                    provider = "cpu",
+                    numThreads = tuning.numThreads,
+                    provider = tuning.provider,
                 ),
             )
         },
@@ -134,6 +144,10 @@ object VoiceModels {
             title = "Fun-ASR-Nano",
             note = "Fun-ASR-Nano-2512 INT8；辨識約 1 秒，載入約 6 秒（可邊說邊載入）。會參考「自訂詞語」裡的人名與專有名詞。",
             repo = "csukuangfj/sherpa-onnx-funasr-nano-int8-2025-12-30",
+            // Tensor G3 has five fast cores (1×X3, 4×A715). On the Pixel 8 Pro, 5 threads
+            // decoded 14 s of speech in 5.4 s versus 5.9 s with 4 and 6.3 s with 6; NNAPI was
+            // no faster and less steady (VoiceModelBenchmarkActivity, 2026-10-03).
+            tuning = VoiceTuning(numThreads = 5),
             revision = "6f16bd378457e13f36ccf3910df9017f96c346fb",
             files = listOf(
                 VoiceModelFile("encoder_adaptor.int8.onnx", 237792748L, "f36dea2e30fbc33b5db1d7a7265cc976c5e5586c77b042d5adb1ad27c72db422"),
@@ -143,7 +157,7 @@ object VoiceModels {
                 VoiceModelFile("Qwen3-0.6B/vocab.json", 2776833L, "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"),
                 VoiceModelFile("Qwen3-0.6B/merges.txt", 1671853L, "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"),
             ),
-        ) { dir ->
+        ) { dir, tuning ->
             recognizer(
                 OfflineModelConfig(
                     funasrNano = OfflineFunAsrNanoModelConfig(
@@ -157,8 +171,8 @@ object VoiceModels {
                         }.joinToString(","),
                     ),
                     tokens = "",
-                    numThreads = 4,
-                    provider = "cpu",
+                    numThreads = tuning.numThreads,
+                    provider = tuning.provider,
                 ),
             )
         },
