@@ -162,6 +162,8 @@ class Rime :
             }
         }
         registerRimeMessageHandler(handler)
+        val restore = schemaId.isNotEmpty() && schemaId != ".default"
+        var lateMaintenance = false
         try {
             withRimeContext {
                 exitRime()
@@ -171,13 +173,23 @@ class Rime :
             // while it runs gets no schema and leaves the keyboard in its English layout.
             withContext(Dispatchers.IO) {
                 val maintaining = withTimeoutOrNull(3_000) { started.await() } != null || finished.isCompleted
-                if (maintaining) withTimeout(5.minutes) { finished.await() }
+                if (maintaining) withTimeout(5.minutes) { finished.await() } else lateMaintenance = true
             }
         } finally {
-            unregisterRimeMessageHandler(handler)
+            if (!lateMaintenance) unregisterRimeMessageHandler(handler)
         }
-        if (schemaId.isNotEmpty() && schemaId != ".default") {
-            withRimeContext { selectRimeSchema(schemaId) }
+        if (restore) withRimeContext { selectRimeSchema(schemaId) }
+        if (lateMaintenance) {
+            // A maintenance that announces itself late would still reset the schema; select it
+            // again once that maintenance finishes, if it happens at all.
+            lifecycle.lifecycleScope.launch {
+                try {
+                    withTimeoutOrNull(5.minutes) { finished.await() } ?: return@launch
+                    if (restore) withRimeContext { selectRimeSchema(schemaId) }
+                } finally {
+                    unregisterRimeMessageHandler(handler)
+                }
+            }
         }
     }
 
