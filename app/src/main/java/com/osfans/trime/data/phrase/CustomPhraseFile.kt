@@ -1,0 +1,136 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Rime community
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+package com.osfans.trime.data.phrase
+
+import java.io.File
+
+/** One user phrase: the text to type, its code and (for custom_phrase.txt only) its weight. */
+data class CustomPhrase(val text: String, val code: String, val weight: Int? = null)
+
+/**
+ * The two hand-edited phrase files of the rime-tw schemas. Editing keeps every comment, header
+ * and unrelated line exactly as it was; only phrase lines are replaced, removed or appended.
+ */
+enum class CustomPhraseKind(
+    val title: String,
+    val fileName: String,
+    val hasWeight: Boolean,
+    /** Characters a code may contain; Boshiamy codes also use punctuation keys. */
+    private val codeChars: Regex,
+    val codeHint: String,
+    private val template: String,
+) {
+    PINYIN(
+        title = "雙拼＋／注音＋",
+        fileName = "custom_phrase.txt",
+        hasWeight = true,
+        codeChars = Regex("[a-z0-9;',./\\[\\]-]+"),
+        codeHint = "小寫英文與數字，不必是正確的雙拼碼",
+        template = """
+            # Rime table
+            # coding: utf-8
+            #@/db_name	custom_phrase.txt
+            #@/db_type	tabledb
+            #
+            # 自訂短語（雙拼＋、注音＋使用）
+            # 格式：文字<Tab>編碼<Tab>權重
+            #
+        """.trimIndent() + "\n",
+    ),
+    XIAMI(
+        title = "蝦米",
+        fileName = "openxiami_CustomWord.dict.yaml",
+        hasWeight = false,
+        codeChars = Regex("[a-z0-9,.'\\[\\];?]+"),
+        codeHint = "小寫英文、數字與 , . ' [ ] ; ?",
+        template = """
+            # Rime schema 中州輸入法的字碼檔
+            # encoding: utf-8
+            #
+            # 自定詞字典（由 lua_translator@liu_custom_word_translator 載入）
+            # 格式：詞條<Tab>編碼
+            #
+            ---
+            name: openxiami_CustomWord
+            version: "1"
+            sort: original
+            ...
+        """.trimIndent() + "\n",
+    ),
+    ;
+
+    fun file(userDataDir: File) = File(userDataDir, fileName)
+
+    /** Returns an error message, or null when the phrase can be saved. */
+    fun validate(phrase: CustomPhrase): String? = when {
+        phrase.text.isBlank() -> "請輸入詞語"
+        phrase.text.any { it == '\t' || it == '\n' || it == '\r' } -> "詞語不能包含 Tab 或換行"
+        phrase.code.isEmpty() -> "請輸入編碼"
+        !codeChars.matches(phrase.code) -> "編碼格式不符：$codeHint"
+        else -> null
+    }
+
+    fun load(userDataDir: File): CustomPhraseDocument {
+        val file = file(userDataDir)
+        val text = if (file.isFile) file.readText() else template
+        return CustomPhraseDocument(this, text.removeSuffix("\n").split('\n').toMutableList())
+    }
+}
+
+/** A phrase file held as its original lines, with the indexes of the lines that are phrases. */
+class CustomPhraseDocument(val kind: CustomPhraseKind, private val lines: MutableList<String>) {
+    data class Entry(val line: Int, val phrase: CustomPhrase)
+
+    val entries: List<Entry>
+        get() {
+            // Boshiamy phrases start after the YAML header ends with "..."; custom_phrase.txt has
+            // no YAML header, so every line may hold a phrase.
+            var inData = kind == CustomPhraseKind.PINYIN || lines.none { it.trimEnd('\r') == "..." }
+            return lines.mapIndexedNotNull { index, raw ->
+                val line = raw.trimEnd('\r')
+                if (line == "...") {
+                    inData = true
+                    return@mapIndexedNotNull null
+                }
+                if (!inData || line.isEmpty() || line.startsWith("#")) return@mapIndexedNotNull null
+                val fields = line.split('\t')
+                if (fields.size < 2 || fields[0].isEmpty() || fields[1].isEmpty()) return@mapIndexedNotNull null
+                Entry(index, CustomPhrase(fields[0], fields[1], fields.getOrNull(2)?.trim()?.toIntOrNull()))
+            }
+        }
+
+    fun contains(phrase: CustomPhrase, except: Entry? = null) =
+        entries.any { it != except && it.phrase.text == phrase.text && it.phrase.code == phrase.code }
+
+    fun add(phrase: CustomPhrase) {
+        lines += format(phrase)
+    }
+
+    fun replace(entry: Entry, phrase: CustomPhrase) {
+        lines[entry.line] = format(phrase)
+    }
+
+    fun remove(entry: Entry) {
+        lines.removeAt(entry.line)
+    }
+
+    private fun format(phrase: CustomPhrase) =
+        if (kind.hasWeight) "${phrase.text}\t${phrase.code}\t${phrase.weight ?: DEFAULT_WEIGHT}"
+        else "${phrase.text}\t${phrase.code}"
+
+    /** Writes through a temporary file and keeps the previous version as `<name>.bak`. */
+    fun save(userDataDir: File) {
+        val target = kind.file(userDataDir)
+        val temp = File(userDataDir, ".${kind.fileName}.saving")
+        temp.writeText(lines.joinToString("\n", postfix = "\n"))
+        if (target.isFile) target.copyTo(File(userDataDir, "${kind.fileName}.bak"), overwrite = true)
+        check(temp.renameTo(target)) { "無法寫入 ${kind.fileName}" }
+    }
+
+    companion object {
+        const val DEFAULT_WEIGHT = 100
+    }
+}

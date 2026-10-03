@@ -231,8 +231,12 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
     private fun startGoogle() {
         val available = if (bubbleMode) hasAndroidOnDeviceRecognizer() else SpeechRecognizer.isRecognitionAvailable(service)
         if (!available) {
-            Toast.makeText(service, if (bubbleMode) "Android 本機語音辨識不可用" else "找不到 Android 語音辨識服務", Toast.LENGTH_LONG).show()
-            if (bubbleMode) cancel()
+            if (bubbleMode) {
+                cancel()
+                VoiceBubbleBridge.setState(VoiceBubbleState.Problem("Android 本機語音辨識不可用"))
+            } else {
+                Toast.makeText(service, "找不到 Android 語音辨識服務", Toast.LENGTH_LONG).show()
+            }
             return
         }
         active = true

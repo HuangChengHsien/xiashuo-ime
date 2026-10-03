@@ -272,6 +272,8 @@
     <string name="ignore_system_gesture_insets">Ignore system gesture insets</string>
     <string name="settings_section_data">Input data</string>
     <string name="settings_section_keyboard">Keyboard and appearance</string>
+    <string name="custom_phrases">Custom phrases</string>
+    <string name="settings_summary_custom_phrases">Frequent phrases for pinyin, bopomofo and Boshiamy</string>
     <string name="settings_section_voice">Voice input</string>
     <string name="voice_models">Voice models</string>
     <string name="settings_summary_voice_bubble">Hold the bubble to dictate into any text field</string>

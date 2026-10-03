@@ -92,6 +92,10 @@ class MainFragment : PaddingPreferenceFragment() {
                     R.drawable.ic_baseline_book_24, NavigationRoute.UserDict,
                 )
                 addDestinationPreference(
+                    R.string.custom_phrases, R.string.settings_summary_custom_phrases,
+                    R.drawable.ic_baseline_edit_24, NavigationRoute.CustomPhrases,
+                )
+                addDestinationPreference(
                     R.string.profile, R.string.settings_summary_profile,
                     R.drawable.ic_baseline_snippet_folder_24, NavigationRoute.Profile,
                 )

@@ -272,6 +272,8 @@
     <string name="ignore_system_gesture_insets">忽略系統手勢邊緣保留區</string>
     <string name="settings_section_data">輸入資料</string>
     <string name="settings_section_keyboard">鍵盤與外觀</string>
+    <string name="custom_phrases">自訂詞語</string>
+    <string name="settings_summary_custom_phrases">雙拼＋、注音＋與蝦米的常用詞</string>
     <string name="settings_section_voice">語音輸入</string>
     <string name="voice_models">語音模型</string>
     <string name="settings_summary_voice_bubble">在任何文字欄位按住懸浮球說話</string>
