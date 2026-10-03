@@ -14,6 +14,8 @@ import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig
 import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
+import com.osfans.trime.data.phrase.PhraseHotwords
+import timber.log.Timber
 import java.io.File
 
 /** One file a model needs, relative to the model directory, pinned to one published release. */
@@ -130,7 +132,7 @@ object VoiceModels {
         VoiceModel(
             id = ENGINE_FUNASR_NANO,
             title = "Fun-ASR-Nano",
-            note = "Fun-ASR-Nano-2512 INT8；辨識約 1 秒，載入約 6 秒（可邊說邊載入）。",
+            note = "Fun-ASR-Nano-2512 INT8；辨識約 1 秒，載入約 6 秒（可邊說邊載入）。會參考「自訂詞語」裡的人名與專有名詞。",
             repo = "csukuangfj/sherpa-onnx-funasr-nano-int8-2025-12-30",
             revision = "6f16bd378457e13f36ccf3910df9017f96c346fb",
             files = listOf(
@@ -150,6 +152,9 @@ object VoiceModels {
                         embedding = File(dir, "embedding.int8.onnx").absolutePath,
                         tokenizer = File(dir, "Qwen3-0.6B").absolutePath,
                         maxNewTokens = 128,
+                        hotwords = PhraseHotwords.collect().also {
+                            Timber.i("Fun-ASR-Nano hotwords: %d from custom phrases", it.size)
+                        }.joinToString(","),
                     ),
                     tokens = "",
                     numThreads = 4,
@@ -176,6 +181,12 @@ object VoiceModels {
     fun setSelectedEngine(context: Context, engine: String) {
         PreferenceManager.getDefaultSharedPreferences(context).edit().putString(PREF_ENGINE, engine).apply()
     }
+
+    const val PREF_AUTO_STOP = "voice_auto_stop"
+
+    /** Whether offline recording ends by itself after a pause (on unless turned off). */
+    fun autoStop(context: Context) =
+        PreferenceManager.getDefaultSharedPreferences(context).getBoolean(PREF_AUTO_STOP, true)
 
     fun engineName(engine: String) = find(engine)?.title ?: "Android 系統語音"
 

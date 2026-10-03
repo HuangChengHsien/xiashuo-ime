@@ -135,6 +135,13 @@ class MainFragment : PaddingPreferenceFragment() {
                         true
                     }
                 }.also(::addPreference)
+                addPreference(SwitchPreferenceCompat(context).apply {
+                    key = VoiceModels.PREF_AUTO_STOP
+                    setDefaultValue(true)
+                    setTitle(R.string.voice_auto_stop)
+                    setSummary(R.string.settings_summary_voice_auto_stop)
+                    isIconSpaceReserved = false
+                })
             }
             addCategory(R.string.settings_section_more) {
                 isIconSpaceReserved = false

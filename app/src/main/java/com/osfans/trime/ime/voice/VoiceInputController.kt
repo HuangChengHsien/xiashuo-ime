@@ -30,6 +30,9 @@ import android.view.Gravity
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
+import com.k2fsa.sherpa.onnx.SileroVadModelConfig
+import com.k2fsa.sherpa.onnx.Vad
+import com.k2fsa.sherpa.onnx.VadModelConfig
 import com.osfans.trime.data.opencc.OpenCCDictManager
 import com.osfans.trime.R
 import com.osfans.trime.ime.core.TrimeInputMethodService
@@ -299,7 +302,9 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 model.createRecognizer(service).also {
                     loadMs = SystemClock.elapsedRealtime() - loadStart
                     service.mainExecutor.execute {
-                        if (current() && !stop.get() && bubbleMode) VoiceBubbleBridge.setHint("模型已就緒，說完點一下停止")
+                        if (current() && !stop.get() && bubbleMode) {
+                            VoiceBubbleBridge.setHint(if (VoiceModels.autoStop(service)) AUTO_STOP_HINT else "模型已就緒，說完點一下停止")
+                        }
                     }
                 }
             } catch (error: Throwable) {
@@ -312,8 +317,13 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
             var audioRecord: AudioRecord? = null
             var offline: OfflineRecognizer? = null
             var offlineStream: com.k2fsa.sherpa.onnx.OfflineStream? = null
+            var vad: Vad? = null
             try {
                 val rate = 16000
+                val autoStop = VoiceModels.autoStop(service)
+                if (autoStop) {
+                    vad = runCatching { createVad() }.onFailure { Log.w(TAG, "VAD unavailable", it) }.getOrNull()
+                }
                 check(active) { "錄音已取消" }
                 val minBuffer = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
                 check(minBuffer > 0) { "AudioRecord error $minBuffer" }
@@ -328,11 +338,18 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                         if (bubbleMode) {
                             VoiceBubbleBridge.setState(VoiceBubbleState.Listening)
                             if (!loader.isDone) VoiceBubbleBridge.setHint("請說話（模型載入中，可以先說）")
+                            else if (vad != null) VoiceBubbleBridge.setHint(AUTO_STOP_HINT)
                         } else {
-                            recordingMessage?.text = "請開始說話（模型同時在背景載入）。說完按「停止並輸入」。"
+                            recordingMessage?.text = "請開始說話（模型同時在背景載入）。" +
+                                if (vad != null) "停頓約 1.5 秒會自動結束，也可按「停止並輸入」。" else "說完按「停止並輸入」。"
                         }
                     }
                 }
+                // With VAD, stop once speech has been followed by a pause, or when nobody speaks.
+                var heardSpeech = false
+                var speechStart = 0
+                var silentSamples = 0
+                var noSpeech = false
                 while (!stop.get()) {
                     val count = audioRecord.read(chunk, 0, chunk.size)
                     check(count > 0) { "麥克風讀取失敗：$count" }
@@ -340,9 +357,37 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                     if (bubbleMode) VoiceBubbleBridge.setLevel(levelOf(samples))
                     check(offlineAudio.size + samples.size <= rate * 120) { "單次離線錄音最多 2 分鐘" }
                     samples.forEach(offlineAudio::add)
+                    val detector = vad ?: continue
+                    detector.acceptWaveform(samples)
+                    while (!detector.empty()) detector.pop()
+                    if (detector.isSpeechDetected()) {
+                        if (!heardSpeech) speechStart = offlineAudio.size - count
+                        heardSpeech = true
+                        silentSamples = 0
+                    } else {
+                        silentSamples += count
+                    }
+                    if (heardSpeech && silentSamples >= rate * AUTO_STOP_SILENCE_MS / 1000) break
+                    if (!heardSpeech && offlineAudio.size >= rate * NO_SPEECH_TIMEOUT_MS / 1000) {
+                        noSpeech = true
+                        break
+                    }
                 }
                 if (!current()) return@Thread
                 audioRecord.stop()
+                if (noSpeech) {
+                    completeResult("", id)
+                    return@Thread
+                }
+                // Keep a short tail of the final pause; long trailing silence only slows decoding
+                // and can make some models repeat the last sentence.
+                if (heardSpeech) {
+                    val trim = (silentSamples - rate * KEEP_TAIL_MS / 1000).coerceIn(0, offlineAudio.size)
+                    repeat(trim) { offlineAudio.removeAt(offlineAudio.lastIndex) }
+                    // The VAD reports speech a little after it starts, so keep a longer lead-in.
+                    val lead = (speechStart - rate * KEEP_LEAD_MS / 1000).coerceIn(0, offlineAudio.size)
+                    if (lead > 0) offlineAudio.subList(0, lead).clear()
+                }
                 val stillLoading = !loader.isDone
                 service.mainExecutor.execute {
                     if (!current()) return@execute
@@ -394,6 +439,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
             } finally {
                 runCatching { audioRecord?.stop() }
                 audioRecord?.release()
+                vad?.release()
                 offlineStream?.release()
                 // A cancelled session still owns the model being loaded; wait for it so it is freed.
                 (offline ?: runCatching { loader.get() }.getOrNull())?.release()
@@ -482,7 +528,30 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         return (rms * 8).toFloat().coerceIn(0f, 1f)
     }
 
+    private fun createVad() = Vad(
+        assetManager = service.assets,
+        config = VadModelConfig(
+            sileroVadModelConfig = SileroVadModelConfig(
+                model = "vad/silero_vad.onnx",
+                threshold = 0.5f,
+                minSilenceDuration = 0.25f,
+                minSpeechDuration = 0.25f,
+                windowSize = 512,
+                maxSpeechDuration = 30f,
+            ),
+            sampleRate = 16000,
+            numThreads = 1,
+            provider = "cpu",
+        ),
+    )
+
     companion object {
         private const val TAG = "VoiceInput"
+        /** Pause after speech that ends a recording; the VAD itself adds about 0.25 s. */
+        private const val AUTO_STOP_SILENCE_MS = 1_250
+        private const val NO_SPEECH_TIMEOUT_MS = 8_000
+        private const val KEEP_TAIL_MS = 300
+        private const val KEEP_LEAD_MS = 500
+        private const val AUTO_STOP_HINT = "請說話，停頓約 1.5 秒自動結束"
     }
 }
