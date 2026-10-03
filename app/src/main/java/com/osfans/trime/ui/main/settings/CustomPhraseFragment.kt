@@ -333,17 +333,21 @@ class CustomPhraseFragment : Fragment() {
         lifecycleScope.launch {
             val count = withContext(Dispatchers.IO) {
                 runCatching {
-                    val files = CustomPhraseKind.entries.map { it.file(DataManager.userDataDir) }.filter { it.isFile }
+                    // Rime files are exported only if present; the voice fixes always, since their
+                    // defaults exist before the first save.
+                    val kinds = CustomPhraseKind.entries.filter { !it.readByRime || it.file(DataManager.userDataDir).isFile }
                     ctx.contentResolver.openOutputStream(uri)!!.use { output ->
                         ZipOutputStream(output).use { zip ->
-                            files.forEach { file ->
-                                zip.putNextEntry(ZipEntry(file.name))
-                                file.inputStream().use { it.copyTo(zip) }
+                            kinds.forEach { kind ->
+                                zip.putNextEntry(ZipEntry(kind.fileName))
+                                val file = kind.file(DataManager.userDataDir)
+                                if (file.isFile) file.inputStream().use { it.copyTo(zip) }
+                                else zip.write(kind.load(DataManager.userDataDir).content().toByteArray())
                                 zip.closeEntry()
                             }
                         }
                     }
-                    files.size
+                    kinds.size
                 }
             }
             ctx.toast(count.fold({ "已匯出 $it 個檔案" }, { "匯出失敗：${it.message}" }))

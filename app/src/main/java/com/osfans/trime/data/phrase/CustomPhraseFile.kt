@@ -163,6 +163,9 @@ class CustomPhraseDocument(
         (if (kind.hasWeight) "${phrase.text}\t${phrase.code}\t${phrase.weight ?: DEFAULT_WEIGHT}" else "${phrase.text}\t${phrase.code}") +
             lineEnd
 
+    /** The file as it would be saved, e.g. the default voice fixes before the first save. */
+    fun content(): String = lines.joinToString("\n", postfix = if (endsWithNewline) "\n" else "")
+
     /**
      * Writes through a temporary file. The previous version is kept as a timestamped backup in
      * [backupDir], of which the newest [BACKUPS_KEPT] survive; that directory must lie outside
@@ -171,7 +174,7 @@ class CustomPhraseDocument(
     fun save(userDataDir: File, backupDir: File) {
         val target = kind.file(userDataDir).apply { parentFile?.mkdirs() }
         val temp = File(target.parentFile, ".${kind.fileName}.saving")
-        temp.writeText(lines.joinToString("\n", postfix = if (endsWithNewline) "\n" else ""))
+        temp.writeText(content())
         if (target.isFile) {
             val dir = backupDir.apply { mkdirs() }
             val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.ROOT).format(java.util.Date())
