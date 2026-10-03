@@ -42,7 +42,7 @@ class VoiceModelBenchmarkActivity : Activity() {
         // `--es correct <text>` only runs the homophone correction against the custom phrases.
         intent.getStringExtra("correct")?.let { text ->
             val words = PhraseHotwords.collect()
-            text.split('|').forEach { report("correct: $it -> ${PhraseCorrector.correct(it, words)}") }
+            text.split('|').forEach { report("correct: $it -> ${PhraseCorrector.correct(PhraseCorrector.tidy(it), words)}") }
             report("done")
             return
         }

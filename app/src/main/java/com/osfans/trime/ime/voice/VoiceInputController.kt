@@ -245,6 +245,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
             return
         }
         active = true
+        Thread(PhraseCorrector::warmUp, "PhraseReadings").start()
         if (bubbleMode) VoiceBubbleBridge.setState(VoiceBubbleState.Listening)
         else showRecordingDialog("Android 語音", "正在聆聽，請開始說話。說完按「停止並輸入」。") { recognizer?.stopListening() }
         try {
@@ -316,6 +317,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         }
         Thread(loader, "TrimeLocalASRLoad").start()
         captureThread = Thread({
+            Thread(PhraseCorrector::warmUp, "PhraseReadings").start()
             var audioRecord: AudioRecord? = null
             var offline: OfflineRecognizer? = null
             var offlineStream: com.k2fsa.sherpa.onnx.OfflineStream? = null
@@ -464,7 +466,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 text.trim()
             }
             // Put the user's own names and terms back where the recognizer chose a homophone.
-            val output = PhraseCorrector.correct(converted, PhraseHotwords.collect())
+            val output = PhraseCorrector.correct(PhraseCorrector.tidy(converted), PhraseHotwords.collect())
             service.commitVoiceText(output)
             if (fromBubble) {
                 VoiceBubbleBridge.setState(VoiceBubbleState.Done)
