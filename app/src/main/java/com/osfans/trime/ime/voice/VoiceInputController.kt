@@ -58,7 +58,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
 
     fun onBubbleTap() {
         if (active) {
-            VoiceBubbleBridge.setStatus("正在辨識", false)
+            VoiceBubbleBridge.setState(VoiceBubbleState.Recognizing)
             localStop?.set(true)
             recognizer?.stopListening()
             return
@@ -66,17 +66,20 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         loadSelectedEngine()
         if (selected == ENGINE_GOOGLE && !hasAndroidOnDeviceRecognizer()) {
             Toast.makeText(service, "此裝置沒有可用的 Android 本機語音辨識器；請改選離線模型。", Toast.LENGTH_LONG).show()
-            VoiceBubbleBridge.setStatus("無系統離線辨識", false)
+            VoiceBubbleBridge.setState(VoiceBubbleState.Problem("此手機沒有本機語音辨識"))
             return
         }
-        if (service.currentInputConnection == null) {
+        // The IME keeps a connection to non-text windows such as the launcher; only a real text
+        // editor has an input type, so recording elsewhere would have nowhere to type.
+        val editor = service.currentInputEditorInfo
+        if (service.currentInputConnection == null || editor == null || editor.inputType == android.text.InputType.TYPE_NULL) {
             Toast.makeText(service, "請先開啟文字輸入框，再使用語音懸浮球。", Toast.LENGTH_LONG).show()
-            VoiceBubbleBridge.setStatus("請先點文字框", false)
+            VoiceBubbleBridge.setState(VoiceBubbleState.Problem("請先點一下文字欄位"))
             return
         }
         if (ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             service.startActivity(Intent(service, VoicePermissionActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            VoiceBubbleBridge.setStatus("請授權麥克風", false)
+            VoiceBubbleBridge.setState(VoiceBubbleState.Problem("請先允許使用麥克風"))
             return
         }
         bubbleMode = true
@@ -233,7 +236,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
             return
         }
         active = true
-        if (bubbleMode) VoiceBubbleBridge.setStatus("Android 離線聆聽", true)
+        if (bubbleMode) VoiceBubbleBridge.setState(VoiceBubbleState.Listening)
         else showRecordingDialog("Android 語音", "正在聆聽，請開始說話。說完按「停止並輸入」。") { recognizer?.stopListening() }
         try {
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -254,7 +257,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
             val wasBubbleMode = bubbleMode
             cancel()
             Toast.makeText(service, "無法啟動 Android 語音：${error.message}", Toast.LENGTH_LONG).show()
-            if (wasBubbleMode) VoiceBubbleBridge.setStatus("語音服務無法啟動", false)
+            if (wasBubbleMode) VoiceBubbleBridge.setState(VoiceBubbleState.Problem("語音服務無法啟動"))
         }
     }
 
@@ -266,7 +269,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         if (model == null || !model.isInstalled(service)) {
             if (bubbleMode) VoiceBubbleBridge.setRecordingActive(false)
             Toast.makeText(service, "尚未安裝此模型；請到設定「語音模型」下載", Toast.LENGTH_LONG).show()
-            VoiceBubbleBridge.setStatus("尚未匯入模型", false)
+            VoiceBubbleBridge.setState(VoiceBubbleState.Problem("尚未安裝此語音模型"))
             return
         }
         active = true
@@ -278,7 +281,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         val previous = captureThread
         localStop = stop
         if (bubbleMode) {
-            VoiceBubbleBridge.setStatus("準備麥克風", false)
+            VoiceBubbleBridge.setState(VoiceBubbleState.Preparing)
         } else {
             showRecordingDialog(engineName(selected), "正在開啟麥克風…") { _ -> stop.set(true) }
         }
@@ -313,7 +316,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 audioRecord.startRecording()
                 service.mainExecutor.execute {
                     if (current()) {
-                        if (bubbleMode) VoiceBubbleBridge.setStatus("聆聽中", true)
+                        if (bubbleMode) VoiceBubbleBridge.setState(VoiceBubbleState.Listening)
                         else recordingMessage?.text = "請開始說話（模型同時在背景載入）。說完按「停止並輸入」。"
                     }
                 }
@@ -321,6 +324,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                     val count = audioRecord.read(chunk, 0, chunk.size)
                     check(count > 0) { "麥克風讀取失敗：$count" }
                     val samples = FloatArray(count) { chunk[it] / 32768.0f }
+                    if (bubbleMode) VoiceBubbleBridge.setLevel(levelOf(samples))
                     check(offlineAudio.size + samples.size <= rate * 120) { "單次離線錄音最多 2 分鐘" }
                     samples.forEach(offlineAudio::add)
                 }
@@ -331,7 +335,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                     if (!current()) return@execute
                     if (bubbleMode) {
                         VoiceBubbleBridge.setRecordingActive(false)
-                        VoiceBubbleBridge.setStatus(if (stillLoading) "等待模型載入" else "辨識中", false)
+                        VoiceBubbleBridge.setState(if (stillLoading) VoiceBubbleState.WaitingModel else VoiceBubbleState.Recognizing)
                     } else if (stillLoading) {
                         recordingMessage?.text = "錄音完成，正在等待模型載入…"
                     }
@@ -347,7 +351,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 if (stillLoading) {
                     service.mainExecutor.execute {
                         if (current()) {
-                            if (bubbleMode) VoiceBubbleBridge.setStatus("辨識中", false)
+                            if (bubbleMode) VoiceBubbleBridge.setState(VoiceBubbleState.Recognizing)
                             else recordingMessage?.text = "正在辨識，請稍候…"
                         }
                     }
@@ -368,8 +372,10 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
             } catch (error: Throwable) {
                 service.mainExecutor.execute {
                     if (current()) {
+                        val fromBubble = bubbleMode
                         cancel()
-                        Toast.makeText(service, "${model.title} 失敗：${error.message}", Toast.LENGTH_LONG).show()
+                        if (fromBubble) VoiceBubbleBridge.setState(VoiceBubbleState.Problem("${model.title} 失敗：${error.message}"))
+                        else Toast.makeText(service, "${model.title} 失敗：${error.message}", Toast.LENGTH_LONG).show()
                     }
                 }
             } finally {
@@ -386,8 +392,10 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         if (!active || session != id) return@execute
         val fromBubble = bubbleMode
         cancel()
-        if (text.isBlank()) Toast.makeText(service, "沒有辨識到語音", Toast.LENGTH_SHORT).show()
-        else {
+        if (text.isBlank()) {
+            if (fromBubble) VoiceBubbleBridge.setState(VoiceBubbleState.Problem("沒有辨識到語音"))
+            else Toast.makeText(service, "沒有辨識到語音", Toast.LENGTH_SHORT).show()
+        } else {
             val output = if (selected != ENGINE_GOOGLE) {
                 runCatching { OpenCCDictManager.convertLine(text.trim(), "s2tw.json") }
                     .getOrDefault(text.trim())
@@ -395,7 +403,10 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 text.trim()
             }
             service.commitVoiceText(output)
-            if (fromBubble) service.showVoiceKeyboard()
+            if (fromBubble) {
+                VoiceBubbleBridge.setState(VoiceBubbleState.Done)
+                service.showVoiceKeyboard()
+            }
         }
     }
 
@@ -414,24 +425,29 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         recordingPopup = null
         recordingMessage = null
         recordingFinishButton = null
-        if (wasBubbleMode) VoiceBubbleBridge.setStatus("離線語音", false)
+        if (wasBubbleMode) VoiceBubbleBridge.setState(VoiceBubbleState.Idle)
     }
 
     override fun onReadyForSpeech(params: Bundle?) {
-        if (bubbleMode) VoiceBubbleBridge.setStatus("聆聽中", true)
+        if (bubbleMode) VoiceBubbleBridge.setState(VoiceBubbleState.Listening)
         else recordingMessage?.text = "正在聆聽，請開始說話。說完按「停止並輸入」。"
     }
     override fun onBeginningOfSpeech() = Unit
-    override fun onRmsChanged(rmsdB: Float) = Unit
+    override fun onRmsChanged(rmsdB: Float) {
+        // Android reports roughly -2 dB (silence) to 10 dB (loud speech).
+        if (bubbleMode) VoiceBubbleBridge.setLevel((rmsdB + 2f) / 12f)
+    }
     override fun onBufferReceived(buffer: ByteArray?) = Unit
     override fun onEndOfSpeech() {
-        if (bubbleMode) VoiceBubbleBridge.setStatus("辨識中", false)
+        if (bubbleMode) VoiceBubbleBridge.setState(VoiceBubbleState.Recognizing)
         else recordingMessage?.text = "已停止收音，正在辨識…"
     }
     override fun onError(error: Int) {
         if (active) {
+            val fromBubble = bubbleMode
             cancel()
-            Toast.makeText(service, "Android 語音辨識失敗（$error）", Toast.LENGTH_LONG).show()
+            if (fromBubble) VoiceBubbleBridge.setState(VoiceBubbleState.Problem("語音辨識失敗（$error）"))
+            else Toast.makeText(service, "Android 語音辨識失敗（$error）", Toast.LENGTH_LONG).show()
         }
     }
     override fun onResults(results: Bundle?) {
@@ -443,6 +459,15 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         // Keep the status stable so the recording control does not jump while partial text changes.
     }
     override fun onEvent(eventType: Int, params: Bundle?) = Unit
+
+    /** Maps the RMS of 16-bit samples to 0..1, with normal speech around the middle. */
+    private fun levelOf(samples: FloatArray): Float {
+        if (samples.isEmpty()) return 0f
+        var sum = 0.0
+        for (sample in samples) sum += sample * sample
+        val rms = kotlin.math.sqrt(sum / samples.size)
+        return (rms * 8).toFloat().coerceIn(0f, 1f)
+    }
 
     companion object {
         private const val TAG = "VoiceInput"

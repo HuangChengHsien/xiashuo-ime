@@ -118,12 +118,12 @@
     <string name="virtual_keyboard">螢幕鍵盤</string>
     <string name="voice_engine">語音引擎</string>
     <string name="voice_bubble">語音懸浮球</string>
-    <string name="voice_bubble_description">按住 1 秒開始離線語音；點一下停止；拖到下方關閉</string>
-    <string name="voice_bubble_hold_to_start">按住 1 秒開始離線語音</string>
+    <string name="voice_bubble_description">按住 1 秒開始離線語音；點一下停止；拖到畫面中央的 ✕ 關閉</string>
+    <string name="voice_bubble_hold_to_start">按住 1 秒開始說話</string>
     <string name="voice_bubble_tap_to_stop">點一下停止錄音</string>
     <string name="voice_bubble_drag_to_close">放開以關閉懸浮球</string>
     <string name="voice_bubble_notification">蝦說輸入法語音懸浮球</string>
-    <string name="voice_bubble_notification_text">按住開始語音，或向下拖曳關閉懸浮球</string>
+    <string name="voice_bubble_notification_text">按住開始語音，拖到畫面中央的 ✕ 可關閉懸浮球</string>
     <string name="voice_bubble_ime_unavailable">請先切換到蝦說輸入法，再使用語音懸浮球。</string>
     <string name="storage">儲存空間</string>
     <string name="sync_from_external">從外部儲存空間同步</string>

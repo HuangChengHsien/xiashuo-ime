@@ -202,7 +202,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         InputFeedbackManager.init(this)
         registerReceiver()
         super.onCreate()
-        VoiceBubbleBridge.bind({ voiceInput.onBubbleTap() }, { voiceInput.cancel() }, { _, _ -> })
+        VoiceBubbleBridge.bind({ voiceInput.onBubbleTap() }, { voiceInput.cancel() })
         Timber.d("onCreate")
         decorView = window.window!!.decorView
         contentView = decorView.findViewById(android.R.id.content)

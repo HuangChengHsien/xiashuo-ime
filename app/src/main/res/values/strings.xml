@@ -116,12 +116,12 @@
     <string name="virtual_keyboard">Virtual Keyboard</string>
     <string name="voice_engine">Voice Engine</string>
     <string name="voice_bubble">Voice Bubble</string>
-    <string name="voice_bubble_description">Hold for 1 second to start offline speech; tap to stop; drag down to close</string>
+    <string name="voice_bubble_description">Hold for 1 second to start offline speech; tap to stop; drag to the ✕ at the screen center to close</string>
     <string name="voice_bubble_hold_to_start">Hold for 1 second to start offline speech</string>
     <string name="voice_bubble_tap_to_stop">Tap to stop recording</string>
     <string name="voice_bubble_drag_to_close">Release here to close voice bubble</string>
     <string name="voice_bubble_notification">Trime Voice Bubble</string>
-    <string name="voice_bubble_notification_text">Hold to start speech or drag down to close.</string>
+    <string name="voice_bubble_notification_text">Hold to start speech or drag to the ✕ at the screen center to close.</string>
     <string name="voice_bubble_ime_unavailable">Switch to Trime before using the voice bubble.</string>
     <string name="theme">Keyboard Style</string>
     <string name="about">About</string>
