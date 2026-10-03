@@ -276,6 +276,8 @@
     <string name="settings_summary_custom_phrases">雙拼＋、注音＋、蝦米常用詞與語音用語修正</string>
     <string name="voice_auto_stop">說完自動停止</string>
     <string name="settings_summary_voice_auto_stop">離線模型在說完停頓約 1.5 秒後自動結束錄音</string>
+    <string name="fonts_and_sizes">字型與字級</string>
+    <string name="settings_summary_fonts_and_sizes">按鍵、候選字與註解的字型和大小</string>
     <string name="settings_section_voice">語音輸入</string>
     <string name="voice_models">語音模型</string>
     <string name="settings_summary_voice_bubble">在任何文字欄位按住懸浮球說話</string>

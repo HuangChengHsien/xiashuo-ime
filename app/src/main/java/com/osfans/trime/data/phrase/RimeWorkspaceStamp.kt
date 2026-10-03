@@ -54,6 +54,15 @@ object RimeWorkspaceStamp {
         }
         val stamp = lastModifiedSeconds().coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         RimeConfig.openUserConfig("user").use { it.setInt(KEY, stamp) }
+        // librime may keep user.yaml open (its switcher does) and write it only on shutdown, so
+        // the value above can stay in memory; put the same value in the file now as well.
+        val user = File(DataManager.userDataDir, "user.yaml")
+        runCatching {
+            val text = user.readText()
+            val updated = Regex("(?m)^(\\s+last_build_time:\\s*)\\d+").replace(text) { it.groupValues[1] + stamp }
+            // Written in place: a rename would touch the directory and undo the stamp.
+            if (updated != text) user.writeText(updated)
+        }.onFailure { Timber.w(it, "could not write last_build_time to user.yaml") }
         Timber.i("Rime workspace: recorded last build %d", stamp)
     }
 }

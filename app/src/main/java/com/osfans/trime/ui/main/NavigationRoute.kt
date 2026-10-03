@@ -14,6 +14,7 @@ import com.osfans.trime.ui.main.settings.AdvancedSettingsFragment
 import com.osfans.trime.ui.main.settings.CandidatesSettingsFragment
 import com.osfans.trime.ui.main.settings.ClipboardSettingsFragment
 import com.osfans.trime.ui.main.settings.CustomPhraseFragment
+import com.osfans.trime.ui.main.settings.FontSettingsFragment
 import com.osfans.trime.ui.main.settings.GeneralSettingsFragment
 import com.osfans.trime.ui.main.settings.KeyboardSettingsFragment
 import com.osfans.trime.ui.main.settings.ProfileSettingsFragment
@@ -53,6 +54,9 @@ sealed class NavigationRoute : Parcelable {
 
     @Serializable
     data object Theme : NavigationRoute()
+
+    @Serializable
+    data object Fonts : NavigationRoute()
 
     @Serializable
     data object VoiceModels : NavigationRoute()
@@ -104,6 +108,9 @@ sealed class NavigationRoute : Parcelable {
             }
             fragment<ThemeSettingsFragment, Theme> {
                 label = ctx.getString(R.string.theme)
+            }
+            fragment<FontSettingsFragment, Fonts> {
+                label = ctx.getString(R.string.fonts_and_sizes)
             }
             fragment<VoiceModelsFragment, VoiceModels> {
                 label = ctx.getString(R.string.voice_models)

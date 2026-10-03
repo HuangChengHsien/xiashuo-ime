@@ -276,6 +276,8 @@
     <string name="settings_summary_custom_phrases">Frequent phrases for pinyin, bopomofo and Boshiamy</string>
     <string name="voice_auto_stop">Stop after a pause</string>
     <string name="settings_summary_voice_auto_stop">Offline models stop recording about 1.5 s after you finish speaking</string>
+    <string name="fonts_and_sizes">Fonts and sizes</string>
+    <string name="settings_summary_fonts_and_sizes">Fonts and text sizes of keys and candidates</string>
     <string name="settings_section_voice">Voice input</string>
     <string name="voice_models">Voice models</string>
     <string name="settings_summary_voice_bubble">Hold the bubble to dictate into any text field</string>

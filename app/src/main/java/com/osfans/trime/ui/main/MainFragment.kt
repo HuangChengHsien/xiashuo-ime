@@ -118,6 +118,10 @@ class MainFragment : PaddingPreferenceFragment() {
                     R.string.theme, R.string.settings_summary_theme,
                     R.drawable.ic_baseline_color_lens_24, NavigationRoute.Theme,
                 )
+                addDestinationPreference(
+                    R.string.fonts_and_sizes, R.string.settings_summary_fonts_and_sizes,
+                    R.drawable.ic_baseline_text_fields_24, NavigationRoute.Fonts,
+                )
             }
             addCategory(R.string.settings_section_voice) {
                 isIconSpaceReserved = false
