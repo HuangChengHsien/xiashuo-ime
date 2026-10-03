@@ -27,6 +27,10 @@ Rime 方案（例如嘸蝦米）修字。
   下載、選用、刪除模型。下載在背景進行、可中斷續傳；使用行動數據時會先詢問；
   每個檔案都核對大小與 SHA-256 後才安裝。
 - **邊錄音邊載入**：按下麥克風立即收音，模型同時在背景載入。
+- **說完自動停止**：內建 Silero VAD，說完停頓約 1.5 秒自動結束錄音（設定可關閉），
+  辨識前修剪前後靜音。
+- **自訂詞語輔助辨識**：Fun-ASR-Nano 以自訂詞語中的人名與術語為熱詞；辨識結果中與自訂詞語
+  同音（依 luna_pinyin 讀音，聲調不同時不替換）且已有部分字相同的片段，會改回自訂寫法。
 - 離線模型的輸出經 OpenCC `s2tw` 轉為臺灣正體。
 - **自訂詞語**：設定首頁「輸入資料 → 自訂詞語」可搜尋、新增、修改、刪除
   `custom_phrase.txt`（雙拼＋／注音＋）與 `openxiami_CustomWord.dict.yaml`（蝦米），
@@ -43,6 +47,9 @@ Rime 方案（例如嘸蝦米）修字。
 | Fun-ASR-Nano INT8 | 約 1 GB | [Hugging Face](https://huggingface.co/csukuangfj/sherpa-onnx-funasr-nano-int8-2025-12-30/tree/main) | 需 `encoder_adaptor`、`llm`、`embedding` 三個 `.int8.onnx` 與 `Qwen3-0.6B/` 內的 `tokenizer.json`、`vocab.json`、`merges.txt` |
 | SenseVoice Small INT8 | 約 230 MB | [Hugging Face](https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/tree/main) | `model.int8.onnx`、`tokens.txt` |
 | Breeze ASR 25 | 約 1.7 GB | [Hugging Face](https://huggingface.co/MediaTek-Research/Breeze-ASR-25-onnx-250806/tree/main) | 選檔名含 `half` 與 `int8` 的 encoder、decoder 與 tokens |
+
+Pixel 8 Pro（Tensor G3）上 Fun-ASR-Nano 以 5 個 CPU 執行緒最快，對應 5 顆效能核心；NNAPI 沒有加速。
+debug 版的 `VoiceModelBenchmarkActivity` 可用 adb 重測各種執行緒與 provider 組合。
 
 Pixel 8 Pro 實測（單次量測，僅供參考）：Fun-ASR-Nano 載入約 6–7 秒、6–9 秒語音辨識約 1.1–1.3 秒；
 Breeze ASR 25 辨識約 9–15 秒。大型模型載入時會占用大量記憶體，系統可能因此關閉背景 App。
