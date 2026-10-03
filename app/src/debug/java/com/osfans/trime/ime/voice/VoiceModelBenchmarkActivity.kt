@@ -39,6 +39,12 @@ class VoiceModelBenchmarkActivity : Activity() {
             setTextIsSelectable(true)
         }
         setContentView(ScrollView(this).apply { addView(output) })
+        // `--ez selftest true` runs ThemePatchFile cases (Trime's JVM unit tests do not compile).
+        if (intent.getBooleanExtra("selftest", false)) {
+            themePatchSelfTest()
+            report("done")
+            return
+        }
         // `--es convert <a|b>` compares the old glyph-only conversion with the Taiwan wording one.
         intent.getStringExtra("convert")?.let { text ->
             text.split('|').forEach {
@@ -103,6 +109,36 @@ class VoiceModelBenchmarkActivity : Activity() {
             }
         }
         report("done")
+    }
+
+    private fun themePatchSelfTest() {
+        fun edit(content: String, block: com.osfans.trime.data.theme.ThemePatchFile.() -> Unit): String {
+            val file = File(cacheDir, "selftest.custom.yaml")
+            file.writeText(content)
+            com.osfans.trime.data.theme.ThemePatchFile(file).apply(block).save()
+            return file.readText().also { file.delete() }
+        }
+        fun check(name: String, actual: String?, expected: String?) =
+            report((if (actual == expected) "PASS " else "FAIL ") + name + if (actual != expected) "\n  got: ${actual?.replace("\r", "\\r")}" else "")
+        val original = "# private fonts\npatch:\n  style/candidate_font: [ jf.otf ] # licensed\n  style/comment_font: [ jf.otf ]\n\n"
+        val added = edit(original) { set("candidate_text_size", "26") }
+        check("add after last entry", added, original.replace("  style/comment_font: [ jf.otf ]\n", "  style/comment_font: [ jf.otf ]\n  style/candidate_text_size: 26\n"))
+        check("remove restores file", edit(added) { set("candidate_text_size", null) }, original)
+        check("replace keeps comment", edit(original) { set("candidate_font", "[ Barlow.ttf ]") }, original.replace("[ jf.otf ] # licensed", "[ Barlow.ttf ] # licensed"))
+        check(
+            "outside patch untouched",
+            edit("other:\n  style/key_text_size: 30\npatch:\n  style/key_text_size: 20\n") { set("key_text_size", "24") },
+            "other:\n  style/key_text_size: 30\npatch:\n  style/key_text_size: 24\n",
+        )
+        check(
+            "CRLF kept",
+            edit("patch:\r\n  style/key_font: [ a.ttf ]\r\n") { set("key_font", "[ b.ttf ]"); set("label_font", "[ c.ttf ]") },
+            "patch:\r\n  style/key_font: [ b.ttf ]\r\n  style/label_font: [ c.ttf ]\r\n",
+        )
+        val quoted = File(cacheDir, "selftest2.yaml").apply { writeText("patch:\n  style/key_font: [ \"a \\\" #b.ttf\" ] # note\n") }
+        check("hash in quotes", com.osfans.trime.data.theme.ThemePatchFile(quoted).get("key_font"), "[ \"a \\\" #b.ttf\" ]")
+        quoted.delete()
+        check("patch block created", edit("# only a comment\n") { set("key_text_size", "22") }, "# only a comment\n\npatch:\n  style/key_text_size: 22\n")
     }
 
     private fun readWav(file: File): FloatArray {

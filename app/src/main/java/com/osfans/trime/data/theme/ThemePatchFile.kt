@@ -28,49 +28,68 @@ class ThemePatchFile(val file: File) {
 
     private fun entryRegex(key: String) = Regex("^(\\s+)[\"']?style/${Regex.escape(key)}[\"']?\\s*:\\s*(.*)$")
 
+    /** Keeps Windows line endings when the file already uses them. */
+    private val lineEnd = if (lines.any { it.endsWith("\r") }) "\r" else ""
+
     private fun patchLine() = lines.indexOfFirst { PATCH.matches(it.trimEnd('\r')) }
 
-    /** The raw YAML value of `style/<key>` in this patch, or null when the theme default applies. */
-    fun get(key: String): String? {
-        val regex = entryRegex(key)
-        return lines.firstNotNullOfOrNull { line ->
-            regex.find(line.trimEnd('\r'))?.groupValues?.get(2)?.let(::withoutComment)?.trim()
-        }
-    }
-
-    /** Sets `style/<key>` to a YAML [value], or removes it so the theme's own value applies. */
-    fun set(key: String, value: String?) {
-        val regex = entryRegex(key)
-        val index = lines.indexOfFirst { regex.containsMatchIn(it.trimEnd('\r')) }
-        if (index >= 0) {
-            if (value == null) {
-                lines.removeAt(index)
-            } else {
-                val line = lines[index].trimEnd('\r')
-                val match = requireNotNull(regex.find(line))
-                val comment = commentOf(match.groupValues[2])
-                lines[index] = "${match.groupValues[1]}style/$key: $value$comment"
-            }
-            return
-        }
-        if (value == null) return
-        var patch = patchLine()
-        if (patch < 0) {
-            if (lines.isNotEmpty() && lines.last().isNotBlank()) lines += ""
-            lines += "patch:"
-            patch = lines.lastIndex
-        }
-        // Insert after the last indented line of the patch block.
+    /** Line indexes of the `patch:` block: from its header to its last indented line. */
+    private fun patchBlock(): IntRange? {
+        val patch = patchLine().takeIf { it >= 0 } ?: return null
         var end = patch
         for (i in patch + 1 until lines.size) {
             val line = lines[i].trimEnd('\r')
             if (line.isBlank() || line.trimStart().startsWith("#")) continue
             if (line.first().isWhitespace()) end = i else break
         }
-        val indent = lines.subList(patch + 1, end + 1)
-            .firstOrNull { it.isNotBlank() && !it.trimStart().startsWith("#") }
-            ?.takeWhile { it.isWhitespace() } ?: "  "
-        lines.add(end + 1, "${indent}style/$key: $value")
+        return patch..end
+    }
+
+    /** Index of `style/<key>` among the direct entries of the patch block, or -1. */
+    private fun entryIndex(key: String): Int {
+        val block = patchBlock() ?: return -1
+        val indent = entryIndent(block)
+        val regex = entryRegex(key)
+        return (block.first + 1..block.last).firstOrNull { i ->
+            val line = lines[i].trimEnd('\r')
+            regex.matches(line) && line.takeWhile { it.isWhitespace() } == indent
+        } ?: -1
+    }
+
+    private fun entryIndent(block: IntRange) = (block.first + 1..block.last)
+        .map { lines[it].trimEnd('\r') }
+        .firstOrNull { it.isNotBlank() && !it.trimStart().startsWith("#") }
+        ?.takeWhile { it.isWhitespace() } ?: "  "
+
+    /** The raw YAML value of `style/<key>` in this patch, or null when the theme default applies. */
+    fun get(key: String): String? {
+        val index = entryIndex(key).takeIf { it >= 0 } ?: return null
+        return entryRegex(key).find(lines[index].trimEnd('\r'))?.groupValues?.get(2)?.let(::withoutComment)?.trim()
+    }
+
+    /** Sets `style/<key>` to a YAML [value], or removes it so the theme's own value applies. */
+    fun set(key: String, value: String?) {
+        val index = entryIndex(key)
+        if (index >= 0) {
+            if (value == null) {
+                lines.removeAt(index)
+            } else {
+                val original = lines[index]
+                val match = requireNotNull(entryRegex(key).find(original.trimEnd('\r')))
+                val comment = commentOf(match.groupValues[2])
+                val end = if (original.endsWith("\r")) "\r" else ""
+                lines[index] = "${match.groupValues[1]}style/$key: $value$comment$end"
+            }
+            return
+        }
+        if (value == null) return
+        var block = patchBlock()
+        if (block == null) {
+            if (lines.isNotEmpty() && lines.last().isNotBlank()) lines += lineEnd
+            lines += "patch:$lineEnd"
+            block = lines.lastIndex..lines.lastIndex
+        }
+        lines.add(block.last + 1, "${entryIndent(block)}style/$key: $value$lineEnd")
     }
 
     fun save() {
@@ -89,8 +108,11 @@ class ThemePatchFile(val file: File) {
     /** A `#` starts a comment only outside quotes and after whitespace, as in YAML. */
     private fun commentStart(value: String): Int {
         var quote: Char? = null
+        var escaped = false
         value.forEachIndexed { i, c ->
             when {
+                escaped -> escaped = false
+                quote == '"' && c == '\\' -> escaped = true
                 quote != null -> if (c == quote) quote = null
                 c == '"' || c == '\'' -> quote = c
                 c == '#' && (i == 0 || value[i - 1].isWhitespace()) -> return i

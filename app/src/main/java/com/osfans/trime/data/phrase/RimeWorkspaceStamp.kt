@@ -19,6 +19,7 @@ import java.io.File
  */
 object RimeWorkspaceStamp {
     private const val KEY = "var/last_build_time"
+    private const val STAMP_MARGIN_S = 2
 
     private fun watched(): List<File> = listOf(DataManager.userDataDir, DataManager.sharedDataDir)
         .flatMap { dir ->
@@ -52,7 +53,10 @@ object RimeWorkspaceStamp {
             Timber.i("Rime workspace: another file changed during the save; leaving rebuild pending")
             return
         }
-        val stamp = lastModifiedSeconds().coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        // Two seconds ahead, so replacing user.yaml below (which touches the directory) is
+        // already covered; only a change made within those seconds would go unnoticed.
+        val stamp = (maxOf(lastModifiedSeconds(), System.currentTimeMillis() / 1000) + STAMP_MARGIN_S)
+            .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         RimeConfig.openUserConfig("user").use { it.setInt(KEY, stamp) }
         // librime may keep user.yaml open (its switcher does) and write it only on shutdown, so
         // the value above can stay in memory; put the same value in the file now as well.
@@ -60,8 +64,12 @@ object RimeWorkspaceStamp {
         runCatching {
             val text = user.readText()
             val updated = Regex("(?m)^(\\s+last_build_time:\\s*)\\d+").replace(text) { it.groupValues[1] + stamp }
-            // Written in place: a rename would touch the directory and undo the stamp.
-            if (updated != text) user.writeText(updated)
+            // librime keeps the same value in memory, so its own later save agrees with this.
+            if (updated != text) {
+                val temp = File(user.parentFile, ".user.yaml.saving")
+                temp.writeText(updated)
+                check(temp.renameTo(user)) { "rename failed" }
+            }
         }.onFailure { Timber.w(it, "could not write last_build_time to user.yaml") }
         Timber.i("Rime workspace: recorded last build %d", stamp)
     }

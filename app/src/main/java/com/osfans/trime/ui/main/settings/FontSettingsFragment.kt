@@ -281,7 +281,13 @@ class FontSettingsFragment : Fragment() {
             }
             runCatching { Typeface.createFromFile(temp) }.getOrNull()?.takeIf { it != Typeface.DEFAULT }
                 ?: error("$name 無法載入，可能不是有效的字型")
-            check(temp.renameTo(File(fontDir, name))) { "無法儲存 $name" }
+            val target = File(fontDir, name)
+            if (target.isFile) {
+                // Never replace a font silently: a theme may already use this name.
+                if (target.readBytes().contentEquals(temp.readBytes())) return "$name（已存在）"
+                error("fonts/ 已有不同內容的 $name，請先改檔名再匯入")
+            }
+            check(temp.renameTo(target)) { "無法儲存 $name" }
             return name
         } finally {
             temp.delete()
