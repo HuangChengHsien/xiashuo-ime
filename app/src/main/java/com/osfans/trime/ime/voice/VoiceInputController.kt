@@ -296,7 +296,12 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
             previous?.join()
             val loadStart = SystemClock.elapsedRealtime()
             try {
-                model.createRecognizer(service).also { loadMs = SystemClock.elapsedRealtime() - loadStart }
+                model.createRecognizer(service).also {
+                    loadMs = SystemClock.elapsedRealtime() - loadStart
+                    service.mainExecutor.execute {
+                        if (current() && !stop.get() && bubbleMode) VoiceBubbleBridge.setHint("模型已就緒，說完點一下停止")
+                    }
+                }
             } catch (error: Throwable) {
                 stop.set(true)
                 throw error
@@ -320,8 +325,12 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 audioRecord.startRecording()
                 service.mainExecutor.execute {
                     if (current()) {
-                        if (bubbleMode) VoiceBubbleBridge.setState(VoiceBubbleState.Listening)
-                        else recordingMessage?.text = "請開始說話（模型同時在背景載入）。說完按「停止並輸入」。"
+                        if (bubbleMode) {
+                            VoiceBubbleBridge.setState(VoiceBubbleState.Listening)
+                            if (!loader.isDone) VoiceBubbleBridge.setHint("請說話（模型載入中，可以先說）")
+                        } else {
+                            recordingMessage?.text = "請開始說話（模型同時在背景載入）。說完按「停止並輸入」。"
+                        }
                     }
                 }
                 while (!stop.get()) {

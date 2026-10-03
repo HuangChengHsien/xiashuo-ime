@@ -37,7 +37,8 @@ class Rime {
   }
 
   void startup(bool fullCheck,
-               const RimeNotificationHandler& notificationHandler) {
+               const RimeNotificationHandler& notificationHandler,
+               bool maintenance = true) {
     if (!rime) return;
     const char* userDir = getenv("RIME_USER_DATA_DIR");
     const char* sharedDir = getenv("RIME_SHARED_DATA_DIR");
@@ -55,7 +56,7 @@ class Rime {
     rime->setup(&trime_traits);
     rime->initialize(&trime_traits);
     rime->set_notification_handler(notificationHandler, GlobalRef->jvm);
-    rime->start_maintenance(fullCheck);
+    if (maintenance) rime->start_maintenance(fullCheck);
   }
 
   bool deploySchema(std::string_view schemaFile) {
@@ -236,16 +237,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* jvm, void* reserved) {
   return JNI_VERSION_1_6;
 }
 
-extern "C" JNIEXPORT void JNICALL Java_com_osfans_trime_core_Rime_startupRime(
-    JNIEnv* env, jclass clazz, jstring shared_dir, jstring user_dir,
-    jstring version_name, jboolean full_check) {
-  // for rime shared data dir
-  setenv("RIME_SHARED_DATA_DIR", CString(env, shared_dir), 1);
-  // for rime user data dir
-  setenv("RIME_USER_DATA_DIR", CString(env, user_dir), 1);
-  setenv("RIME_DISTRIBUTION_VERSION", CString(env, version_name), 1);
-
-  auto notificationHandler = [](void* context_object, RimeSessionId session_id,
+static void notificationHandler(void* context_object, RimeSessionId session_id,
                                 const char* message_type,
                                 const char* message_value) {
     auto env = GlobalRef->AttachEnv();
@@ -262,9 +254,26 @@ extern "C" JNIEXPORT void JNICALL Java_com_osfans_trime_core_Rime_startupRime(
     env->SetObjectArrayElement(vararg, 0, JString(env, message_value));
     env->CallStaticVoidMethod(GlobalRef->Rime, GlobalRef->HandleRimeMessage,
                               type, *vararg);
-  };
+}
+
+extern "C" JNIEXPORT void JNICALL Java_com_osfans_trime_core_Rime_startupRime(
+    JNIEnv* env, jclass clazz, jstring shared_dir, jstring user_dir,
+    jstring version_name, jboolean full_check) {
+  // for rime shared data dir
+  setenv("RIME_SHARED_DATA_DIR", CString(env, shared_dir), 1);
+  // for rime user data dir
+  setenv("RIME_USER_DATA_DIR", CString(env, user_dir), 1);
+  setenv("RIME_DISTRIBUTION_VERSION", CString(env, version_name), 1);
 
   Rime::Instance().startup(full_check, notificationHandler);
+}
+
+// Restarts Rime with the directories of the last startup but skips maintenance, so data
+// read at runtime (custom phrase tables, Lua state) reloads without rebuilding schemas.
+extern "C" JNIEXPORT void JNICALL
+Java_com_osfans_trime_core_Rime_reloadRime(JNIEnv* env, jclass /* thiz */) {
+  Rime::Instance().exit();
+  Rime::Instance().startup(false, notificationHandler, false);
 }
 
 extern "C" JNIEXPORT void JNICALL

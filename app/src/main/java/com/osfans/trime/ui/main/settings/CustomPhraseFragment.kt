@@ -256,7 +256,8 @@ class CustomPhraseFragment : Fragment() {
     }
 
     /**
-     * Saves the file and restarts Rime so the schemas read it again; no full deploy is needed.
+     * Saves the file and reloads Rime without maintenance, so the phrase table and the Lua word
+     * cache are read again within a second; no deploy or schema rebuild is needed.
      * Runs in Rime's scope rather than the fragment's, so leaving the page cannot cut it short.
      */
     private fun saveAndApply() {
@@ -268,13 +269,13 @@ class CustomPhraseFragment : Fragment() {
         status.text = "正在儲存並套用…"
         saving = session.lifecycleScope.launch {
             val saveError = withContext(Dispatchers.IO) { runCatching { pending.save(DataManager.userDataDir) }.exceptionOrNull() }
-            val applyError = if (saveError == null) runCatching { session.runOnReady { updateConfig() } }.exceptionOrNull() else null
+            val applyError = if (saveError == null) runCatching { session.runOnReady { reloadUserData() } }.exceptionOrNull() else null
             (saveError ?: applyError)?.let { Timber.w(it, "custom phrase save failed") }
             withContext(Dispatchers.Main) {
                 ctx.toast(
                     when {
                         saveError != null -> "儲存失敗，檔案未變更：${saveError.message}"
-                        applyError != null -> "已儲存，但尚未套用；請在鍵盤選單按「更新設定」"
+                        applyError != null -> "已儲存，但尚未套用；請在設定頁右上角按「部署」"
                         else -> "已儲存並套用"
                     },
                 )

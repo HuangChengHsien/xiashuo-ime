@@ -27,8 +27,9 @@ enum class CustomPhraseKind(
         title = "雙拼＋／注音＋",
         fileName = "custom_phrase.txt",
         hasWeight = true,
-        codeChars = Regex("[a-z0-9;',./\\[\\]-]+"),
-        codeHint = "小寫英文與數字，不必是正確的雙拼碼",
+        // Syllables may be separated by single spaces, e.g. "ma jx yi yr".
+        codeChars = Regex("[a-z0-9;',./\\[\\]-]+( [a-z0-9;',./\\[\\]-]+)*"),
+        codeHint = "小寫英文與數字，音節間可空一格，不必是正確的雙拼碼",
         template = """
             # Rime table
             # coding: utf-8

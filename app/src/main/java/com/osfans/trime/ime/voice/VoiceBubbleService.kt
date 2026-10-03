@@ -107,14 +107,31 @@ class VoiceBubbleService : Service() {
             if (view.state != state) view.announceForAccessibility(state.description)
             view.state = state
             when (state) {
-                VoiceBubbleState.Done -> view.postDelayed(backToIdle, DONE_MS)
+                VoiceBubbleState.Idle -> removeHint()
+                VoiceBubbleState.Done -> {
+                    showHint("已輸入", DONE_MS)
+                    view.postDelayed(backToIdle, DONE_MS)
+                }
                 is VoiceBubbleState.Problem -> {
                     showHint(state.message)
                     view.postDelayed(backToIdle, HINT_MS)
                 }
-                else -> Unit
+                else -> defaultHint(state)?.let { showHint(it, persistent = true) }
             }
         }
+    }
+
+    private fun defaultHint(state: VoiceBubbleState) = when (state) {
+        VoiceBubbleState.Preparing -> "準備麥克風…"
+        VoiceBubbleState.Listening -> "請說話，說完點一下停止"
+        VoiceBubbleState.WaitingModel -> "錄音完成，等待模型載入…"
+        VoiceBubbleState.Recognizing -> "辨識中…"
+        else -> null
+    }
+
+    /** Replaces the text shown for the current busy state, e.g. once the model has loaded. */
+    fun setHint(text: String) {
+        bubble?.let { view -> view.post { if (isBusy) showHint(text, persistent = true) } }
     }
 
     fun setLevel(level: Float) {
@@ -271,7 +288,7 @@ class VoiceBubbleService : Service() {
         bubble?.charge = 0f
     }
 
-    private fun showHint(text: String) {
+    private fun showHint(text: String, duration: Long = HINT_MS, persistent: Boolean = false) {
         val view = bubble ?: return
         view.removeCallbacks(hideHint)
         val label = hint ?: TextView(this).apply {
@@ -294,7 +311,7 @@ class VoiceBubbleService : Service() {
         } else {
             runCatching { windowManager?.updateViewLayout(label, layout) }
         }
-        view.postDelayed(hideHint, HINT_MS)
+        if (!persistent) view.postDelayed(hideHint, duration)
     }
 
     private fun removeHint() {
@@ -392,6 +409,7 @@ object VoiceBubbleBridge {
     fun onClose() { onClose?.invoke() }
     fun setState(state: VoiceBubbleState) { service?.setState(state) }
     fun setLevel(level: Float) { service?.setLevel(level) }
+    fun setHint(text: String) { service?.setHint(text) }
     fun setRecordingActive(active: Boolean) { service?.setRecordingActive(active) }
     fun isRunning() = service != null
 }

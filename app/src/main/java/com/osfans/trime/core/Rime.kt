@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration.Companion.minutes
@@ -141,9 +142,43 @@ class Rime :
         }
     }
 
-    override suspend fun updateConfig() = withRimeContext {
-        exitRime()
-        startRime(false)
+    override suspend fun reloadUserData() = withRimeContext {
+        val schemaId = getCurrentRimeSchema()
+        reloadRime()
+        if (schemaId.isNotEmpty() && schemaId != ".default") selectRimeSchema(schemaId)
+        emitResponse()
+    }
+
+    override suspend fun updateConfig() {
+        val schemaId = withRimeContext { getCurrentRimeSchema() }
+        val started = CompletableDeferred<Unit>()
+        val finished = CompletableDeferred<Unit>()
+        val handler: (RimeMessage<*>) -> Unit = { message ->
+            if (message is RimeMessage.DeployMessage) {
+                when (message.data) {
+                    RimeMessage.DeployMessage.State.Start -> started.complete(Unit)
+                    else -> finished.complete(Unit)
+                }
+            }
+        }
+        registerRimeMessageHandler(handler)
+        try {
+            withRimeContext {
+                exitRime()
+                startRime(false)
+            }
+            // Maintenance runs only when files changed; then wait for it, since a session made
+            // while it runs gets no schema and leaves the keyboard in its English layout.
+            withContext(Dispatchers.IO) {
+                val maintaining = withTimeoutOrNull(3_000) { started.await() } != null || finished.isCompleted
+                if (maintaining) withTimeout(5.minutes) { finished.await() }
+            }
+        } finally {
+            unregisterRimeMessageHandler(handler)
+        }
+        if (schemaId.isNotEmpty() && schemaId != ".default") {
+            withRimeContext { selectRimeSchema(schemaId) }
+        }
     }
 
     override suspend fun syncUserData(): Boolean = RimeMaintenanceMutex.withLock {
@@ -494,6 +529,9 @@ class Rime :
 
         @JvmStatic
         external fun exitRime()
+
+        @JvmStatic
+        external fun reloadRime()
 
         @JvmStatic
         external fun deployRimeSchemaFile(schemaFile: String): Boolean

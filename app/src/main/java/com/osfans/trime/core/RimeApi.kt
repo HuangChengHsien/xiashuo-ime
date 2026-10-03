@@ -28,6 +28,9 @@ interface RimeApi {
 
     suspend fun updateConfig()
 
+    /** Re-reads runtime user data such as custom phrases without rebuilding any schema. */
+    suspend fun reloadUserData()
+
     suspend fun syncUserData(): Boolean
 
     suspend fun processKey(
