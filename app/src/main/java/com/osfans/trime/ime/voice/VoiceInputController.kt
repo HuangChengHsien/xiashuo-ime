@@ -111,46 +111,61 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
 
     fun showEnginePicker(anchor: android.view.View? = null) {
         val current = VoiceModels.selectedEngine(service)
-        val engineIds = listOf(ENGINE_GOOGLE) + VoiceModels.all.map { it.id }
-        val labels = listOf("Android 系統語音") +
-            VoiceModels.all.map { it.title + if (it.isInstalled(service)) "（離線）" else "（未安裝）" } +
-            "管理模型（下載、選用、刪除）…"
+        val density = service.resources.displayMetrics.density
         val options = LinearLayout(service).apply { orientation = LinearLayout.VERTICAL }
-        labels.forEachIndexed { index, label ->
-            val checked = index < engineIds.size && engineIds[index] == current
-            options.addView(TextView(service).apply {
-                text = (if (checked) "●  " else "○  ") + label
-                textSize = 16f
-                setTextColor(Color.WHITE)
-                setPadding(24, 18, 24, 18)
-                isClickable = true
-                setOnClickListener {
-                    enginePopup?.dismiss()
-                    enginePopup = null
-                    val model = engineIds.getOrNull(index)?.let(VoiceModels::find)
-                    if (index == labels.lastIndex) {
-                        openModelManager()
-                    } else if (model != null && !model.isInstalled(service)) {
-                        Toast.makeText(service, "${model.title} 尚未安裝，請先下載", Toast.LENGTH_LONG).show()
-                        openModelManager()
-                    } else {
-                        selected = engineIds[index]
-                        VoiceModels.setSelectedEngine(service, selected)
-                        Toast.makeText(service, "語音引擎已設定：${engineName(selected)}", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        fun row(text: String, onClick: () -> Unit) = options.addView(TextView(service).apply {
+            this.text = text
+            textSize = 16f
+            setTextColor(Color.WHITE)
+            setPadding(24, 18, 24, 18)
+            isClickable = true
+            setOnClickListener {
+                enginePopup?.dismiss()
+                enginePopup = null
+                onClick()
+            }
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        // The model manager comes first so it stays reachable however many engines follow.
+        row("⚙  管理模型（下載、選用、刪除）…") { openModelManager() }
+        fun choose(engine: String) {
+            selected = engine
+            VoiceModels.setSelectedEngine(service, engine)
+            Toast.makeText(service, "語音引擎已設定：${engineName(engine)}", Toast.LENGTH_SHORT).show()
         }
-        val width = (service.resources.displayMetrics.density * 320).toInt()
+        row((if (current == ENGINE_GOOGLE) "●  " else "○  ") + "Android 系統語音") { choose(ENGINE_GOOGLE) }
+        VoiceModels.all.forEach { model ->
+            val installed = model.isInstalled(service)
+            row((if (current == model.id) "●  " else "○  ") + model.title + if (installed) "（離線）" else "（未安裝）") {
+                if (installed) {
+                    choose(model.id)
+                } else {
+                    Toast.makeText(service, "${model.title} 尚未安裝，請先下載", Toast.LENGTH_LONG).show()
+                    openModelManager()
+                }
+            }
+        }
+        val width = (density * 320).toInt()
+        val root = anchor?.rootView ?: service.window.window!!.decorView
+        // Fit the list inside the visible keyboard area and let it scroll when it is taller,
+        // instead of dropping below the anchor where the screen edge cuts it off.
+        val visible = android.graphics.Rect().also(root::getWindowVisibleDisplayFrame)
+        val margin = (density * 8).toInt()
+        options.measure(
+            android.view.View.MeasureSpec.makeMeasureSpec(width, android.view.View.MeasureSpec.EXACTLY),
+            android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED),
+        )
+        val keyboardHeight = root.height.takeIf { it in 1 until visible.height() } ?: (visible.height() / 2)
+        val height = minOf(options.measuredHeight, keyboardHeight - 2 * margin)
+        val scroll = android.widget.ScrollView(service).apply { addView(options) }
         // Keep the IME window focused; a focusable popup makes Android hide the keyboard window
         // that this popup is attached to before the user can select an engine.
-        enginePopup = PopupWindow(options, width, ViewGroup.LayoutParams.WRAP_CONTENT, false).apply {
+        enginePopup = PopupWindow(scroll, width, height, false).apply {
             setBackgroundDrawable(ColorDrawable(Color.rgb(48, 48, 48)))
-            elevation = service.resources.displayMetrics.density * 12
+            elevation = density * 12
             isOutsideTouchable = true
             setOnDismissListener { enginePopup = null }
-            if (anchor == null) showAtLocation(service.window.window!!.decorView, Gravity.CENTER, 0, 0)
-            else showAsDropDown(anchor)
+            val screenBottom = service.resources.displayMetrics.heightPixels
+            showAtLocation(root, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL, 0, maxOf(0, screenBottom - visible.bottom) + margin)
         }
     }
 
