@@ -541,6 +541,8 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreateInlineSuggestionsRequest(uiExtras: Bundle): InlineSuggestionsRequest? {
         if (!inlineSuggestions || !inputDeviceManager.useVirtualKeyboard) return null
+        // Android can ask for inline suggestions before the theme has been applied.
+        if (!ColorManager.isReady) return null
         return InlineSuggestions.createRequest(this)
     }
 

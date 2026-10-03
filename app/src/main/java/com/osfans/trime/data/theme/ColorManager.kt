@@ -37,6 +37,9 @@ object ColorManager {
 
     private lateinit var _activeColorScheme: ColorScheme
 
+    /** False until a theme has been applied, e.g. when the IME restarts right after an update. */
+    val isReady: Boolean get() = this::_activeColorScheme.isInitialized
+
     var activeColorScheme: ColorScheme
         get() = _activeColorScheme
         private set(value) {
