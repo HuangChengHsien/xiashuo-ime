@@ -20,6 +20,7 @@ object PhraseHotwords {
     /** Qualifying phrase texts, at most [MAX_WORDS], possibly empty. */
     fun collect(userDataDir: File = DataManager.userDataDir): List<String> =
         CustomPhraseKind.entries
+            .filter { it.readByRime }
             .flatMap { kind -> runCatching { kind.load(userDataDir).entries }.getOrDefault(emptyList()) }
             .map { it.phrase.text.trim() }
             .filter(::suitable)

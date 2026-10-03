@@ -5,14 +5,16 @@
 
 package com.osfans.trime.data.phrase
 
+import com.osfans.trime.util.appContext
 import java.io.File
 
 /** One user phrase: the text to type, its code and (for custom_phrase.txt only) its weight. */
 data class CustomPhrase(val text: String, val code: String, val weight: Int? = null)
 
 /**
- * The two hand-edited phrase files of the rime-tw schemas. Editing keeps every comment, header
- * and unrelated line exactly as it was; only phrase lines are replaced, removed or appended.
+ * The hand-edited phrase files: two read by the rime-tw schemas, and the voice wording fixes.
+ * Editing keeps every comment, header and unrelated line exactly as it was; only phrase lines
+ * are replaced, removed or appended.
  */
 enum class CustomPhraseKind(
     val title: String,
@@ -22,6 +24,10 @@ enum class CustomPhraseKind(
     private val codeChars: Regex,
     val codeHint: String,
     private val template: String,
+    /** Rime reads this file, so saving must reload Rime; otherwise it lives in the app's files. */
+    val readByRime: Boolean = true,
+    val textLabel: String = "詞語",
+    val codeLabel: String = "編碼",
 ) {
     PINYIN(
         title = "雙拼＋／注音＋",
@@ -61,16 +67,41 @@ enum class CustomPhraseKind(
             ...
         """.trimIndent() + "\n",
     ),
+
+    /**
+     * Replacements applied to voice results after the Taiwan conversion, longest first. Unlike
+     * OpenCC tables they also match across words, e.g. 技術支持 → 技術支援.
+     */
+    VOICE_FIX(
+        title = "語音用語",
+        fileName = "voice_wording.txt",
+        hasWeight = false,
+        codeChars = Regex("[^\\t\\r\\n]+"),
+        codeHint = "語音結果裡要換上的寫法",
+        template = """
+            # 蝦說輸入法語音用語修正
+            # 格式：辨識結果中的詞<Tab>改成
+            # 套用在轉成臺灣正體之後，較長的詞先換；左欄請寫轉換後的繁體字形。
+            技術支持	技術支援
+            出租車	計程車
+        """.trimIndent() + "\n",
+        readByRime = false,
+        textLabel = "辨識結果中的詞",
+        codeLabel = "改成",
+    ),
     ;
 
-    fun file(userDataDir: File) = File(userDataDir, fileName)
+    /** Where the file lives: the Rime user directory, or the app's own files for voice fixes. */
+    fun file(userDataDir: File) =
+        if (readByRime) File(userDataDir, fileName) else File(appContext.filesDir, "voice-opencc/$fileName")
 
     /** Returns an error message, or null when the phrase can be saved. */
     fun validate(phrase: CustomPhrase): String? = when {
-        phrase.text.isBlank() -> "請輸入詞語"
-        phrase.text.any { it == '\t' || it == '\n' || it == '\r' } -> "詞語不能包含 Tab 或換行"
-        phrase.code.isEmpty() -> "請輸入編碼"
-        !codeChars.matches(phrase.code) -> "編碼格式不符：$codeHint"
+        phrase.text.isBlank() -> "請輸入$textLabel"
+        phrase.text.any { it == '\t' || it == '\n' || it == '\r' } -> "$textLabel 不能包含 Tab 或換行"
+        phrase.code.isEmpty() -> "請輸入$codeLabel"
+        !codeChars.matches(phrase.code) -> "$codeLabel 格式不符：$codeHint"
+        !readByRime && phrase.text == phrase.code -> "兩欄相同，不需要修正"
         else -> null
     }
 
@@ -138,8 +169,8 @@ class CustomPhraseDocument(
      * the Rime user directory, where any new entry would make Rime rebuild every schema.
      */
     fun save(userDataDir: File, backupDir: File) {
-        val target = kind.file(userDataDir)
-        val temp = File(userDataDir, ".${kind.fileName}.saving")
+        val target = kind.file(userDataDir).apply { parentFile?.mkdirs() }
+        val temp = File(target.parentFile, ".${kind.fileName}.saving")
         temp.writeText(lines.joinToString("\n", postfix = if (endsWithNewline) "\n" else ""))
         if (target.isFile) {
             val dir = backupDir.apply { mkdirs() }

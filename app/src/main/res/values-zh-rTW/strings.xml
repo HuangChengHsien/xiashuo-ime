@@ -273,7 +273,7 @@
     <string name="settings_section_data">輸入資料</string>
     <string name="settings_section_keyboard">鍵盤與外觀</string>
     <string name="custom_phrases">自訂詞語</string>
-    <string name="settings_summary_custom_phrases">雙拼＋、注音＋與蝦米的常用詞</string>
+    <string name="settings_summary_custom_phrases">雙拼＋、注音＋、蝦米常用詞與語音用語修正</string>
     <string name="voice_auto_stop">說完自動停止</string>
     <string name="settings_summary_voice_auto_stop">離線模型在說完停頓約 1.5 秒後自動結束錄音</string>
     <string name="settings_section_voice">語音輸入</string>

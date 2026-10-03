@@ -113,6 +113,19 @@ object OpenCCDictManager {
         configFileName: String,
     ): String
 
+    /** Builds a reusable converter; release it with [openCCConverterClose]. */
+    @JvmStatic
+    external fun openCCConverterOpen(configFileName: String): Long
+
+    @JvmStatic
+    external fun openCCConverterConvert(
+        converter: Long,
+        input: String,
+    ): String
+
+    @JvmStatic
+    external fun openCCConverterClose(converter: Long)
+
     const val MODE_BIN_TO_TXT = true // OCD(2) to TXT
     const val MODE_TXT_TO_BIN = false // TXT to OCD2
 }

@@ -480,7 +480,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         val start = SystemClock.elapsedRealtime()
         val converted = if (engine != ENGINE_GOOGLE) VoiceText.toTaiwan(text) else text
         // Put the user's own names and terms back where the recognizer chose a homophone.
-        val output = PhraseCorrector.correct(PhraseCorrector.tidy(converted), PhraseHotwords.collect())
+        val output = PhraseCorrector.correct(VoiceText.applyFixes(PhraseCorrector.tidy(converted)), PhraseHotwords.collect())
         Log.i(TAG, "polishMs=${SystemClock.elapsedRealtime() - start}")
         return output
     }

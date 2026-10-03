@@ -43,7 +43,9 @@ class VoiceModelBenchmarkActivity : Activity() {
         intent.getStringExtra("convert")?.let { text ->
             text.split('|').forEach {
                 val old = com.osfans.trime.data.opencc.OpenCCDictManager.convertLine(it, "s2tw.json")
-                report("convert: $it\n  s2tw : $old\n  new  : ${VoiceText.toTaiwan(it)}")
+                val start = SystemClock.elapsedRealtime()
+                val new = VoiceText.applyFixes(VoiceText.toTaiwan(it))
+                report("convert: $it\n  s2tw : $old\n  new  : $new (${SystemClock.elapsedRealtime() - start} ms)")
             }
             report("done")
             return

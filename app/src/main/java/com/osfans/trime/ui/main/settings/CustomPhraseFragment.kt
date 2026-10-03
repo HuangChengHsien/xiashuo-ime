@@ -55,7 +55,10 @@ class CustomPhraseFragment : Fragment() {
     private lateinit var status: TextView
     private lateinit var search: EditText
     private lateinit var addButton: Button
-    private var readOnly = false
+    private var externalSync = false
+
+    /** External sync overwrites Rime files on deploy; voice fixes live in the app and stay editable. */
+    private val readOnly get() = externalSync && kind.readByRime
 
     /** Set while a save runs; edits wait so two saves never race over the same file. */
     private var saving: Job? = null
@@ -86,7 +89,7 @@ class CustomPhraseFragment : Fragment() {
         savedInstanceState: Bundle?,
     ): View {
         val ctx = requireContext()
-        readOnly = RimeDataSync.usesExternalSync(ctx)
+        externalSync = RimeDataSync.usesExternalSync(ctx)
         val root = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(ctx.dp(16), ctx.dp(8), ctx.dp(16), ctx.dp(24))
@@ -108,7 +111,7 @@ class CustomPhraseFragment : Fragment() {
                 })
             }
         })
-        if (readOnly) {
+        if (externalSync) {
             root.addView(TextView(ctx).apply {
                 text = "目前使用外部資料夾同步：下次部署時，外部資料夾的版本會覆蓋這裡的修改。" +
                     "請直接編輯外部資料夾裡的檔案；這裡只能查看與匯出備份。"
@@ -150,6 +153,7 @@ class CustomPhraseFragment : Fragment() {
 
     private fun reload() {
         document = kind.load(DataManager.userDataDir)
+        if (::addButton.isInitialized) addButton.isEnabled = !readOnly && saving == null
         if (::list.isInitialized) render()
     }
 
@@ -159,7 +163,12 @@ class CustomPhraseFragment : Fragment() {
         val entries = document.entries
         val shown = entries.filter { query.isEmpty() || query in it.phrase.text || query in it.phrase.code }
         val matched = if (query.isNotEmpty()) "，符合 ${shown.size} 筆" else ""
-        status.text = "${kind.fileName} · 共 ${entries.size} 筆$matched\n點一下詞語可修改或刪除；儲存後會自動套用。"
+        val help = if (kind.readByRime) {
+            "點一下詞語可修改或刪除；儲存後會自動套用。"
+        } else {
+            "語音結果轉成臺灣正體後，把左邊的詞換成右邊（較長的先換，可跨詞）。點一下可修改或刪除。"
+        }
+        status.text = "${kind.fileName} · 共 ${entries.size} 筆$matched\n$help"
         list.removeAllViews()
         shown.forEach { entry ->
             list.addView(LinearLayout(ctx).apply {
@@ -172,7 +181,11 @@ class CustomPhraseFragment : Fragment() {
                     textSize = 17f
                 })
                 addView(TextView(ctx).apply {
-                    text = "編碼 ${entry.phrase.code}" + (entry.phrase.weight?.let { "　權重 $it" } ?: "")
+                    text = if (kind.readByRime) {
+                        "編碼 ${entry.phrase.code}" + (entry.phrase.weight?.let { "　權重 $it" } ?: "")
+                    } else {
+                        "改成 ${entry.phrase.code}"
+                    }
                 })
             })
         }
@@ -201,11 +214,15 @@ class CustomPhraseFragment : Fragment() {
                 isSingleLine = true
             }.also { form.addView(it) }
         }
-        val textField = field("詞語", entry?.phrase?.text.orEmpty(), InputType.TYPE_CLASS_TEXT)
+        val textField = field(kind.textLabel, entry?.phrase?.text.orEmpty(), InputType.TYPE_CLASS_TEXT)
         val codeField = field(
-            "編碼（${kind.codeHint}）",
+            "${kind.codeLabel}（${kind.codeHint}）",
             entry?.phrase?.code.orEmpty(),
-            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+            if (kind.readByRime) {
+                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            } else {
+                InputType.TYPE_CLASS_TEXT
+            },
         )
         val weightField = if (kind.hasWeight) {
             field(
@@ -227,7 +244,7 @@ class CustomPhraseFragment : Fragment() {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val phrase = CustomPhrase(
                     textField.text.toString().trim(),
-                    codeField.text.toString().trim().lowercase(Locale.ROOT),
+                    codeField.text.toString().trim().let { if (kind.readByRime) it.lowercase(Locale.ROOT) else it },
                     weightField?.text?.toString()?.trim()?.toIntOrNull(),
                 )
                 val error = kind.validate(phrase)
@@ -269,6 +286,19 @@ class CustomPhraseFragment : Fragment() {
         render()
         status.text = "正在儲存並套用…"
         val backupDir = backupDir(ctx)
+        if (!pending.kind.readByRime) {
+            // Voice fixes are read when the next recording is polished; Rime is not involved.
+            saving = lifecycleScope.launch {
+                val saveError = withContext(Dispatchers.IO) { runCatching { pending.save(DataManager.userDataDir, backupDir) }.exceptionOrNull() }
+                ctx.toast(if (saveError == null) "已儲存，下一次語音輸入起生效" else "儲存失敗，檔案未變更：${saveError.message}")
+                saving = null
+                if (isAdded) {
+                    addButton.isEnabled = !readOnly
+                    reload()
+                }
+            }
+            return
+        }
         saving = session.lifecycleScope.launch {
             // Only skip the next startup rebuild when nothing else was already waiting for one.
             val pendingBefore = runCatching { session.runOnReady { RimeWorkspaceStamp.hasPendingChanges() } }.getOrDefault(true)
