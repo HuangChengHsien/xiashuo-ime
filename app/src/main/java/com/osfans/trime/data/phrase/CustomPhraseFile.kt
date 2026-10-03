@@ -134,14 +134,15 @@ class CustomPhraseDocument(
 
     /**
      * Writes through a temporary file. The previous version is kept as a timestamped backup in
-     * `phrase-backups/`, of which the newest [BACKUPS_KEPT] survive.
+     * [backupDir], of which the newest [BACKUPS_KEPT] survive; that directory must lie outside
+     * the Rime user directory, where any new entry would make Rime rebuild every schema.
      */
-    fun save(userDataDir: File) {
+    fun save(userDataDir: File, backupDir: File) {
         val target = kind.file(userDataDir)
         val temp = File(userDataDir, ".${kind.fileName}.saving")
         temp.writeText(lines.joinToString("\n", postfix = if (endsWithNewline) "\n" else ""))
         if (target.isFile) {
-            val dir = File(userDataDir, BACKUP_DIR).apply { mkdirs() }
+            val dir = backupDir.apply { mkdirs() }
             val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.ROOT).format(java.util.Date())
             target.copyTo(File(dir, "${kind.fileName}.$stamp.bak"), overwrite = true)
             dir.listFiles { file -> file.name.startsWith("${kind.fileName}.") && file.name.endsWith(".bak") }
@@ -157,7 +158,6 @@ class CustomPhraseDocument(
 
     companion object {
         const val DEFAULT_WEIGHT = 100
-        const val BACKUP_DIR = "phrase-backups"
         private const val BACKUPS_KEPT = 5
     }
 }

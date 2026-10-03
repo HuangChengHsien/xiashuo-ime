@@ -29,6 +29,7 @@ import com.osfans.trime.data.base.DataManager
 import com.osfans.trime.data.phrase.CustomPhrase
 import com.osfans.trime.data.phrase.CustomPhraseDocument
 import com.osfans.trime.data.phrase.CustomPhraseKind
+import com.osfans.trime.data.phrase.RimeWorkspaceStamp
 import com.osfans.trime.data.sync.RimeDataSync
 import com.osfans.trime.util.toast
 import kotlinx.coroutines.Dispatchers
@@ -267,8 +268,15 @@ class CustomPhraseFragment : Fragment() {
         addButton.isEnabled = false
         render()
         status.text = "正在儲存並套用…"
+        val backupDir = backupDir(ctx)
         saving = session.lifecycleScope.launch {
-            val saveError = withContext(Dispatchers.IO) { runCatching { pending.save(DataManager.userDataDir) }.exceptionOrNull() }
+            // Only skip the next startup rebuild when nothing else was already waiting for one.
+            val pendingBefore = runCatching { session.runOnReady { RimeWorkspaceStamp.hasPendingChanges() } }.getOrDefault(true)
+            val saveError = withContext(Dispatchers.IO) { runCatching { pending.save(DataManager.userDataDir, backupDir) }.exceptionOrNull() }
+            if (saveError == null && !pendingBefore) {
+                runCatching { session.runOnReady { RimeWorkspaceStamp.markCurrent() } }
+                    .onFailure { Timber.w(it, "could not record the workspace as current") }
+            }
             val applyError = if (saveError == null) runCatching { session.runOnReady { reloadUserData() } }.exceptionOrNull() else null
             (saveError ?: applyError)?.let { Timber.w(it, "custom phrase save failed") }
             withContext(Dispatchers.Main) {
@@ -311,6 +319,15 @@ class CustomPhraseFragment : Fragment() {
     }
 
     companion object {
+        /** Kept beside, not inside, the Rime user directory; see [CustomPhraseDocument.save]. */
+        fun backupDir(context: android.content.Context): java.io.File {
+            val dir = java.io.File(context.getExternalFilesDir(null), "phrase-backups")
+            // Move backups made by earlier builds out of the Rime user directory once.
+            val old = java.io.File(DataManager.userDataDir, "phrase-backups")
+            if (old.isDirectory && !dir.exists()) old.renameTo(dir)
+            return dir
+        }
+
         private const val STATE_KIND = "kind"
         private const val SESSION = "CustomPhraseFragment"
     }

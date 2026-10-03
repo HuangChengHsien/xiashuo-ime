@@ -104,3 +104,13 @@ Java_com_osfans_trime_core_RimeConfig_setRimeConfigBool(JNIEnv* env,
   api->config_set_bool(reinterpret_cast<RimeConfig*>(peer), CString(env, key),
                        value);
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_osfans_trime_core_RimeConfig_setRimeConfigInt(JNIEnv* env,
+                                                       jclass /* thiz */,
+                                                       jlong peer, jstring key,
+                                                       jint value) {
+  auto api = rime_get_api();
+  api->config_set_int(reinterpret_cast<RimeConfig*>(peer), CString(env, key),
+                      value);
+}
