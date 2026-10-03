@@ -62,5 +62,5 @@ object VoiceText {
         return file
     }
 
-    private fun quote(path: String) = "\"" + path.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+    private fun quote(path: String): String = org.json.JSONObject.quote(path)
 }

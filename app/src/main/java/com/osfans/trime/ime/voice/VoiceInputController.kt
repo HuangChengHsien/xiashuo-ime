@@ -450,23 +450,39 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         }, "TrimeLocalASR").also { it.start() }
     }
 
-    private fun completeResult(text: String, id: Int = session) = service.mainExecutor.execute {
-        if (!active || session != id) return@execute
-        val fromBubble = bubbleMode
-        cancel()
-        if (text.isBlank()) {
-            if (fromBubble) VoiceBubbleBridge.setState(VoiceBubbleState.Problem("沒有辨識到語音"))
-            else Toast.makeText(service, "沒有辨識到語音", Toast.LENGTH_SHORT).show()
-        } else {
-            val converted = if (selected != ENGINE_GOOGLE) VoiceText.toTaiwan(text.trim()) else text.trim()
-            // Put the user's own names and terms back where the recognizer chose a homophone.
-            val output = PhraseCorrector.correct(PhraseCorrector.tidy(converted), PhraseHotwords.collect())
-            service.commitVoiceText(output)
-            if (fromBubble) {
-                VoiceBubbleBridge.setState(VoiceBubbleState.Done)
-                service.showVoiceKeyboard()
+    /**
+     * Polishes the text off the main thread (OpenCC loads its dictionaries on every call, and the
+     * reading table may still be loading), then types it if this recording is still current.
+     */
+    private fun completeResult(text: String, id: Int = session) {
+        val engine = selected
+        textWorker.execute {
+            val output = if (text.isBlank()) "" else polish(text.trim(), engine)
+            service.mainExecutor.execute {
+                if (!active || session != id) return@execute
+                val fromBubble = bubbleMode
+                cancel()
+                if (output.isBlank()) {
+                    if (fromBubble) VoiceBubbleBridge.setState(VoiceBubbleState.Problem("沒有辨識到語音"))
+                    else Toast.makeText(service, "沒有辨識到語音", Toast.LENGTH_SHORT).show()
+                } else {
+                    service.commitVoiceText(output)
+                    if (fromBubble) {
+                        VoiceBubbleBridge.setState(VoiceBubbleState.Done)
+                        service.showVoiceKeyboard()
+                    }
+                }
             }
         }
+    }
+
+    private fun polish(text: String, engine: String): String {
+        val start = SystemClock.elapsedRealtime()
+        val converted = if (engine != ENGINE_GOOGLE) VoiceText.toTaiwan(text) else text
+        // Put the user's own names and terms back where the recognizer chose a homophone.
+        val output = PhraseCorrector.correct(PhraseCorrector.tidy(converted), PhraseHotwords.collect())
+        Log.i(TAG, "polishMs=${SystemClock.elapsedRealtime() - start}")
+        return output
     }
 
     fun cancel() {
@@ -544,6 +560,8 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
             provider = "cpu",
         ),
     )
+
+    private val textWorker = java.util.concurrent.Executors.newSingleThreadExecutor { Thread(it, "VoiceText") }
 
     companion object {
         private const val TAG = "VoiceInput"
