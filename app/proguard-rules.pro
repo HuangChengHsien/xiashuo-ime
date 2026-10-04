@@ -11,6 +11,11 @@
 # Keep JNI interface
 -keep class com.osfans.trime.core.* { *; }
 
+# sherpa-onnx reads Kotlin config backing fields from JNI by their literal names.
+# R8 otherwise removes fields such as SileroVadModelConfig.threshold and
+# OfflineRecognizerConfig.maxActivePaths because it cannot see native accesses.
+-keep class com.k2fsa.sherpa.onnx.** { *; }
+
 # remove kotlin null checks
 -assumenosideeffects class kotlin.jvm.internal.Intrinsics {
     static void checkNotNull(...);
