@@ -20,7 +20,7 @@ import java.io.File
 
 /** One-shot local text polishing with the user's Gemma 4 E2B model. */
 object GemmaRewrite {
-    private const val MODEL_RELATIVE_PATH = "models/gemma-4-e2b/gemma-4-E2B-it.litertlm"
+    const val MODEL_RELATIVE_PATH = "models/gemma-4-e2b/gemma-4-E2B-it.litertlm"
 
     fun modelFile(context: Context): File? =
         context.getExternalFilesDir(null)?.let { File(it, MODEL_RELATIVE_PATH) }

@@ -279,6 +279,14 @@
     <string name="fonts_and_sizes">Fonts and sizes</string>
     <string name="settings_summary_fonts_and_sizes">Fonts and text sizes of keys and candidates</string>
     <string name="settings_section_voice">Voice input</string>
+    <string name="settings_section_gemma">AI text polishing</string>
+    <string name="download">Download</string>
+    <string name="gemma_model_download">Download Gemma 4 E2B polishing model</string>
+    <string name="gemma_model_download_summary">Download the ~2.6 GB model; polishing runs offline on this device</string>
+    <string name="gemma_model_download_confirm">The model is about 2.6 GB. Wi-Fi is recommended. It will be saved directly to Xiashuo’s model folder.</string>
+    <string name="gemma_model_download_progress">Gemma 4 E2B LiteRT-LM model</string>
+    <string name="gemma_model_download_started">Download started. Check Android notifications for progress.</string>
+    <string name="gemma_model_download_failed">Could not start the Gemma model download</string>
     <string name="voice_models">Voice models</string>
     <string name="settings_summary_voice_bubble">Hold the bubble to dictate into any text field</string>
     <string name="settings_section_more">Other settings</string>

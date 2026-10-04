@@ -19,6 +19,7 @@ Rime 方案（例如嘸蝦米）修字。
   完成與錯誤各有不同的外圈與文字提示，TalkBack 會朗讀目前狀態。
   設定首頁「語音輸入 → 語音懸浮球」可隨時開關。
 - **辨識都在手機上**：錄音與辨識都在手機上處理，錄音不會上傳；只有下載語音模型時會連網。
+- **Gemma 4 E2B 離線文字潤飾**：先選取輸入框中的文字，再按鍵盤工具列「潤」；模型產生結果後會先預覽，按「替換選取文字」才會套用。到設定首頁「AI 文字潤飾 → 下載 Gemma 4 E2B 潤飾模型」即可下載約 2.6 GB 的 LiteRT-LM 模型，下載完成後不必手動搬移檔案。模型下載需要網路，潤飾內容在手機本機處理。
 - **可選語音引擎**：
   - Android 系統本機辨識（需手機已安裝臺灣華語離線模型）
   - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 1.13.8 執行的離線模型：
@@ -65,6 +66,10 @@ debug 版的 `VoiceModelBenchmarkActivity` 可用 adb 重測各種執行緒與 p
 
 Pixel 8 Pro 實測（單次量測，僅供參考）：Fun-ASR-Nano 載入約 6–7 秒、6–9 秒語音辨識約 1.1–1.3 秒；
 Breeze ASR 25 辨識約 9–15 秒。大型模型載入時會占用大量記憶體，系統可能因此關閉背景 App。
+
+## Gemma 文字潤飾模型
+
+Gemma 模型不包含在 APK 中。可在設定首頁「AI 文字潤飾」下載 Gemma 4 E2B（約 2.6 GB）；下載完成後，選取文字並按鍵盤工具列的「潤」即可潤飾。模型由 [LiteRT Community 的 Hugging Face 頁面](https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm)提供，也可[直接下載 `.litertlm` 模型檔](https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm?download=true)。蝦說會將設定頁下載的檔案放到 App 專用模型資料夾。模型執行及文字潤飾均在手機本機進行。
 
 ## 編譯
 

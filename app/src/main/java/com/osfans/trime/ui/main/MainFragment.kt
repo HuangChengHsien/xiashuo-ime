@@ -5,8 +5,13 @@
 
 package com.osfans.trime.ui.main
 
+import android.content.Context
 import android.content.Intent
+import android.app.DownloadManager
+import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.fragment.app.activityViewModels
@@ -19,12 +24,18 @@ import com.osfans.trime.ime.voice.VoiceBubbleBridge
 import com.osfans.trime.ime.voice.VoiceBubblePermissionActivity
 import com.osfans.trime.ime.voice.VoiceBubbleService
 import com.osfans.trime.ime.voice.VoiceModels
+import com.osfans.trime.ime.voice.GemmaRewrite
 import com.osfans.trime.ui.common.PaddingPreferenceFragment
 import com.osfans.trime.util.addCategory
 import com.osfans.trime.util.addPreference
 import com.osfans.trime.util.navigateWithAnim
 
 class MainFragment : PaddingPreferenceFragment() {
+    private companion object {
+        const val GEMMA_MODEL_URL =
+            "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm?download=true"
+    }
+
     private val viewModel: MainViewModel by activityViewModels()
     private var voiceModelsPreference: Preference? = null
     private var voiceBubblePreference: SwitchPreferenceCompat? = null
@@ -53,6 +64,41 @@ class MainFragment : PaddingPreferenceFragment() {
         } else {
             ctx.startService(Intent(ctx, VoiceBubbleService::class.java).setAction(VoiceBubbleService.ACTION_TOGGLE))
         }
+    }
+
+    private fun confirmGemmaModelDownload() {
+        val ctx = requireContext()
+        val modelFile = GemmaRewrite.modelFile(ctx)
+        if (modelFile?.isFile == true && modelFile.length() > 0) {
+            Toast.makeText(ctx, "Gemma 4 E2B 模型已下載", Toast.LENGTH_LONG).show()
+            return
+        }
+        AlertDialog.Builder(ctx)
+            .setTitle(R.string.gemma_model_download)
+            .setMessage(R.string.gemma_model_download_confirm)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.download) { _, _ ->
+                val relativePath = GemmaRewrite.MODEL_RELATIVE_PATH
+                runCatching {
+                    val target = GemmaRewrite.modelFile(ctx)
+                        ?: error("External model directory is unavailable")
+                    target.parentFile?.mkdirs()
+                    val manager = ctx.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                    manager.enqueue(
+                        DownloadManager.Request(Uri.parse(GEMMA_MODEL_URL))
+                            .setTitle(ctx.getString(R.string.gemma_model_download))
+                            .setDescription(ctx.getString(R.string.gemma_model_download_progress))
+                            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                            .setAllowedOverRoaming(false)
+                            .setDestinationInExternalFilesDir(ctx, null, relativePath),
+                    )
+                }.onSuccess {
+                    Toast.makeText(ctx, R.string.gemma_model_download_started, Toast.LENGTH_LONG).show()
+                }.onFailure {
+                    Toast.makeText(ctx, R.string.gemma_model_download_failed, Toast.LENGTH_LONG).show()
+                }
+            }
+            .show()
     }
 
     override fun onStart() {
@@ -146,6 +192,14 @@ class MainFragment : PaddingPreferenceFragment() {
                     setSummary(R.string.settings_summary_voice_auto_stop)
                     isIconSpaceReserved = false
                 })
+            }
+            addCategory(R.string.settings_section_gemma) {
+                isIconSpaceReserved = false
+                addPreference(
+                    R.string.gemma_model_download,
+                    summary = R.string.gemma_model_download_summary,
+                    icon = R.drawable.ic_baseline_link_24,
+                ) { confirmGemmaModelDownload() }
             }
             addCategory(R.string.settings_section_more) {
                 isIconSpaceReserved = false
