@@ -181,6 +181,7 @@ class CommonKeyboardActionListener {
                     "set_theme" -> handleTheme(arg)
                     "broadcast" -> service.sendBroadcast(Intent(arg))
                     "clipboard" -> handleClipboard()
+                    "gemma_rewrite" -> service.rewriteSelectedTextWithGemma()
                     "commit" -> service.commitText(arg)
                     "date" -> service.commitText(customFormatDateTime(arg))
                     "run" -> handleRunCommand(arg)

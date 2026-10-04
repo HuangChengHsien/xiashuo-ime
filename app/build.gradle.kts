@@ -133,6 +133,7 @@ ksp {
 }
 
 dependencies {
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.16.1")
     implementation(files("libs/sherpa-onnx-1.13.8.aar"))
     ksp(project(":codegen"))
     implementation(libs.kotlinx.coroutines)

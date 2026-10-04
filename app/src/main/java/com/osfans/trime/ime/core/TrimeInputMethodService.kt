@@ -7,6 +7,7 @@ package com.osfans.trime.ime.core
 
 import android.annotation.SuppressLint
 import android.app.Dialog
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
@@ -18,6 +19,7 @@ import android.os.Bundle
 import android.os.SystemClock
 import android.provider.Settings
 import android.text.InputType
+import android.text.SpannableStringBuilder
 import android.view.InputDevice
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
@@ -31,6 +33,9 @@ import android.view.inputmethod.ExtractedTextRequest
 import android.view.inputmethod.InlineSuggestionsRequest
 import android.view.inputmethod.InlineSuggestionsResponse
 import android.widget.FrameLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.annotation.Keep
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
@@ -52,6 +57,7 @@ import com.osfans.trime.data.theme.ThemeManager
 import com.osfans.trime.ime.composition.CandidatesView
 import com.osfans.trime.ime.keyboard.InputFeedbackManager
 import com.osfans.trime.ime.voice.VoiceInputController
+import com.osfans.trime.ime.voice.GemmaRewrite
 import com.osfans.trime.ime.voice.VoiceBubbleBridge
 import com.osfans.trime.ime.voice.VoiceBubbleService
 import com.osfans.trime.ime.voice.VoiceBubblePermissionActivity
@@ -612,6 +618,98 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
 
     fun startVoiceInput() {
         voiceInput.start()
+    }
+
+    /** Polish the currently selected text locally and let the user approve replacement. */
+    fun rewriteSelectedTextWithGemma() {
+        if (Build.VERSION.SDK_INT < 24) {
+            Toast.makeText(this, "Gemma 潤飾需要 Android 7.0 以上", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val connection = currentInputConnection ?: return
+        val inputType = currentInputEditorInfo?.inputType ?: InputType.TYPE_NULL
+        val variation = inputType and InputType.TYPE_MASK_VARIATION
+        val isPassword = variation in setOf(
+            InputType.TYPE_TEXT_VARIATION_PASSWORD,
+            InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+            InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
+            InputType.TYPE_NUMBER_VARIATION_PASSWORD,
+        )
+        if (isPassword) {
+            Toast.makeText(this, "密碼欄位不提供 AI 潤飾", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val original = connection.getSelectedText(0)?.toString().orEmpty()
+        if (original.isBlank()) {
+            Toast.makeText(this, "請先選取要潤飾的文字", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (original.length > 4000) {
+            Toast.makeText(this, "一次最多潤飾 4,000 個字元", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val model = GemmaRewrite.modelFile(this)
+        if (model?.isFile != true) {
+            Toast.makeText(this, "找不到 Gemma 4 E2B 模型檔", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val progress = AlertDialog.Builder(this)
+            .setTitle("Gemma 4 潤飾")
+            .setMessage("正在載入模型並潤飾選取文字…")
+            .setNegativeButton("取消") { _, _ -> gemmaRewriteJob?.cancel() }
+            .create()
+        showDialog(progress)
+        gemmaRewriteJob?.cancel()
+        gemmaRewriteJob = lifecycleScope.launch {
+            try {
+                val result = GemmaRewrite.rewrite(this@TrimeInputMethodService, original)
+                if (!progress.isShowing) return@launch
+                progress.dismiss()
+                showGemmaRewriteResult(connection, original, result)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                progress.dismiss()
+            } catch (error: Exception) {
+                progress.dismiss()
+                Toast.makeText(
+                    this@TrimeInputMethodService,
+                    "Gemma 潤飾失敗：${error.message ?: "模型無法啟動"}",
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
+    private var gemmaRewriteJob: Job? = null
+
+    private fun showGemmaRewriteResult(
+        connection: android.view.inputmethod.InputConnection,
+        original: String,
+        result: String,
+    ) {
+        val preview = TextView(this).apply {
+            text = result
+            textSize = 16f
+            setTextIsSelectable(true)
+            setPadding(24, 16, 24, 16)
+        }
+        val scroll = ScrollView(this).apply { addView(preview) }
+        showDialog(
+            AlertDialog.Builder(this)
+                .setTitle("潤飾結果")
+                .setView(scroll)
+                .setNegativeButton("取消", null)
+                .setPositiveButton("替換選取文字") { _, _ ->
+                    val currentSelection = connection.getSelectedText(0)?.toString()
+                    if (currentInputConnection !== connection || currentSelection != original) {
+                        Toast.makeText(this, "選取內容已改變，請重新潤飾", Toast.LENGTH_SHORT).show()
+                    } else {
+                        connection.commitText(SpannableStringBuilder(result), 1)
+                    }
+                }
+                .create(),
+        )
     }
 
     fun showVoiceEnginePicker(anchor: View? = null) {

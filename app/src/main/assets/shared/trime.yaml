@@ -858,6 +858,7 @@ android_keys:
     commit: 上屏
 
 preset_keys:
+  gemma_rewrite: {label: 潤, send: FUNCTION, command: gemma_rewrite}
   # 安卓
   BRIGHTNESS_DOWN: {label: 亮度-, send: BRIGHTNESS_DOWN}
   BRIGHTNESS_UP: {label: 亮度+, send: BRIGHTNESS_UP}
