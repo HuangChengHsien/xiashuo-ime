@@ -48,7 +48,7 @@ class ThemePatchFileTest :
             val text = "other:\n  style/key_text_size: 30\npatch:\n  style/key_text_size: 20\n"
             edit(text) { set("key_text_size", "24") } shouldBe
                 "other:\n  style/key_text_size: 30\npatch:\n  style/key_text_size: 24\n"
-            ThemePatchFile(File.createTempFile("t", ".yaml").apply { writeText("other:\n  style/x: 1\n"); deleteOnExit() })
+            ThemePatchFile(File.createTempFile("theme", ".yaml").apply { writeText("other:\n  style/x: 1\n"); deleteOnExit() })
                 .get("x") shouldBe null
         }
 
@@ -62,7 +62,7 @@ class ThemePatchFileTest :
 
         "a hash inside quotes is not a comment" {
             val text = "patch:\n  style/key_font: [ \"a \\\" #b.ttf\" ] # note\n"
-            val file = File.createTempFile("t", ".yaml").apply {
+            val file = File.createTempFile("theme", ".yaml").apply {
                 writeText(text)
                 deleteOnExit()
             }

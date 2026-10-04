@@ -55,10 +55,15 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
     @Volatile private var active = false
     /** Bumped for every recording so callbacks from an older, cancelled one cannot touch the current one. */
     @Volatile private var session = 0
-    private var localStop: AtomicBoolean? = null
+    @Volatile private var localStop: AtomicBoolean? = null
     private var captureThread: Thread? = null
-    private var selected = ENGINE_GOOGLE
-    private var bubbleMode = false
+    @Volatile private var selected = ENGINE_GOOGLE
+    @Volatile private var bubbleMode = false
+    @Volatile private var shuttingDown = false
+    private val offlineCacheLock = Any()
+    private var cachedOffline: CachedOffline? = null
+
+    private data class CachedOffline(val modelId: String, val recognizer: OfflineRecognizer)
 
     fun onBubbleTap() {
         if (active) {
@@ -152,7 +157,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
             }
         }
         val width = (density * 320).toInt()
-        val root = anchor?.rootView ?: service.window.window!!.decorView
+        val root = anchor?.rootView ?: service.window?.window?.decorView ?: return
         // Fit the list inside the visible keyboard area and let it scroll when it is taller,
         // instead of dropping below the anchor where the screen edge cuts it off.
         val visible = android.graphics.Rect().also(root::getWindowVisibleDisplayFrame)
@@ -224,15 +229,17 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         val width = (service.resources.displayMetrics.density * 320).toInt()
         // A non-focusable popup stays attached to the IME window. A modal Dialog causes Android
         // to hide the keyboard and can revoke microphone capture while the user is speaking.
+        val imeRoot = service.window?.window?.decorView ?: return
         recordingPopup = PopupWindow(panel, width, ViewGroup.LayoutParams.WRAP_CONTENT, false).apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             elevation = service.resources.displayMetrics.density * 12
             isOutsideTouchable = false
-            showAtLocation(service.window.window!!.decorView, Gravity.CENTER, 0, 0)
+            showAtLocation(imeRoot, Gravity.CENTER, 0, 0)
         }
     }
 
     private fun startGoogle() {
+        ++session
         val available = if (bubbleMode) hasAndroidOnDeviceRecognizer() else SpeechRecognizer.isRecognitionAvailable(service)
         if (!available) {
             if (bubbleMode) {
@@ -283,7 +290,6 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         }
         active = true
         val id = ++session
-        fun current() = active && session == id
         val stop = AtomicBoolean(false)
         // A cancelled recording may still be loading or releasing its model. Wait for it before
         // loading another one, so two native models never sit in memory together.
@@ -301,10 +307,11 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
             previous?.join()
             val loadStart = SystemClock.elapsedRealtime()
             try {
-                model.createRecognizer(service).also {
-                    loadMs = SystemClock.elapsedRealtime() - loadStart
-                    service.mainExecutor.execute {
-                        if (current() && !stop.get() && bubbleMode) {
+                val cached = takeCachedRecognizer(model.id)
+                (cached ?: model.createRecognizer(service)).also {
+                    loadMs = if (cached != null) 0L else SystemClock.elapsedRealtime() - loadStart
+                    androidx.core.content.ContextCompat.getMainExecutor(service).execute {
+                        if (isCurrent(id) && !stop.get() && bubbleMode) {
                             VoiceBubbleBridge.setHint(if (VoiceModels.autoStop(service)) AUTO_STOP_HINT else "模型已就緒，說完點一下停止")
                         }
                     }
@@ -317,87 +324,22 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         Thread(loader, "TrimeLocalASRLoad").start()
         captureThread = Thread({
             Thread(PhraseCorrector::warmUp, "PhraseReadings").start()
-            var audioRecord: AudioRecord? = null
             var offline: OfflineRecognizer? = null
-            var offlineStream: com.k2fsa.sherpa.onnx.OfflineStream? = null
-            var vad: Vad? = null
+            var keepEngine = false
             try {
-                val rate = 16000
-                val autoStop = VoiceModels.autoStop(service)
-                if (autoStop) {
-                    vad = runCatching { createVad() }.onFailure { Log.w(TAG, "VAD unavailable", it) }.getOrNull()
-                }
-                check(active) { "錄音已取消" }
-                val minBuffer = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
-                check(minBuffer > 0) { "AudioRecord error $minBuffer" }
-                audioRecord = AudioRecord(MediaRecorder.AudioSource.MIC, rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, maxOf(minBuffer * 2, 4096))
-                check(audioRecord.state == AudioRecord.STATE_INITIALIZED) { "麥克風初始化失敗" }
-                val chunk = ShortArray(1024)
-                val offlineAudio = ArrayList<Float>(rate * 30)
-                check(active) { "錄音已取消" }
-                audioRecord.startRecording()
-                service.mainExecutor.execute {
-                    if (current()) {
-                        if (bubbleMode) {
-                            VoiceBubbleBridge.setState(VoiceBubbleState.Listening)
-                            if (!loader.isDone) VoiceBubbleBridge.setHint("請說話（模型載入中，可以先說）")
-                            else if (vad != null) VoiceBubbleBridge.setHint(AUTO_STOP_HINT)
-                        } else {
-                            recordingMessage?.text = "請開始說話（模型同時在背景載入）。" +
-                                if (vad != null) "停頓約 1.5 秒會自動結束，也可按「停止並輸入」。" else "說完按「停止並輸入」。"
-                        }
-                    }
-                }
-                // With VAD, stop once speech has been followed by a pause, or when nobody speaks.
-                var heardSpeech = false
-                var speechStart = 0
-                var silentSamples = 0
-                var noSpeech = false
-                while (!stop.get()) {
-                    val count = audioRecord.read(chunk, 0, chunk.size)
-                    check(count > 0) { "麥克風讀取失敗：$count" }
-                    val samples = FloatArray(count) { chunk[it] / 32768.0f }
-                    if (bubbleMode) VoiceBubbleBridge.setLevel(levelOf(samples))
-                    check(offlineAudio.size + samples.size <= rate * 120) { "單次離線錄音最多 2 分鐘" }
-                    samples.forEach(offlineAudio::add)
-                    val detector = vad ?: continue
-                    detector.acceptWaveform(samples)
-                    while (!detector.empty()) detector.pop()
-                    if (detector.isSpeechDetected()) {
-                        if (!heardSpeech) speechStart = offlineAudio.size - count
-                        heardSpeech = true
-                        silentSamples = 0
-                    } else {
-                        silentSamples += count
-                    }
-                    if (heardSpeech && silentSamples >= rate * AUTO_STOP_SILENCE_MS / 1000) break
-                    if (!heardSpeech && offlineAudio.size >= rate * NO_SPEECH_TIMEOUT_MS / 1000) {
-                        noSpeech = true
-                        break
-                    }
-                }
-                if (!current()) return@Thread
-                audioRecord.stop()
-                if (noSpeech) {
-                    completeResult("", id)
+                val capture = recordAudio(id, stop, loader)
+                if (!isCurrent(id)) return@Thread
+                if (capture.noSpeech) {
+                    completeResult("", id, model.id)
                     return@Thread
                 }
-                // Keep a short tail of the final pause; long trailing silence only slows decoding
-                // and can make some models repeat the last sentence.
-                if (heardSpeech) {
-                    val trim = (silentSamples - rate * KEEP_TAIL_MS / 1000).coerceIn(0, offlineAudio.size)
-                    repeat(trim) { offlineAudio.removeAt(offlineAudio.lastIndex) }
-                    // The VAD reports speech a little after it starts, so keep a longer lead-in.
-                    val lead = (speechStart - rate * KEEP_LEAD_MS / 1000).coerceIn(0, offlineAudio.size)
-                    if (lead > 0) offlineAudio.subList(0, lead).clear()
-                }
-                val stillLoading = !loader.isDone
-                service.mainExecutor.execute {
-                    if (!current()) return@execute
+                val samples = capture.samples
+                androidx.core.content.ContextCompat.getMainExecutor(service).execute {
+                    if (!isCurrent(id)) return@execute
                     if (bubbleMode) {
                         VoiceBubbleBridge.setRecordingActive(false)
-                        VoiceBubbleBridge.setState(if (stillLoading) VoiceBubbleState.WaitingModel else VoiceBubbleState.Recognizing)
-                    } else if (stillLoading) {
+                        VoiceBubbleBridge.setState(if (capture.modelStillLoading) VoiceBubbleState.WaitingModel else VoiceBubbleState.Recognizing)
+                    } else if (capture.modelStillLoading) {
                         recordingMessage?.text = "錄音完成，正在等待模型載入…"
                     }
                 }
@@ -409,30 +351,21 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                 }
                 offline = engine
                 val waitMs = SystemClock.elapsedRealtime() - waitStart
-                if (stillLoading) {
-                    service.mainExecutor.execute {
-                        if (current()) {
+                if (capture.modelStillLoading) {
+                    androidx.core.content.ContextCompat.getMainExecutor(service).execute {
+                        if (isCurrent(id)) {
                             if (bubbleMode) VoiceBubbleBridge.setState(VoiceBubbleState.Recognizing)
                             else recordingMessage?.text = "正在辨識，請稍候…"
                         }
                     }
                 }
-                val samples = FloatArray(offlineAudio.size) { offlineAudio[it] }
                 require(samples.isNotEmpty()) { "沒有錄到語音" }
-                val stream = engine.createStream().also { offlineStream = it }
-                stream.acceptWaveform(samples, rate)
-                val decodeStart = SystemClock.elapsedRealtime()
-                engine.decode(stream)
-                val result = engine.getResult(stream).text
-                Log.i(
-                    TAG,
-                    "engine=${model.id} loadMs=$loadMs waitMs=$waitMs audioMs=${samples.size * 1000L / rate} " +
-                        "decodeMs=${SystemClock.elapsedRealtime() - decodeStart} chars=${result.length}",
-                )
-                completeResult(result, id)
+                val result = decodeAudio(engine, samples, model.id, loadMs, waitMs)
+                keepEngine = true
+                completeResult(result, id, model.id)
             } catch (error: Throwable) {
-                service.mainExecutor.execute {
-                    if (current()) {
+                androidx.core.content.ContextCompat.getMainExecutor(service).execute {
+                    if (isCurrent(id)) {
                         val fromBubble = bubbleMode
                         cancel()
                         if (fromBubble) VoiceBubbleBridge.setState(VoiceBubbleState.Problem("${model.title} 失敗：${error.message}"))
@@ -440,25 +373,131 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
                     }
                 }
             } finally {
-                runCatching { audioRecord?.stop() }
-                audioRecord?.release()
-                vad?.release()
-                offlineStream?.release()
                 // A cancelled session still owns the model being loaded; wait for it so it is freed.
-                (offline ?: runCatching { loader.get() }.getOrNull())?.release()
+                val finishedEngine = offline ?: runCatching { loader.get() }.getOrNull()
+                if (finishedEngine != null) {
+                    if (keepEngine) retainRecognizer(model.id, finishedEngine) else finishedEngine.release()
+                }
             }
         }, "TrimeLocalASR").also { it.start() }
+    }
+
+    private data class AudioCapture(val samples: FloatArray, val noSpeech: Boolean, val modelStillLoading: Boolean)
+
+    private fun isCurrent(id: Int) = active && session == id
+
+    /** Records audio, applies VAD trimming and waits for the model only after the user stops. */
+    private fun recordAudio(
+        id: Int,
+        stop: AtomicBoolean,
+        loader: FutureTask<OfflineRecognizer>,
+    ): AudioCapture {
+        val rate = 16000
+        val vad = if (VoiceModels.autoStop(service)) {
+            runCatching { createVad() }.onFailure { Log.w(TAG, "VAD unavailable", it) }.getOrNull()
+        } else null
+        var audioRecord: AudioRecord? = null
+        try {
+            check(isCurrent(id)) { "錄音已取消" }
+            val minBuffer = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
+            check(minBuffer > 0) { "AudioRecord error $minBuffer" }
+            audioRecord = AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, maxOf(minBuffer * 2, 4096))
+            check(audioRecord.state == AudioRecord.STATE_INITIALIZED) { "麥克風初始化失敗" }
+            val chunk = ShortArray(1024)
+            val offlineAudio = FloatAudioBuffer(rate * 30)
+            check(isCurrent(id)) { "錄音已取消" }
+            audioRecord.startRecording()
+            androidx.core.content.ContextCompat.getMainExecutor(service).execute {
+                if (isCurrent(id)) {
+                    if (bubbleMode) {
+                        VoiceBubbleBridge.setState(VoiceBubbleState.Listening)
+                        if (!loader.isDone) VoiceBubbleBridge.setHint("請說話（模型載入中，可以先說）")
+                        else if (vad != null) VoiceBubbleBridge.setHint(AUTO_STOP_HINT)
+                    } else {
+                        recordingMessage?.text = "請開始說話（模型同時在背景載入）。" +
+                            if (vad != null) "停頓約 1.5 秒會自動結束，也可按「停止並輸入」。" else "說完按「停止並輸入」。"
+                    }
+                }
+            }
+            var heardSpeech = false
+            var speechStart = 0
+            var silentSamples = 0
+            var noSpeech = false
+            while (!stop.get()) {
+                val count = audioRecord.read(chunk, 0, chunk.size)
+                check(count > 0) { "麥克風讀取失敗：$count" }
+                val samples = FloatArray(count) { chunk[it] / 32768.0f }
+                if (bubbleMode) VoiceBubbleBridge.setLevel(levelOf(samples))
+                val accepted = minOf(samples.size, rate * 120 - offlineAudio.size)
+                offlineAudio.add(samples, accepted)
+                if (vad != null) {
+                    vad.acceptWaveform(samples)
+                    while (!vad.empty()) vad.pop()
+                    if (vad.isSpeechDetected()) {
+                        if (!heardSpeech) speechStart = offlineAudio.size - accepted
+                        heardSpeech = true
+                        silentSamples = 0
+                    } else {
+                        silentSamples += accepted
+                    }
+                    if (heardSpeech && silentSamples >= rate * AUTO_STOP_SILENCE_MS / 1000) break
+                    if (!heardSpeech && offlineAudio.size >= rate * NO_SPEECH_TIMEOUT_MS / 1000) {
+                        noSpeech = true
+                        break
+                    }
+                }
+                if (offlineAudio.size >= rate * 120) break
+            }
+            if (!isCurrent(id)) return AudioCapture(FloatArray(0), noSpeech = false, modelStillLoading = !loader.isDone)
+            audioRecord.stop()
+            if (noSpeech) return AudioCapture(FloatArray(0), noSpeech = true, modelStillLoading = !loader.isDone)
+            if (heardSpeech) {
+                val trim = (silentSamples - rate * KEEP_TAIL_MS / 1000).coerceIn(0, offlineAudio.size)
+                offlineAudio.truncate(offlineAudio.size - trim)
+                val lead = (speechStart - rate * KEEP_LEAD_MS / 1000).coerceIn(0, offlineAudio.size)
+                if (lead > 0) offlineAudio.dropPrefix(lead)
+            }
+            return AudioCapture(offlineAudio.toArray(), noSpeech = false, modelStillLoading = !loader.isDone)
+        } finally {
+            runCatching { audioRecord?.stop() }
+            audioRecord?.release()
+            vad?.release()
+        }
+    }
+
+    /** Runs model inference and records load, queue wait and decode timings separately. */
+    private fun decodeAudio(
+        engine: OfflineRecognizer,
+        samples: FloatArray,
+        modelId: String,
+        loadMs: Long,
+        waitMs: Long,
+    ): String {
+        val stream = engine.createStream()
+        try {
+            stream.acceptWaveform(samples, 16000)
+            val decodeStart = SystemClock.elapsedRealtime()
+            engine.decode(stream)
+            val result = engine.getResult(stream).text
+            Log.i(
+                TAG,
+                "engine=$modelId loadMs=$loadMs waitMs=$waitMs audioMs=${samples.size * 1000L / 16000} " +
+                    "decodeMs=${SystemClock.elapsedRealtime() - decodeStart} chars=${result.length}",
+            )
+            return result
+        } finally {
+            stream.release()
+        }
     }
 
     /**
      * Polishes the text off the main thread (OpenCC loads its dictionaries on every call, and the
      * reading table may still be loading), then types it if this recording is still current.
      */
-    private fun completeResult(text: String, id: Int = session) {
-        val engine = selected
+    private fun completeResult(text: String, id: Int = session, engine: String = selected) {
         textWorker.execute {
             val output = if (text.isBlank()) "" else polish(text.trim(), engine)
-            service.mainExecutor.execute {
+            androidx.core.content.ContextCompat.getMainExecutor(service).execute {
                 if (!active || session != id) return@execute
                 val fromBubble = bubbleMode
                 cancel()
@@ -480,7 +519,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         val start = SystemClock.elapsedRealtime()
         val converted = if (engine != ENGINE_GOOGLE) VoiceText.toTaiwan(text) else text
         // Put the user's own names and terms back where the recognizer chose a homophone.
-        val output = PhraseCorrector.correct(VoiceText.applyFixes(PhraseCorrector.tidy(converted)), PhraseHotwords.collect())
+        val output = PhraseCorrector.correct(VoiceText.applyFixes(PhraseCorrector.tidy(converted)), PhraseHotwords.collect(limit = Int.MAX_VALUE))
         Log.i(TAG, "polishMs=${SystemClock.elapsedRealtime() - start}")
         return output
     }
@@ -501,6 +540,59 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         recordingMessage = null
         recordingFinishButton = null
         if (wasBubbleMode) VoiceBubbleBridge.setState(VoiceBubbleState.Idle)
+    }
+
+    fun shutdown() {
+        shuttingDown = true
+        cancel()
+        textWorker.shutdownNow()
+        releaseCachedRecognizer()
+    }
+
+    private fun releaseCachedRecognizer() {
+        val cached = synchronized(offlineCacheLock) { cachedOffline.also { cachedOffline = null } }
+        cached?.recognizer?.release()
+    }
+
+    fun onMemoryPressure() = releaseCachedRecognizer()
+
+    private fun takeCachedRecognizer(modelId: String): OfflineRecognizer? {
+        val cached = synchronized(offlineCacheLock) { cachedOffline.also { cachedOffline = null } } ?: return null
+        return if (cached.modelId == modelId) {
+            cached.recognizer
+        } else {
+            cached.recognizer.release()
+            null
+        }
+    }
+
+    private fun retainRecognizer(modelId: String, recognizer: OfflineRecognizer) {
+        var retained = false
+        val replaced = synchronized(offlineCacheLock) {
+            if (shuttingDown) null else {
+                retained = true
+                cachedOffline?.recognizer.also { cachedOffline = CachedOffline(modelId, recognizer) }
+            }
+        }
+        if (!retained) {
+            recognizer.release()
+            return
+        }
+        if (replaced != null && replaced !== recognizer) replaced.release()
+        Thread({
+            try {
+                Thread.sleep(OFFLINE_RECOGNIZER_IDLE_MS)
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
+            val expired = synchronized(offlineCacheLock) {
+                if (cachedOffline?.recognizer === recognizer) {
+                    cachedOffline = null
+                    true
+                } else false
+            }
+            if (expired) recognizer.release()
+        }, "TrimeRecognizerExpiry").apply { isDaemon = true }.start()
     }
 
     override fun onReadyForSpeech(params: Bundle?) {
@@ -563,6 +655,26 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
 
     private val textWorker = java.util.concurrent.Executors.newSingleThreadExecutor { Thread(it, "VoiceText") }
 
+    private class FloatAudioBuffer(initialCapacity: Int) {
+        private var values = FloatArray(initialCapacity)
+        var size = 0
+            private set
+        fun add(source: FloatArray, count: Int) {
+            if (count <= 0) return
+            val needed = size + count
+            if (needed > values.size) values = values.copyOf(maxOf(needed, values.size * 2))
+            source.copyInto(values, size, 0, count)
+            size = needed
+        }
+        fun truncate(newSize: Int) { size = newSize.coerceIn(0, size) }
+        fun dropPrefix(count: Int) {
+            val n = count.coerceIn(0, size)
+            values.copyInto(values, 0, n, size)
+            size -= n
+        }
+        fun toArray() = values.copyOf(size)
+    }
+
     companion object {
         private const val TAG = "VoiceInput"
         /** Pause after speech that ends a recording; the VAD itself adds about 0.25 s. */
@@ -570,6 +682,7 @@ class VoiceInputController(private val service: TrimeInputMethodService) : Recog
         private const val NO_SPEECH_TIMEOUT_MS = 8_000
         private const val KEEP_TAIL_MS = 300
         private const val KEEP_LEAD_MS = 500
+        private const val OFFLINE_RECOGNIZER_IDLE_MS = 30_000L
         private const val AUTO_STOP_HINT = "請說話，停頓約 1.5 秒自動結束"
     }
 }

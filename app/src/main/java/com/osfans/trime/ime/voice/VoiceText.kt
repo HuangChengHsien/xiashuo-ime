@@ -38,22 +38,7 @@ object VoiceText {
     }.onFailure { Timber.w(it, "voice OpenCC conversion failed") }.getOrDefault(text)
 
     /** Replaces whole matches from the voice wording list, longest source first, left to right. */
-    fun applyFixes(text: String): String {
-        val list = fixes()
-        if (list.isEmpty()) return text
-        val out = StringBuilder(text.length)
-        var i = 0
-        while (i < text.length) {
-            val hit = list.firstOrNull { (from, _) -> text.startsWith(from, i) }
-            if (hit != null) {
-                out.append(hit.second)
-                i += hit.first.length
-            } else {
-                out.append(text[i++])
-            }
-        }
-        return out.toString()
-    }
+    fun applyFixes(text: String): String = VoiceTextRules.applyFixes(text, fixes())
 
     private fun fixes(): List<Pair<String, String>> {
         val file = CustomPhraseKind.VOICE_FIX.file(DataManager.userDataDir)

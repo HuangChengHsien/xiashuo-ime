@@ -15,6 +15,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.preference.Preference
 import androidx.preference.PreferenceGroup
@@ -29,11 +30,14 @@ import com.osfans.trime.ui.common.PaddingPreferenceFragment
 import com.osfans.trime.util.addCategory
 import com.osfans.trime.util.addPreference
 import com.osfans.trime.util.navigateWithAnim
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainFragment : PaddingPreferenceFragment() {
     private companion object {
         const val GEMMA_MODEL_URL =
-            "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm?download=true"
+            "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/6b78abd019e61a1ca4cbe3b212d2c9ce8ff38a94/gemma-4-E2B-it.litertlm?download=true"
     }
 
     private val viewModel: MainViewModel by activityViewModels()
@@ -69,19 +73,38 @@ class MainFragment : PaddingPreferenceFragment() {
     private fun confirmGemmaModelDownload() {
         val ctx = requireContext()
         val modelFile = GemmaRewrite.modelFile(ctx)
-        if (modelFile?.isFile == true && modelFile.length() > 0) {
-            Toast.makeText(ctx, "Gemma 4 E2B 模型已下載", Toast.LENGTH_LONG).show()
+        if (modelFile.isFile && modelFile.length() > 0) {
+            lifecycleScope.launch {
+                val valid = withContext(Dispatchers.IO) {
+                    runCatching { GemmaRewrite.verifyModelFile(ctx, modelFile) }.isSuccess
+                }
+                if (!isAdded) return@launch
+                if (valid) {
+                    Toast.makeText(ctx, "Gemma 4 E2B 模型已下載", Toast.LENGTH_LONG).show()
+                } else {
+                    showGemmaModelDownloadDialog(ctx, modelFile, replaceInvalid = true)
+                }
+            }
             return
         }
+        showGemmaModelDownloadDialog(ctx, modelFile, replaceInvalid = false)
+    }
+
+    private fun showGemmaModelDownloadDialog(ctx: Context, modelFile: java.io.File, replaceInvalid: Boolean) {
         AlertDialog.Builder(ctx)
             .setTitle(R.string.gemma_model_download)
-            .setMessage(R.string.gemma_model_download_confirm)
+            .setMessage(
+                if (replaceInvalid) "現有模型檔的 SHA-256 不符。刪除舊檔並重新下載約 2.6 GB 的模型嗎？"
+                else getString(R.string.gemma_model_download_confirm),
+            )
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.download) { _, _ ->
                 val relativePath = GemmaRewrite.MODEL_RELATIVE_PATH
                 runCatching {
                     val target = GemmaRewrite.modelFile(ctx)
-                        ?: error("External model directory is unavailable")
+                    if (replaceInvalid && target.exists() && !target.delete()) {
+                        error("無法刪除 SHA-256 不符的 Gemma 模型檔")
+                    }
                     target.parentFile?.mkdirs()
                     val manager = ctx.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
                     manager.enqueue(

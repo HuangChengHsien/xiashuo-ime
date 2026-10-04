@@ -8,7 +8,11 @@ package com.osfans.trime.ime.voice
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
+import android.app.AlertDialog
 import android.widget.Toast
 import com.osfans.trime.R
 
@@ -16,9 +20,21 @@ import com.osfans.trime.R
 class VoicePermissionActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val prefs = getSharedPreferences("voice_permission", MODE_PRIVATE)
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             finish()
+        } else if (prefs.getBoolean("requested", false) && !shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
+            AlertDialog.Builder(this)
+                .setMessage("麥克風權限已關閉，請到應用程式設定中允許使用麥克風。")
+                .setPositiveButton("前往設定") { _, _ ->
+                    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+                    finish()
+                }
+                .setNegativeButton("取消") { _, _ -> finish() }
+                .setOnCancelListener { finish() }
+                .show()
         } else {
+            prefs.edit().putBoolean("requested", true).apply()
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_AUDIO)
         }
     }

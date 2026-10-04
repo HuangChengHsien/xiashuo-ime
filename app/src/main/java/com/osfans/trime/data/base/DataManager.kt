@@ -56,10 +56,11 @@ object DataManager {
         .use { it.readText() }
         .let { deserializeDataChecksums(it) }
 
-    val sharedDataDir = File(appContext.getExternalFilesDir(null), "shared").also { it.mkdirs() }
+    private val appFilesDir get() = appContext.getExternalFilesDir(null) ?: appContext.filesDir
+    val sharedDataDir = File(appFilesDir, "shared").also { it.mkdirs() }
 
     private val runtimeUserDataDir =
-        File(appContext.getExternalFilesDir(null), "rime").also { it.mkdirs() }
+        File(appFilesDir, "rime").also { it.mkdirs() }
 
     /** App-scoped path used by Rime at runtime. */
     val userDataDir get() = runtimeUserDataDir

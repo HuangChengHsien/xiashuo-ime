@@ -32,7 +32,7 @@ data class VoiceModelFile(
  * pinned sizes and hashes keep matching even if the upstream repository changes.
  */
 /** How a recognizer runs on the phone; [VoiceTuning.DEFAULT] is what the keyboard uses. */
-data class VoiceTuning(val numThreads: Int = 4, val provider: String = "cpu") {
+data class VoiceTuning(val numThreads: Int = Runtime.getRuntime().availableProcessors().coerceIn(1, 4), val provider: String = "cpu") {
     companion object {
         val DEFAULT = VoiceTuning()
     }
@@ -55,7 +55,7 @@ data class VoiceModel(
 
     fun url(file: VoiceModelFile) = "https://huggingface.co/$repo/resolve/$revision/${file.path}"
 
-    fun directory(context: Context) = File(context.getExternalFilesDir(null), "models/$id")
+    fun directory(context: Context) = File(context.getExternalFilesDir(null) ?: context.filesDir, "models/$id")
 
     fun target(context: Context, file: VoiceModelFile) = File(directory(context), file.path)
 
@@ -144,10 +144,9 @@ object VoiceModels {
             title = "Fun-ASR-Nano",
             note = "Fun-ASR-Nano-2512 INT8；辨識約 1 秒，載入約 6 秒（可邊說邊載入）。會參考「自訂詞語」裡的人名與專有名詞。",
             repo = "csukuangfj/sherpa-onnx-funasr-nano-int8-2025-12-30",
-            // Tensor G3 has five fast cores (1×X3, 4×A715). On the Pixel 8 Pro, 5 threads
-            // decoded 14 s of speech in 5.4 s versus 5.9 s with 4 and 6.3 s with 6; NNAPI was
-            // no faster and less steady (VoiceModelBenchmarkActivity, 2026-10-03).
-            tuning = VoiceTuning(numThreads = 5),
+            // Cap at five: Tensor G3 was fastest at five (14 s decoded in 5.4 s); smaller
+            // devices use their available core count instead of being forced to five workers.
+            tuning = VoiceTuning(numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 5)),
             revision = "6f16bd378457e13f36ccf3910df9017f96c346fb",
             files = listOf(
                 VoiceModelFile("encoder_adaptor.int8.onnx", 237792748L, "f36dea2e30fbc33b5db1d7a7265cc976c5e5586c77b042d5adb1ad27c72db422"),

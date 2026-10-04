@@ -60,10 +60,15 @@ class VoiceBubbleService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIFICATION_ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
-        } else {
-            startForeground(NOTIFICATION_ID, notification())
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(NOTIFICATION_ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            } else {
+                startForeground(NOTIFICATION_ID, notification())
+            }
+        } catch (error: RuntimeException) {
+            stopSelf()
+            return
         }
         windowManager = getSystemService(WindowManager::class.java)
         showBubble()
@@ -142,7 +147,8 @@ class VoiceBubbleService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             val types = ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
                 if (active) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
-            startForeground(NOTIFICATION_ID, notification(), types)
+            runCatching { startForeground(NOTIFICATION_ID, notification(), types) }
+                .onFailure { stopSelf() }
         }
     }
 

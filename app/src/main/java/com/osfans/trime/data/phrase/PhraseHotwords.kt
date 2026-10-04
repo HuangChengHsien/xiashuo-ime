@@ -18,14 +18,14 @@ object PhraseHotwords {
     private val excluded = setOf('@', ',', '，', '。', '、', '：', ':', '；', ';', '！', '？', '「', '」', '（', '）', '(', ')')
 
     /** Qualifying phrase texts, at most [MAX_WORDS], possibly empty. */
-    fun collect(userDataDir: File = DataManager.userDataDir): List<String> =
+    fun collect(userDataDir: File = DataManager.userDataDir, limit: Int = MAX_WORDS): List<String> =
         CustomPhraseKind.entries
             .filter { it.readByRime }
             .flatMap { kind -> runCatching { kind.load(userDataDir).entries }.getOrDefault(emptyList()) }
             .map { it.phrase.text.trim() }
             .filter(::suitable)
             .distinct()
-            .take(MAX_WORDS)
+            .take(limit.coerceAtLeast(0))
 
     private fun suitable(text: String): Boolean {
         if (text.any { it.isDigit() || it in excluded }) return false

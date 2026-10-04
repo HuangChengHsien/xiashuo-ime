@@ -284,10 +284,12 @@ class VoiceModelsFragment : Fragment() {
     }
 
     private fun importFolder(model: VoiceModel, tree: Uri) {
+        val ctx = requireContext()
+        val resolver = ctx.contentResolver
         lifecycleScope.launch {
-            val found = withContext(Dispatchers.IO) { findInTree(tree, model.files.map { it.name }.toSet()) }
+            val found = withContext(Dispatchers.IO) { findInTree(resolver, tree, model.files.map { it.name }.toSet()) }
             val matches = model.files.mapNotNull { spec -> found[spec.name]?.let { spec to it } }
-            if (matches.isEmpty()) requireContext().toast("這個資料夾裡沒有 ${model.title} 需要的檔案")
+            if (matches.isEmpty()) ctx.toast("這個資料夾裡沒有 ${model.title} 需要的檔案")
             else runImport(model, matches)
         }
     }
@@ -331,8 +333,7 @@ class VoiceModelsFragment : Fragment() {
         } ?: uri.lastPathSegment.orEmpty()
 
     /** Walks a picked folder breadth-first (three levels) and returns the first document for each wanted name. */
-    private fun findInTree(tree: Uri, wanted: Set<String>): Map<String, Uri> {
-        val resolver = requireContext().contentResolver
+    private fun findInTree(resolver: android.content.ContentResolver, tree: Uri, wanted: Set<String>): Map<String, Uri> {
         val found = mutableMapOf<String, Uri>()
         var level = listOf(DocumentsContract.getTreeDocumentId(tree))
         repeat(3) {

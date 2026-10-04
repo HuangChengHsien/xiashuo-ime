@@ -315,7 +315,8 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onDestroy() {
-        voiceInput.cancel()
+        voiceInput.shutdown()
+        GemmaRewrite.releaseCachedEngine()
         VoiceBubbleBridge.unbind()
         stopService(Intent(this, VoiceBubbleService::class.java))
         InputFeedbackManager.destroy()
@@ -329,6 +330,14 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         super.onDestroy()
         unregisterReceiver(rimeIntentReceiver)
         RimeDaemon.destroySession(javaClass.name)
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
+            voiceInput.onMemoryPressure()
+            GemmaRewrite.releaseCachedEngine()
+        }
     }
 
     private fun handleReturnKey() {
