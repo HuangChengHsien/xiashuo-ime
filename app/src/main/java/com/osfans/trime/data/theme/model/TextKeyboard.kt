@@ -160,7 +160,7 @@ data class TextKeyboard(
             keyPressOffsetY = node["key_press_offset_y"]?.float ?: 0f,
             importPreset = node["import_preset"]?.string ?: "",
             keys = node["keys"]?.sequence?.mapNotNull {
-                TextKey.decode(it.mapping!!)
+                it.mapping?.let(TextKey::decode)
             } ?: emptyList(),
         )
     }

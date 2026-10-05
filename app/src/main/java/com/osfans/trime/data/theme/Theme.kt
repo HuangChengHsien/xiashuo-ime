@@ -18,6 +18,7 @@ import com.osfans.trime.util.yaml.Node
 import com.osfans.trime.util.yaml.mapping
 import com.osfans.trime.util.yaml.string
 import kotlinx.parcelize.Parcelize
+import timber.log.Timber
 
 /** 主题和样式配置  */
 @Parcelize
@@ -34,32 +35,57 @@ data class Theme(
     val toolBar: ToolBar,
 ) : Parcelable {
     companion object {
-        fun decode(node: Node.Mapping): Theme = Theme(
-            name = node["name"]?.string!!,
-            generalStyle = GeneralStyle.decode(node["style"]!!),
+        /**
+         * Decodes a theme. A malformed preset key, keyboard or color entry is skipped and reported
+         * in [warnings] instead of making the whole theme unusable.
+         */
+        fun decode(
+            node: Node.Mapping,
+            warnings: MutableList<String>? = null,
+        ): Theme = Theme(
+            name = requireNotNull(node["name"]?.string) { "缺少 name 欄位" },
+            generalStyle = GeneralStyle.decode(requireNotNull(node["style"]) { "缺少 style 區塊" }),
             preedit = Preedit.decode(node["preedit"]?.mapping),
             window = Window.decode(node["window"]?.mapping),
             liquidKeyboard = LiquidKeyboard.decode(node["liquid_keyboard"]?.mapping),
             toolBar = ToolBar.decode(node["tool_bar"]?.mapping),
-            presetKeys = node["preset_keys"]?.mapping?.entries?.associate {
-                it.key.string!! to PresetKey.decode(it.value.mapping!!)
-            } ?: emptyMap(),
-            presetKeyboards =
-            node["preset_keyboards"]?.mapping?.entries?.associate {
-                it.key.string!! to TextKeyboard.decode(it.value.mapping!!)
-            } ?: emptyMap(),
-            colorSchemes =
-            node["preset_color_schemes"]?.mapping?.map {
-                ColorScheme(
-                    it.key.string!!,
-                    it.value.mapping!!.entries.associate { (k, v) ->
-                        k.string!! to v.string!!
-                    },
-                )
-            } ?: emptyList(),
-            fallbackColors = node["fallback_colors"]?.mapping?.entries?.associate {
-                it.key.string!! to it.value.string!!
-            } ?: emptyMap(),
+            presetKeys = decodeEntries(node["preset_keys"], "preset_keys", warnings) {
+                PresetKey.decode(requireNotNull(it.mapping) { "不是 key: value 對應" })
+            },
+            presetKeyboards = decodeEntries(node["preset_keyboards"], "preset_keyboards", warnings) {
+                TextKeyboard.decode(requireNotNull(it.mapping) { "不是 key: value 對應" })
+            },
+            colorSchemes = decodeEntries(node["preset_color_schemes"], "preset_color_schemes", warnings) { scheme ->
+                requireNotNull(scheme.mapping) { "不是 key: value 對應" }.entries.mapNotNull { (k, v) ->
+                    val key = k.string ?: return@mapNotNull null
+                    val value = v.string ?: return@mapNotNull null
+                    key to value
+                }.toMap()
+            }.map { (id, colors) -> ColorScheme(id, colors) },
+            fallbackColors = decodeEntries(node["fallback_colors"], "fallback_colors", warnings) {
+                requireNotNull(it.string) { "不是文字" }
+            },
         )
+
+        private fun <T> decodeEntries(
+            node: Node?,
+            section: String,
+            warnings: MutableList<String>?,
+            decode: (Node) -> T,
+        ): Map<String, T> {
+            val entries = node?.mapping?.entries ?: return emptyMap()
+            val result = LinkedHashMap<String, T>()
+            for ((key, value) in entries) {
+                val name = key.string ?: continue
+                runCatching { decode(value) }
+                    .onSuccess { result[name] = it }
+                    .onFailure {
+                        val message = "$section/$name：${it.message ?: it.javaClass.simpleName}"
+                        Timber.w(it, "Skip malformed theme entry %s", message)
+                        warnings?.add(message)
+                    }
+            }
+            return result
+        }
     }
 }

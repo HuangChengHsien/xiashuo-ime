@@ -28,13 +28,19 @@ object ThemeFilesManager {
                 val item =
                     runCatching {
                         val configId = it.nameWithoutExtension
+                        val fallbackName = configId.removeSuffix(".trime")
+                        // Keep a theme listed even when its compiled copy is broken, so the user can
+                        // still pick it and see why it fails instead of it silently disappearing.
                         val name =
                             if (deployedMap[it.name] != null) {
-                                val file = File(DataManager.resolveDeployedResourcePath(configId))
-                                val node = Yaml.parseToYamlNode(file.readText()).mapping
-                                node?.get("name")?.string ?: return@decode null
+                                runCatching {
+                                    val file = File(DataManager.resolveDeployedResourcePath(configId))
+                                    Yaml.parseToYamlNode(file.readText()).mapping?.get("name")?.string
+                                }.onFailure { e ->
+                                    Timber.w("Failed to read name of theme ${it.absolutePath}: ${e.message}")
+                                }.getOrNull() ?: fallbackName
                             } else {
-                                configId.removeSuffix(".trime")
+                                fallbackName
                             }
                         ThemeItem(configId, name)
                     }.getOrElse { e ->

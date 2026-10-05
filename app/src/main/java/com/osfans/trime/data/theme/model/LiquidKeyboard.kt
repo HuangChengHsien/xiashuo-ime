@@ -81,9 +81,11 @@ data class LiquidKeyboard(
                                 keysNode.forEach { item ->
                                     if (item is Node.Mapping) {
                                         val map =
-                                            item.entries.associate {
-                                                it.key.string!! to it.value.string!!
-                                            }
+                                            item.entries.mapNotNull {
+                                                val key = it.key.string ?: return@mapNotNull null
+                                                val value = it.value.string ?: return@mapNotNull null
+                                                key to value
+                                            }.toMap()
                                         if (map.containsKey("click")) {
                                             val clickText = map["click"] ?: ""
                                             val labelText = map["label"] ?: ""

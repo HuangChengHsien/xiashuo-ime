@@ -100,7 +100,7 @@ data class ToolBar(
     companion object {
         fun decode(node: Node.Mapping?): ToolBar = ToolBar(
             primaryButton = node?.get("primary_button")?.mapping?.let { Button.decode(it) },
-            buttons = node?.get("buttons")?.sequence?.map { Button.decode(it.mapping!!) } ?: emptyList(),
+            buttons = node?.get("buttons")?.sequence?.mapNotNull { it.mapping?.let(Button::decode) } ?: emptyList(),
             buttonSpacing = node?.get("button_spacing")?.int ?: 18,
             buttonFont = node?.get("button_font")?.sequence
                 ?.mapNotNull(Node::string) ?: emptyList(),
