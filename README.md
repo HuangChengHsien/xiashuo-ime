@@ -95,7 +95,10 @@ BUILD_ABI=arm64-v8a ./gradlew :app:assembleDebug
 
 本專案保留 Trime 至 v3.3.12 的完整歷史，蝦說輸入法的修改都在其後的 commit。
 Trime 原本的說明見 [README_trime.md](README_trime.md)。
-本專案未包含上游的 GitHub Actions 打包流程。
+推送到 GitHub 後，`.github/workflows/build-apk.yml` 會自動編譯 arm64-v8a APK，
+到 repo 的 Actions 頁面點進該次執行，從 Artifacts 下載。設定了 `SIGNING_KEY_BASE64`、
+`SIGNING_STORE_PASSWORD`、`SIGNING_KEY_ALIAS`、`SIGNING_KEY_PASSWORD` 四個 repository
+secrets 時會產生已簽章的 release APK；沒有設定時改出 debug APK。
 
 ## 授權
 
