@@ -280,6 +280,8 @@
     <string name="settings_summary_fonts_and_sizes">按鍵、候選字與註解的字型和大小</string>
     <string name="settings_section_voice">語音輸入</string>
     <string name="settings_section_gemma">AI 文字潤飾</string>
+    <string name="llm_models">潤飾模型管理</string>
+    <string name="llm_models_summary">下載、選用、匯入或刪除本機模型</string>
     <string name="download">下載</string>
     <string name="gemma_model_download">下載 Gemma 4 E2B 潤飾模型</string>
     <string name="gemma_model_download_summary">下載約 2.6 GB 模型；潤飾在手機離線執行</string>

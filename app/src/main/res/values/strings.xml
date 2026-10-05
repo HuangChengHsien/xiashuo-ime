@@ -280,6 +280,8 @@
     <string name="settings_summary_fonts_and_sizes">Fonts and text sizes of keys and candidates</string>
     <string name="settings_section_voice">Voice input</string>
     <string name="settings_section_gemma">AI text polishing</string>
+    <string name="llm_models">Polishing models</string>
+    <string name="llm_models_summary">Download, select, import, or delete a local LLM</string>
     <string name="download">Download</string>
     <string name="gemma_model_download">Download Gemma 4 E2B polishing model</string>
     <string name="gemma_model_download_summary">Download the ~2.6 GB model; polishing runs offline on this device</string>

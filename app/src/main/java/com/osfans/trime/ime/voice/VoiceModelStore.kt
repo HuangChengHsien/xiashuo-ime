@@ -25,6 +25,26 @@ object VoiceModelStore {
         input: InputStream,
         onProgress: (Long) -> Unit,
     ) {
+        importStream(model.title, spec, target, input, onProgress)
+    }
+
+    fun importStream(
+        model: LlmModel,
+        spec: VoiceModelFile,
+        target: File,
+        input: InputStream,
+        onProgress: (Long) -> Unit,
+    ) {
+        importStream(model.title, spec, target, input, onProgress)
+    }
+
+    private fun importStream(
+        title: String,
+        spec: VoiceModelFile,
+        target: File,
+        input: InputStream,
+        onProgress: (Long) -> Unit,
+    ) {
         val part = partFile(target).apply { parentFile?.mkdirs() }
         try {
             var copied = 0L
@@ -34,7 +54,7 @@ object VoiceModelStore {
                     val count = input.read(buffer)
                     if (count < 0) break
                     copied += count
-                    require(copied <= spec.size) { "${spec.name} 比 ${model.title} 需要的檔案大，可能是其他版本" }
+                    require(copied <= spec.size) { "${spec.name} 比 $title 需要的檔案大，可能是其他版本" }
                     output.write(buffer, 0, count)
                     onProgress(copied)
                 }

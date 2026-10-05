@@ -28,13 +28,13 @@ import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.security.MessageDigest
 
-/** One-shot local text polishing with the user's Gemma 4 E2B model. */
+/** One-shot local text polishing with the selected LiteRT-LM model. */
 object GemmaRewrite {
     const val MODEL_RELATIVE_PATH = "models/gemma-4-e2b/gemma-4-E2B-it.litertlm"
     const val MODEL_SHA256 = "181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c"
     private val engineMutex = Mutex()
     private val cleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    @Volatile private var verifiedFile: Pair<Long, Long>? = null
+    @Volatile private var verifiedFile: String? = null
     @Volatile private var cachedEngine: CachedEngine? = null
 
     private class CachedEngine(val modelPath: String, val backendName: String, val engine: Engine) {
@@ -45,19 +45,19 @@ object GemmaRewrite {
     private const val TAG = "GemmaRewrite"
     private const val ENGINE_IDLE_TIMEOUT_MS = 30_000L
 
-    fun modelFile(context: Context): File =
-        File(context.getExternalFilesDir(null) ?: context.filesDir, MODEL_RELATIVE_PATH)
+    fun modelFile(context: Context): File = LlmModels.selected(context).target(context)
 
     suspend fun rewrite(context: Context, source: String): String = engineMutex.withLock {
         withContext(Dispatchers.IO) {
             val totalStart = SystemClock.elapsedRealtime()
-            val model = modelFile(context)
+            val selected = LlmModels.selected(context)
+            val model = selected.target(context)
             require(model.isFile) {
-                "找不到 Gemma 4 E2B 模型：請確認模型已放在蝦說的 models/gemma-4-e2b 資料夾。"
+                "找不到 ${selected.title} 模型：請到 AI 文字潤飾模型頁下載或匯入。"
             }
             val verifyStart = SystemClock.elapsedRealtime()
-            verifyModelFile(context, model)
-            Log.i(TAG, "phase=verify elapsedMs=${SystemClock.elapsedRealtime() - verifyStart}")
+            verifyModelFile(context, selected)
+            Log.i(TAG, "model=${selected.id} phase=verify elapsedMs=${SystemClock.elapsedRealtime() - verifyStart}")
 
             val prompt = """
                 請潤飾以下文字，使用自然、清楚的臺灣繁體中文。
@@ -81,20 +81,22 @@ object GemmaRewrite {
             }
             Log.i(
                 TAG,
-                "phase=inference elapsedMs=${SystemClock.elapsedRealtime() - generateStart} totalMs=${SystemClock.elapsedRealtime() - totalStart} inputChars=${source.length} outputChars=${result.length}",
+                "model=${selected.id} phase=inference elapsedMs=${SystemClock.elapsedRealtime() - generateStart} totalMs=${SystemClock.elapsedRealtime() - totalStart} inputChars=${source.length} outputChars=${result.length}",
             )
             result.trim().also { check(it.isNotEmpty()) { "模型沒有產生潤飾結果。" } }
         }
     }
 
     @Synchronized
-    fun verifyModelFile(context: Context, model: File) {
+    fun verifyModelFile(context: Context, selected: LlmModel) {
+        val model = selected.target(context)
+        check(model.isFile && model.length() == selected.size) { "${selected.title} 模型大小不符，請重新下載或匯入。" }
         val stamp = model.length() to model.lastModified()
         val cacheKey = "${model.absolutePath}:verified-sha256"
-        val fingerprint = "${stamp.first}:${stamp.second}:$MODEL_SHA256"
+        val fingerprint = "${stamp.first}:${stamp.second}:${selected.sha256}"
         val prefs = context.applicationContext.getSharedPreferences("gemma_model_integrity", Context.MODE_PRIVATE)
-        if (verifiedFile == stamp || prefs.getString(cacheKey, null) == fingerprint) {
-            verifiedFile = stamp
+        if (verifiedFile == "$cacheKey:$fingerprint" || prefs.getString(cacheKey, null) == fingerprint) {
+            verifiedFile = "$cacheKey:$fingerprint"
             Log.i(TAG, "phase=verify cached=true bytes=${model.length()}")
             return
         }
@@ -109,10 +111,17 @@ object GemmaRewrite {
             }
         }
         val actual = digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
-        check(actual == MODEL_SHA256) { "Gemma 模型檔 SHA-256 不符，請刪除後重新下載。" }
-        verifiedFile = stamp
+        check(actual == selected.sha256) { "${selected.title} 模型檔 SHA-256 不符，請刪除後重新下載。" }
+        verifiedFile = "$cacheKey:$fingerprint"
         prefs.edit().putString(cacheKey, fingerprint).apply()
         Log.i(TAG, "phase=verify cached=false elapsedMs=${SystemClock.elapsedRealtime() - start} bytes=${model.length()}")
+    }
+
+    /** Retained for existing callers that explicitly verify the legacy default model. */
+    fun verifyModelFile(context: Context, model: File) {
+        val selected = LlmModels.all.find { it.target(context).absolutePath == model.absolutePath }
+            ?: error("未知的潤飾模型")
+        verifyModelFile(context, selected)
     }
 
     /** Releases the warm model after a memory warning or when the keyboard service is destroyed. */
@@ -120,6 +129,10 @@ object GemmaRewrite {
         cleanupScope.launch {
             engineMutex.withLock { closeCachedEngine() }
         }
+    }
+
+    suspend fun releaseCachedEngineAndWait() {
+        engineMutex.withLock { closeCachedEngine() }
     }
 
     private fun generate(model: File, prompt: String, backend: Backend, context: Context, backendName: String): String {
@@ -161,7 +174,7 @@ object GemmaRewrite {
             EngineConfig(
                 modelPath = path,
                 backend = backend,
-                cacheDir = File(context.cacheDir, "gemma4").absolutePath,
+                cacheDir = File(context.cacheDir, "litertlm-${model.parentFile?.name}").apply { mkdirs() }.absolutePath,
             ),
         )
         val start = SystemClock.elapsedRealtime()

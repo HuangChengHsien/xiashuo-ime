@@ -5,17 +5,11 @@
 
 package com.osfans.trime.ui.main
 
-import android.content.Context
 import android.content.Intent
-import android.app.DownloadManager
-import android.net.Uri
 import android.os.Bundle
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.preference.Preference
 import androidx.preference.PreferenceGroup
@@ -25,23 +19,16 @@ import com.osfans.trime.ime.voice.VoiceBubbleBridge
 import com.osfans.trime.ime.voice.VoiceBubblePermissionActivity
 import com.osfans.trime.ime.voice.VoiceBubbleService
 import com.osfans.trime.ime.voice.VoiceModels
-import com.osfans.trime.ime.voice.GemmaRewrite
+import com.osfans.trime.ime.voice.LlmModels
 import com.osfans.trime.ui.common.PaddingPreferenceFragment
 import com.osfans.trime.util.addCategory
 import com.osfans.trime.util.addPreference
 import com.osfans.trime.util.navigateWithAnim
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainFragment : PaddingPreferenceFragment() {
-    private companion object {
-        const val GEMMA_MODEL_URL =
-            "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/6b78abd019e61a1ca4cbe3b212d2c9ce8ff38a94/gemma-4-E2B-it.litertlm?download=true"
-    }
-
     private val viewModel: MainViewModel by activityViewModels()
     private var voiceModelsPreference: Preference? = null
+    private var llmModelsPreference: Preference? = null
     private var voiceBubblePreference: SwitchPreferenceCompat? = null
 
     override fun onResume() {
@@ -56,6 +43,7 @@ class MainFragment : PaddingPreferenceFragment() {
         val selected = VoiceModels.selectedEngine(ctx)
         val installed = VoiceModels.all.count { it.isInstalled(ctx) }
         voiceModelsPreference?.summary = "使用中：${VoiceModels.engineName(selected)} · 已安裝 $installed 個模型"
+        llmModelsPreference?.summary = "使用中：${LlmModels.selected(ctx).title} · 已安裝 ${LlmModels.all.count { it.isInstalled(ctx) }} 個模型"
         voiceBubblePreference?.isChecked = VoiceBubbleBridge.isRunning()
     }
 
@@ -68,60 +56,6 @@ class MainFragment : PaddingPreferenceFragment() {
         } else {
             ctx.startService(Intent(ctx, VoiceBubbleService::class.java).setAction(VoiceBubbleService.ACTION_TOGGLE))
         }
-    }
-
-    private fun confirmGemmaModelDownload() {
-        val ctx = requireContext()
-        val modelFile = GemmaRewrite.modelFile(ctx)
-        if (modelFile.isFile && modelFile.length() > 0) {
-            lifecycleScope.launch {
-                val valid = withContext(Dispatchers.IO) {
-                    runCatching { GemmaRewrite.verifyModelFile(ctx, modelFile) }.isSuccess
-                }
-                if (!isAdded) return@launch
-                if (valid) {
-                    Toast.makeText(ctx, "Gemma 4 E2B 模型已下載", Toast.LENGTH_LONG).show()
-                } else {
-                    showGemmaModelDownloadDialog(ctx, modelFile, replaceInvalid = true)
-                }
-            }
-            return
-        }
-        showGemmaModelDownloadDialog(ctx, modelFile, replaceInvalid = false)
-    }
-
-    private fun showGemmaModelDownloadDialog(ctx: Context, modelFile: java.io.File, replaceInvalid: Boolean) {
-        AlertDialog.Builder(ctx)
-            .setTitle(R.string.gemma_model_download)
-            .setMessage(
-                if (replaceInvalid) "現有模型檔的 SHA-256 不符。刪除舊檔並重新下載約 2.6 GB 的模型嗎？"
-                else getString(R.string.gemma_model_download_confirm),
-            )
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.download) { _, _ ->
-                val relativePath = GemmaRewrite.MODEL_RELATIVE_PATH
-                runCatching {
-                    val target = GemmaRewrite.modelFile(ctx)
-                    if (replaceInvalid && target.exists() && !target.delete()) {
-                        error("無法刪除 SHA-256 不符的 Gemma 模型檔")
-                    }
-                    target.parentFile?.mkdirs()
-                    val manager = ctx.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                    manager.enqueue(
-                        DownloadManager.Request(Uri.parse(GEMMA_MODEL_URL))
-                            .setTitle(ctx.getString(R.string.gemma_model_download))
-                            .setDescription(ctx.getString(R.string.gemma_model_download_progress))
-                            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                            .setAllowedOverRoaming(false)
-                            .setDestinationInExternalFilesDir(ctx, null, relativePath),
-                    )
-                }.onSuccess {
-                    Toast.makeText(ctx, R.string.gemma_model_download_started, Toast.LENGTH_LONG).show()
-                }.onFailure {
-                    Toast.makeText(ctx, R.string.gemma_model_download_failed, Toast.LENGTH_LONG).show()
-                }
-            }
-            .show()
     }
 
     override fun onStart() {
@@ -219,10 +153,11 @@ class MainFragment : PaddingPreferenceFragment() {
             addCategory(R.string.settings_section_gemma) {
                 isIconSpaceReserved = false
                 addPreference(
-                    R.string.gemma_model_download,
-                    summary = R.string.gemma_model_download_summary,
+                    R.string.llm_models,
+                    summary = R.string.llm_models_summary,
                     icon = R.drawable.ic_baseline_link_24,
-                ) { confirmGemmaModelDownload() }
+                ) { findNavController().navigateWithAnim(NavigationRoute.LlmModels) }
+                llmModelsPreference = getPreference(preferenceCount - 1)
             }
             addCategory(R.string.settings_section_more) {
                 isIconSpaceReserved = false

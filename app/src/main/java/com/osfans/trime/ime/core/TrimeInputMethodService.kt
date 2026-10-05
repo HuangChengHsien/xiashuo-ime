@@ -658,14 +658,15 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
             Toast.makeText(this, "一次最多潤飾 4,000 個字元", Toast.LENGTH_SHORT).show()
             return
         }
-        val model = GemmaRewrite.modelFile(this)
-        if (model?.isFile != true) {
-            Toast.makeText(this, "找不到 Gemma 4 E2B 模型檔", Toast.LENGTH_LONG).show()
+        val selectedModel = com.osfans.trime.ime.voice.LlmModels.selected(this)
+        val model = selectedModel.target(this)
+        if (!selectedModel.isInstalled(this)) {
+            Toast.makeText(this, "找不到 ${selectedModel.title} 模型檔，請到設定下載或匯入", Toast.LENGTH_LONG).show()
             return
         }
 
         val progress = AlertDialog.Builder(this)
-            .setTitle("Gemma 4 潤飾")
+            .setTitle("${selectedModel.title} 潤飾")
             .setMessage("正在載入模型並潤飾選取文字…")
             .setNegativeButton("取消") { _, _ -> gemmaRewriteJob?.cancel() }
             .create()
@@ -683,7 +684,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                 progress.dismiss()
                 Toast.makeText(
                     this@TrimeInputMethodService,
-                    "Gemma 潤飾失敗：${error.message ?: "模型無法啟動"}",
+                    "${selectedModel.title} 潤飾失敗：${error.message ?: "模型無法啟動"}",
                     Toast.LENGTH_LONG,
                 ).show()
             }

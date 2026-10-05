@@ -19,6 +19,7 @@ import com.osfans.trime.ui.main.settings.GeneralSettingsFragment
 import com.osfans.trime.ui.main.settings.KeyboardSettingsFragment
 import com.osfans.trime.ui.main.settings.ProfileSettingsFragment
 import com.osfans.trime.ui.main.settings.VoiceModelsFragment
+import com.osfans.trime.ui.main.settings.LlmModelsFragment
 import com.osfans.trime.ui.main.settings.schema.SchemaListFragment
 import com.osfans.trime.ui.main.settings.theme.ThemeSettingsFragment
 import com.osfans.trime.ui.main.settings.userdict.UserDictionaryFragment
@@ -60,6 +61,9 @@ sealed class NavigationRoute : Parcelable {
 
     @Serializable
     data object VoiceModels : NavigationRoute()
+
+    @Serializable
+    data object LlmModels : NavigationRoute()
 
     @Serializable
     data object Clipboard : NavigationRoute()
@@ -114,6 +118,9 @@ sealed class NavigationRoute : Parcelable {
             }
             fragment<VoiceModelsFragment, VoiceModels> {
                 label = ctx.getString(R.string.voice_models)
+            }
+            fragment<LlmModelsFragment, LlmModels> {
+                label = ctx.getString(R.string.settings_section_gemma)
             }
             fragment<ClipboardSettingsFragment, Clipboard> {
                 label = ctx.getString(R.string.clipboard)

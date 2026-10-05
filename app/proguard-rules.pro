@@ -16,6 +16,17 @@
 # OfflineRecognizerConfig.maxActivePaths because it cannot see native accesses.
 -keep class com.k2fsa.sherpa.onnx.** { *; }
 
+# LiteRT-LM looks up Java/Kotlin methods from native code when creating a
+# conversation. Preserve those method names and signatures in release builds.
+-keep class com.google.ai.edge.litertlm.** { *; }
+
+# WorkManager creates the persisted input merger and workers by class name.
+# Without these constructors the release build silently drops download work.
+-keep class androidx.work.OverwritingInputMerger { public <init>(); }
+-keep class androidx.work.ArrayCreatingInputMerger { public <init>(); }
+-keep class com.osfans.trime.ime.voice.VoiceModelDownloadWorker { public <init>(android.content.Context, androidx.work.WorkerParameters); }
+-keep class com.osfans.trime.ime.voice.LlmModelDownloadWorker { public <init>(android.content.Context, androidx.work.WorkerParameters); }
+
 # remove kotlin null checks
 -assumenosideeffects class kotlin.jvm.internal.Intrinsics {
     static void checkNotNull(...);

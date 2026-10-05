@@ -481,3 +481,6 @@ app/src/main/jni/boost/
 # kotlin
 .kotlin
 
+# Locally downloaded LiteRT-LM models and unfinished browser downloads
+*.litertlm
+*.crdownload
