@@ -435,6 +435,10 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         candidatesView?.updateCursorAnchor(anchorPosition, contentSize)
     }
 
+    /** Latest selection reported by the editor, used to restore it before an AI replacement. */
+    private var lastSelStart = -1
+    private var lastSelEnd = -1
+
     override fun onUpdateSelection(
         oldSelStart: Int,
         oldSelEnd: Int,
@@ -451,6 +455,8 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
             candidatesStart,
             candidatesEnd,
         )
+        lastSelStart = newSelStart
+        lastSelEnd = newSelEnd
         cursorUpdateIndex += 1
         handleCursorUpdate(newSelStart, newSelEnd, candidatesStart, candidatesEnd, cursorUpdateIndex)
         inputView?.updateSelection(newSelStart, newSelEnd)
@@ -656,6 +662,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         }
 
         val original = connection.getSelectedText(0)?.toString().orEmpty()
+        val selection = selectionRangeOf(original)
         if (original.isBlank()) {
             Toast.makeText(this, "請先選取要${action}的文字", Toast.LENGTH_SHORT).show()
             return
@@ -682,7 +689,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                 val result = GemmaRewrite.transform(this@TrimeInputMethodService, original, task)
                 if (!progress.isShowing) return@launch
                 progress.dismiss()
-                showGemmaRewriteResult(connection, original, result, task)
+                showGemmaRewriteResult(original, selection, result, task)
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 progress.dismiss()
             } catch (error: Exception) {
@@ -698,9 +705,37 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
 
     private var gemmaRewriteJob: Job? = null
 
+    /** Where [original] sits in the editor, from the last reported selection or the editor info. */
+    private fun selectionRangeOf(original: String): IntRange? {
+        val info = currentInputEditorInfo
+        val (start, end) = when {
+            lastSelStart >= 0 && lastSelEnd >= 0 -> minOf(lastSelStart, lastSelEnd) to maxOf(lastSelStart, lastSelEnd)
+            info != null && info.initialSelStart >= 0 -> minOf(info.initialSelStart, info.initialSelEnd) to maxOf(info.initialSelStart, info.initialSelEnd)
+            else -> return null
+        }
+        return if (end - start == original.length) start until end else null
+    }
+
+    /**
+     * Replaces [original] with [result] through the current input connection. The connection
+     * captured when the request started may have been recreated, and showing the dialogs often
+     * clears the editor's selection, so reselect the original range when needed and only replace
+     * when it still holds the original text.
+     */
+    private fun replaceSelectedText(original: String, selection: IntRange?, result: String): Boolean {
+        val ic = currentInputConnection ?: return false
+        if (ic.getSelectedText(0)?.toString() != original) {
+            if (selection == null) return false
+            ic.setSelection(selection.first, selection.last + 1)
+            if (ic.getSelectedText(0)?.toString() != original) return false
+        }
+        ic.commitText(SpannableStringBuilder(result), 1)
+        return true
+    }
+
     private fun showGemmaRewriteResult(
-        connection: android.view.inputmethod.InputConnection,
         original: String,
+        selection: IntRange?,
         result: String,
         task: GemmaRewrite.Task,
     ) {
@@ -717,11 +752,8 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                 .setView(scroll)
                 .setNegativeButton("取消", null)
                 .setPositiveButton("替換選取文字") { _, _ ->
-                    val currentSelection = connection.getSelectedText(0)?.toString()
-                    if (currentInputConnection !== connection || currentSelection != original) {
+                    if (!replaceSelectedText(original, selection, result)) {
                         Toast.makeText(this, "選取內容已改變，請重新${task.action}", Toast.LENGTH_SHORT).show()
-                    } else {
-                        connection.commitText(SpannableStringBuilder(result), 1)
                     }
                 }
                 .create(),
