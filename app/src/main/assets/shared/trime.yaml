@@ -859,6 +859,7 @@ android_keys:
 
 preset_keys:
   gemma_rewrite: {label: 潤, send: FUNCTION, command: gemma_rewrite}
+  llm_translate_en: {label: 譯, send: FUNCTION, command: llm_translate_en}
   # 安卓
   BRIGHTNESS_DOWN: {label: 亮度-, send: BRIGHTNESS_DOWN}
   BRIGHTNESS_UP: {label: 亮度+, send: BRIGHTNESS_UP}

@@ -182,6 +182,7 @@ class CommonKeyboardActionListener {
                     "broadcast" -> service.sendBroadcast(Intent(arg))
                     "clipboard" -> handleClipboard()
                     "gemma_rewrite" -> service.rewriteSelectedTextWithGemma()
+                    "llm_translate_en" -> service.translateSelectedTextToEnglish()
                     "commit" -> service.commitText(arg)
                     "date" -> service.commitText(customFormatDateTime(arg))
                     "run" -> handleRunCommand(arg)

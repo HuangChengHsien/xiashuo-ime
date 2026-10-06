@@ -29,7 +29,9 @@ object ThemeManager {
     fun getAllThemes(): List<ThemeItem> {
         val sharedThemes = ThemeFilesManager.listThemes(DataManager.sharedDataDir)
         val userThemes = ThemeFilesManager.listThemes(DataManager.userDataDir)
-        return sharedThemes + userThemes
+        // A theme bundled in the APK can also exist in the user folder (e.g. dak66); Rime uses the
+        // user copy, so list it once and let the user entry win.
+        return (userThemes + sharedThemes).distinctBy { it.configId }
     }
 
     private lateinit var _activeTheme: Theme

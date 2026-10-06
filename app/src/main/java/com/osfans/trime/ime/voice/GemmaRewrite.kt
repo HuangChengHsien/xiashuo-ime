@@ -47,7 +47,34 @@ object GemmaRewrite {
 
     fun modelFile(context: Context): File = LlmModels.selected(context).target(context)
 
-    suspend fun rewrite(context: Context, source: String): String = engineMutex.withLock {
+    /** What to do with the selected text; each task only changes the prompt and wording. */
+    enum class Task(val label: String, val action: String) {
+        POLISH("潤", "潤飾"),
+        TRANSLATE_EN("譯", "翻譯"),
+        ;
+
+        fun prompt(source: String): String = when (this) {
+            POLISH -> """
+                請潤飾以下文字，使用自然、清楚的臺灣繁體中文。
+                保留原意、語氣、專有名詞、數字與網址，不新增資訊，不要解釋或加引號，只輸出潤飾後的文字。
+
+                原文：
+                $source
+            """.trimIndent()
+            TRANSLATE_EN -> """
+                Translate the following text into natural, fluent English.
+                Keep the original meaning and tone. Keep names, numbers and URLs unchanged.
+                Do not explain, do not add quotes or notes; output only the English translation.
+
+                Text:
+                $source
+            """.trimIndent()
+        }
+    }
+
+    suspend fun rewrite(context: Context, source: String): String = transform(context, source, Task.POLISH)
+
+    suspend fun transform(context: Context, source: String, task: Task): String = engineMutex.withLock {
         withContext(Dispatchers.IO) {
             val totalStart = SystemClock.elapsedRealtime()
             val selected = LlmModels.selected(context)
@@ -59,13 +86,7 @@ object GemmaRewrite {
             verifyModelFile(context, selected)
             Log.i(TAG, "model=${selected.id} phase=verify elapsedMs=${SystemClock.elapsedRealtime() - verifyStart}")
 
-            val prompt = """
-                請潤飾以下文字，使用自然、清楚的臺灣繁體中文。
-                保留原意、語氣、專有名詞、數字與網址，不新增資訊，不要解釋或加引號，只輸出潤飾後的文字。
-
-                原文：
-                $source
-            """.trimIndent()
+            val prompt = task.prompt(source)
 
             // Pixel 8 Pro measurements show faster generation and much quicker subsequent
             // loads on CPU for this short rewrite workload. Fall back to GPU if CPU fails.
@@ -81,9 +102,9 @@ object GemmaRewrite {
             }
             Log.i(
                 TAG,
-                "model=${selected.id} phase=inference elapsedMs=${SystemClock.elapsedRealtime() - generateStart} totalMs=${SystemClock.elapsedRealtime() - totalStart} inputChars=${source.length} outputChars=${result.length}",
+                "model=${selected.id} task=${task.name} phase=inference elapsedMs=${SystemClock.elapsedRealtime() - generateStart} totalMs=${SystemClock.elapsedRealtime() - totalStart} inputChars=${source.length} outputChars=${result.length}",
             )
-            result.trim().also { check(it.isNotEmpty()) { "模型沒有產生潤飾結果。" } }
+            result.trim().also { check(it.isNotEmpty()) { "模型沒有產生${task.action}結果。" } }
         }
     }
 

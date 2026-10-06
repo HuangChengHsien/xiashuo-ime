@@ -630,9 +630,15 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     }
 
     /** Polish the currently selected text locally and let the user approve replacement. */
-    fun rewriteSelectedTextWithGemma() {
+    fun rewriteSelectedTextWithGemma() = transformSelectedText(GemmaRewrite.Task.POLISH)
+
+    /** Translate the currently selected text into English locally and let the user approve replacement. */
+    fun translateSelectedTextToEnglish() = transformSelectedText(GemmaRewrite.Task.TRANSLATE_EN)
+
+    private fun transformSelectedText(task: GemmaRewrite.Task) {
+        val action = task.action
         if (Build.VERSION.SDK_INT < 24) {
-            Toast.makeText(this, "Gemma 潤飾需要 Android 7.0 以上", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "AI ${action}需要 Android 7.0 以上", Toast.LENGTH_SHORT).show()
             return
         }
         val connection = currentInputConnection ?: return
@@ -645,46 +651,45 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
             InputType.TYPE_NUMBER_VARIATION_PASSWORD,
         )
         if (isPassword) {
-            Toast.makeText(this, "密碼欄位不提供 AI 潤飾", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "密碼欄位不提供 AI $action", Toast.LENGTH_SHORT).show()
             return
         }
 
         val original = connection.getSelectedText(0)?.toString().orEmpty()
         if (original.isBlank()) {
-            Toast.makeText(this, "請先選取要潤飾的文字", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "請先選取要${action}的文字", Toast.LENGTH_SHORT).show()
             return
         }
         if (original.length > 4000) {
-            Toast.makeText(this, "一次最多潤飾 4,000 個字元", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "一次最多${action} 4,000 個字元", Toast.LENGTH_SHORT).show()
             return
         }
         val selectedModel = com.osfans.trime.ime.voice.LlmModels.selected(this)
-        val model = selectedModel.target(this)
         if (!selectedModel.isInstalled(this)) {
             Toast.makeText(this, "找不到 ${selectedModel.title} 模型檔，請到設定下載或匯入", Toast.LENGTH_LONG).show()
             return
         }
 
         val progress = AlertDialog.Builder(this)
-            .setTitle("${selectedModel.title} 潤飾")
-            .setMessage("正在載入模型並潤飾選取文字…")
+            .setTitle("${selectedModel.title} $action")
+            .setMessage("正在載入模型並${action}選取文字…")
             .setNegativeButton("取消") { _, _ -> gemmaRewriteJob?.cancel() }
             .create()
         showDialog(progress)
         gemmaRewriteJob?.cancel()
         gemmaRewriteJob = lifecycleScope.launch {
             try {
-                val result = GemmaRewrite.rewrite(this@TrimeInputMethodService, original)
+                val result = GemmaRewrite.transform(this@TrimeInputMethodService, original, task)
                 if (!progress.isShowing) return@launch
                 progress.dismiss()
-                showGemmaRewriteResult(connection, original, result)
+                showGemmaRewriteResult(connection, original, result, task)
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 progress.dismiss()
             } catch (error: Exception) {
                 progress.dismiss()
                 Toast.makeText(
                     this@TrimeInputMethodService,
-                    "${selectedModel.title} 潤飾失敗：${error.message ?: "模型無法啟動"}",
+                    "${selectedModel.title} ${action}失敗：${error.message ?: "模型無法啟動"}",
                     Toast.LENGTH_LONG,
                 ).show()
             }
@@ -697,6 +702,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         connection: android.view.inputmethod.InputConnection,
         original: String,
         result: String,
+        task: GemmaRewrite.Task,
     ) {
         val preview = TextView(this).apply {
             text = result
@@ -707,13 +713,13 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         val scroll = ScrollView(this).apply { addView(preview) }
         showDialog(
             AlertDialog.Builder(this)
-                .setTitle("潤飾結果")
+                .setTitle("${task.action}結果")
                 .setView(scroll)
                 .setNegativeButton("取消", null)
                 .setPositiveButton("替換選取文字") { _, _ ->
                     val currentSelection = connection.getSelectedText(0)?.toString()
                     if (currentInputConnection !== connection || currentSelection != original) {
-                        Toast.makeText(this, "選取內容已改變，請重新潤飾", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "選取內容已改變，請重新${task.action}", Toast.LENGTH_SHORT).show()
                     } else {
                         connection.commitText(SpannableStringBuilder(result), 1)
                     }

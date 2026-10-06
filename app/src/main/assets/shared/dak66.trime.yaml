@@ -1,0 +1,1709 @@
+# SPDX-FileCopyrightText: 2015 - 2024 Rime community
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Trime default style settings
+# encoding: utf-8
+
+config_version: "3.0.143-bundled-translate"  # ⚠️ 改動本檔後務必把這個版本號調高：
+                           # Trime 用 Rime.deployRimeConfigFile(id, "config_version")
+                           # 編譯主題，版本號沒變就跳過重編；而 build/dak66.trime.yaml
+                           # 不存在時會退回讀 App 私有目錄的預編譯版，
+                           # 於是 /sdcard/rime/dak66.trime.yaml 的修改完全不會生效。
+# keyboard-height-profile: taller-22pct 2026-08-19
+name: 臺灣三方案（嘸蝦米・自然碼・注音） #方案名稱；檔名用 dak66.trime.yaml，避免和內建 trime.yaml 共用主題 ID 而在清單中重複出現
+author: osfans（本地修改版） #作者資訊
+
+style:
+  auto_caps: false #自動句首大寫:true|false
+  candidate_font: [ NotoSansTC-Regular.ttf ] #候選字型；Trime 3.3 字型欄位須寫成清單，檔案須放在 fonts/，找不到時用系統字型
+  candidate_padding: 5 #候選項內距
+  candidate_spacing: 0.0 #候選分割線
+  candidate_text_size: 22 #候選字號
+  candidate_text_vertical_bias: 1.0 #候選文字垂直偏移位置（僅 overlay 模式使用，需要間距足夠，範圍 0.0~1.0，0.0=top，0.5=center，1.0=bottom）
+  candidate_view_height: 28 #候選區高度
+  #candidate_corner_radius: 4 #候選項圓角半徑
+  comment_font: [ NotoSansTC-Regular.ttf ] #編碼／反查提示字型；英數字先由 latin_font 顯示
+  comment_height: 12 #編碼提示區高度（僅 top 模式約束高度，其餘模式與 candidate_view_height 無區別）
+  comment_position: right #編碼提示位置：right / top / overlay
+  comment_vertical_bias: 0.0 #編碼提示垂直偏移位置（僅 overlay 模式使用，需要間距足夠，範圍 0.0~1.0，0.0=top，0.5=center，1.0=bottom）
+  comment_text_size: 10 #編碼提示字號
+  hanb_font: [ NotoSansTC-Regular.ttf ] #擴充漢字 fallback：接在各欄位字型之後；極罕見字仍可能需更完整字庫
+  horizontal_gap: 4 #鍵水平間距（由 1 加大，配合 vertical_gap 6）
+  keyboard_padding: 0 #直向螢幕模式下，螢幕左右兩側與鍵盤的距離（曲面螢幕減少誤觸）
+  keyboard_padding_left: 0 #直向螢幕模式下，左手鍵盤配置，螢幕左側與鍵盤的距離
+  keyboard_padding_right: 40 #直向螢幕模式下，左手鍵盤配置，螢幕右側與鍵盤的距離
+  keyboard_padding_bottom: 28 #直向螢幕模式下，螢幕下邊緣與鍵盤的距離（避免誤觸發全螢幕手勢）
+  keyboard_padding_land: 40 #橫向螢幕模式下，螢幕左右兩側與鍵盤的距離（避免橫向螢幕按鍵過度拉伸變形）
+  keyboard_padding_land_bottom: 12 #橫向螢幕模式下，螢幕下側與鍵盤的距離
+  key_font: [ BarlowCondensed-Regular.ttf ] #鍵盤主按鍵字型；Barlow Condensed 無中文字形時由系統字型 fallback
+  key_height: 54 #鍵高
+  key_long_text_size: 14 #長標籤字號
+  key_text_size: 22 #鍵字號
+  key_width: 10.0 #鍵寬，佔螢幕寬的百分比
+  label_text_size: 22 #標籤字號
+  label_font: [ BarlowCondensed-Regular.ttf ] #候選序號字型
+  latin_font: [ BarlowCondensed-Regular.ttf ] #西文字型：Trime 會把它排在每個字型欄位最前面，候選與註解的英數字也使用它
+  keyboard_height: 315 #Pixel 8 Pro 實測：比 330 少 15dp（45px），整體頂端與 Gboard 對齊
+  keyboard_height_land: 264 #鎖定橫向螢幕下鍵盤高度（原 244，同步 +20）
+  popup_font: [ BarlowCondensed-Regular.ttf ] #按鍵彈出提示字型（Trime 3.3 已不讀 preview_font）
+  preview_height: 60 #按鍵提示高度
+  preview_offset: -12 #按鍵提示垂直偏移
+  preview_text_size: 40 #按鍵提示字號
+  reset_ascii_mode_on_focus_change: false #焦點變更顯示輸入法螢幕鍵盤時，重置 ascii_mode
+  round_corner: 8 #按鍵圓角半徑
+  shadow_radius: 0.0 #按鍵陰影半徑
+  symbol_font: [ symbol.ttf ] #按鍵上方符號字型；未附 symbol.ttf 時用系統字型
+  symbol_text_size: 10 #符號字號
+  text_font: [ BarlowCondensed-Regular.ttf ] #組字區編碼字型
+  vertical_gap: 6 #鍵盤行距（由 1 加大；改動時記得同步 keyboard_height）
+  #background_folder: #背景圖片保存在background目錄下的哪個子目錄
+  enter_label_mode: 0  #是否使用App 提供的 ActionLabel 內容作為 Enter 鍵的文字（由於多數App尚未支援ActionLabel，實際影響不大）。0不使用，1只使用 ActionLabel，2優先使用，3當其他方式沒有取得 label 時才讀取ActionLabel
+  enter_labels:  # 定義 Enter 鍵的文字
+    go: 前往
+    done: 完成
+    next: 下一個
+    pre:  上一個
+    search: 搜尋
+    send: 傳送
+    default: ⏎   # 預設 Enter 鍵文字；前往／搜尋／傳送等情境仍顯示中文
+
+preedit:                  # 預編輯文字視圖參數
+  horizontal_padding: 8     # 橫向內距（整數）
+#  alpha: 0.8                 # 透明度（0-1，浮點）
+  top_end_radius: 4         # 末上端圓角（浮點）
+  foreground:               # 前景樣式
+    font_size: 16             # 預編輯字體大小（浮點）
+
+window:               # 候選視窗（浮動視窗）參數
+  insets:               # 視窗內距
+    vertical: 4           # 垂直內距（整數）
+    horizontal: 4         # 橫向內距（整數）
+  item_padding:         # 候選項內距
+#    vertical: 0           # 垂直內距（整數）
+    horizontal: 4         # 橫向內距（整數）
+#  min_width: 0          # 最小寬度（整數）
+#  corner_radius: 0      # 圓角半徑（浮點）
+#  border: 0             # 邊框寬度（整數）
+#  shadow: 0.0           # 陰影半徑（浮點）
+#  alpha: 1              # 透明度（0-1，浮點）
+  foreground:           # 前景樣式
+    label_font_size: 20   # 序號字體大小（浮點）
+    text_font_size: 20    # 文字字體大小（浮點）
+    comment_font_size: 16  # 註解字體大小（浮點）
+
+# 最好保留一項，防止其他主題使用 __include 時無法載入
+fallback_colors:
+  candidate_text_color: text_color
+# 以下值是程式內建的，你也可以在這里自訂，這會覆盖預設值
+#
+#  comment_text_color: candidate_text_color
+#  border_color: back_color
+#  candidate_separator_color: border_color
+#  hilited_text_color: text_color
+#  hilited_back_color: back_color
+#  hilited_candidate_text_color: hilited_text_color
+#  hilited_candidate_back_color: hilited_back_color
+#  hilited_label_color: hilited_candidate_text_color # 反白候選序號 顏色
+#  hilited_comment_text_color: comment_text_color
+#  hilited_key_back_color: hilited_candidate_back_color
+#  hilited_key_text_color: hilited_candidate_text_color
+#  hilited_key_symbol_color: hilited_comment_text_color
+#  hilited_off_key_back_color: hilited_key_back_color
+#  hilited_on_key_back_color: hilited_key_back_color
+#  hilited_off_key_text_color: hilited_key_text_color
+#  hilited_on_key_text_color: hilited_key_text_color
+#  key_back_color: back_color
+#  key_border_color: border_color
+#  key_text_color: candidate_text_color
+#  key_symbol_color: comment_text_color
+#  label_color: candidate_text_color
+#  off_key_back_color: key_back_color
+#  off_key_text_color: key_text_color
+#  on_key_back_color: hilited_key_back_color
+#  on_key_text_color: hilited_key_text_color
+#  preview_back_color: key_back_color
+#  preview_text_color: key_text_color
+#  shadow_color: border_color
+#  root_background: back_color # 整個鍵盤區+候選欄的背景圖片/色
+#  candidate_background: back_color #候選欄的整體背景圖片/色
+#  keyboard_back_color: border_color #鍵盤區的背景圖片/色
+#  liquid_keyboard_background: keyboard_back_color # liquidKeyboard的背景圖片/色
+#  text_back_color: back_color #編碼區背景，即浮動視窗背景
+#  long_text_back_color: key_back_color #長文字按鍵的背景(剪貼簿）
+
+# ============================================================
+# tool_bar — 鍵盤上方那一列（左邊齒輪主選單、右邊 ▾ 之間的空白）
+#
+# action 用的是 preset_keys 的名稱，跟鍵盤按鍵同一套語法。
+# style 可以是 ic@圖示名，或用 option_styles 做開／關兩態文字。
+# ============================================================
+tool_bar:
+  button_spacing: 8
+  back_style: "ic@arrow-left"
+
+  # 單擊在所有方案都開 Trime 原生選單；完整蝦米長按開分頁功能面板。
+  # 精簡蝦米沒有 Lua 處理器，不能把單擊交給 Liur_menu_open。
+  primary_button:
+    foreground: { style: "ic@cog", normal: candidate_text_color, padding: 8 }
+    action: menu_keyboard
+    long_press_action: Liur_menu_open
+
+  buttons:
+    # Trime 會以反向順序顯示 buttons。實際畫面目標：
+    # 🎙(單色)｜🙂｜剪貼簿(單色)｜ㄅ｜雙｜蝦｜中/En
+    # 最右側保留 Mode_switch（英文補完模式）；密碼欄由 Trime 自動切 ASCII 直通。
+    - foreground: { option_styles: [ "中", "En" ], font_size: 17, normal: candidate_text_color, padding: 8 }
+      action: Mode_switch
+    - foreground: { style: "蝦", font_size: 17, normal: candidate_text_color, padding: 8 }
+      action: Schema_liur
+    - foreground: { style: "雙", font_size: 17, normal: candidate_text_color, padding: 8 }
+      action: Schema_zrm
+    - foreground: { style: "ㄅ", font_size: 17, normal: candidate_text_color, padding: 8 }
+      action: Schema_bpmf
+    # 剪貼簿使用 Trime 內建單色 icon；短按直接貼上，長按開剪貼簿。
+    - foreground: { style: "ic@clipboard", normal: candidate_text_color }
+      action: paste
+      long_press_action: clipboard_window
+    - foreground: { style: "🙂", font_size: 17, normal: candidate_text_color, padding: 8 }
+      action: liquid_keyboard_emoji
+    # 語音改用 Trime icon style，避免 Android 彩色 Emoji 麥克風。
+    - foreground: { style: "ic@microphone", normal: candidate_text_color }
+      action: Voice_Input
+    # 潤飾目前選取的文字；生成結果會先預覽，確認後才替換。
+    - foreground: { style: "潤", font_size: 17, normal: candidate_text_color, padding: 8 }
+      action: gemma_rewrite
+    # 把選取的文字用本機 LLM 翻譯成英文；結果先預覽，確認後才替換。
+    - foreground: { style: "譯", font_size: 17, normal: candidate_text_color, padding: 8 }
+      action: llm_translate_en
+
+
+preset_color_schemes:
+  apple_accessible:
+    name: "Apple 無障礙淺色／Apple Accessible Light"
+    author: "本地配色設計（Apple HIG 高對比原則）"
+    color_space: srgb
+    dark_scheme: apple_accessible_dark
+    # Apple 式中性灰階；不用紅／綠區分狀態，所有狀態同時保留文字或圖示。
+    root_background: 0xd1d1d6
+    back_color: 0xf2f2f7
+    candidate_back_color: 0xf2f2f7
+    border_color: 0xb8b8bd
+    keyboard_back_color: 0xd1d1d6
+    key_back_color: 0xffffff
+    key_border_color: 0xb8b8bd
+    key_text_color: 0x111113
+    key_symbol_color: 0x48484a
+    label_color: 0x3a3a3c
+    # Apple increased-contrast system blue；白字對比高於一般 systemBlue。
+    hilited_key_back_color: 0x0040dd
+    hilited_key_text_color: 0xffffff
+    hilited_key_symbol_color: 0xffffff
+    off_key_back_color: 0xc7c7cc
+    off_key_text_color: 0x1c1c1e
+    on_key_back_color: 0x0040dd
+    on_key_text_color: 0xffffff
+    hilited_off_key_back_color: 0xaeaeb2
+    hilited_off_key_text_color: 0x111113
+    hilited_on_key_back_color: 0x002fa7
+    hilited_on_key_text_color: 0xffffff
+    candidate_text_color: 0x1c1c1e
+    comment_text_color: 0x48484a
+    hilited_candidate_back_color: 0x0040dd
+    hilited_candidate_text_color: 0xffffff
+    hilited_comment_text_color: 0xffffff
+    hilited_back_color: 0xd1d1d6
+    hilited_text_color: 0x111113
+    text_color: 0x1c1c1e
+    text_back_color: 0xf2f2f7
+    candidate_separator_color: 0xb8b8bd
+    preview_back_color: 0x3a3a3c
+    preview_text_color: 0xffffff
+    shadow_color: 0x000000
+
+  apple_accessible_dark:
+    name: "Apple 無障礙深色／Apple Accessible Dark"
+    author: "本地配色設計（Apple HIG 高對比原則）"
+    color_space: srgb
+    light_scheme: apple_accessible
+    # Apple 深色中性灰階；不用紅／綠區分狀態，所有狀態同時保留文字或圖示。
+    root_background: 0x000000
+    back_color: 0x1c1c1e
+    candidate_back_color: 0x1c1c1e
+    border_color: 0x545458
+    keyboard_back_color: 0x1c1c1e
+    key_back_color: 0x3a3a3c
+    key_border_color: 0x545458
+    key_text_color: 0xffffff
+    key_symbol_color: 0xd1d1d6
+    label_color: 0xf2f2f7
+    # Apple 深色 increased-contrast blue 風格；亮藍配黑字可維持 AA 對比。
+    hilited_key_back_color: 0x409cff
+    hilited_key_text_color: 0x000000
+    hilited_key_symbol_color: 0x000000
+    off_key_back_color: 0x2c2c2e
+    off_key_text_color: 0xf2f2f7
+    on_key_back_color: 0x409cff
+    on_key_text_color: 0x000000
+    hilited_off_key_back_color: 0x545458
+    hilited_off_key_text_color: 0xffffff
+    hilited_on_key_back_color: 0x64d2ff
+    hilited_on_key_text_color: 0x000000
+    candidate_text_color: 0xffffff
+    comment_text_color: 0xd1d1d6
+    hilited_candidate_back_color: 0x409cff
+    hilited_candidate_text_color: 0x000000
+    hilited_comment_text_color: 0x111113
+    hilited_back_color: 0x3a3a3c
+    hilited_text_color: 0xffffff
+    text_color: 0xf2f2f7
+    text_back_color: 0x1c1c1e
+    candidate_separator_color: 0x545458
+    preview_back_color: 0xf2f2f7
+    preview_text_color: 0x111113
+    shadow_color: 0x000000
+
+  night_eye:
+    name: "夜間護眼／Night Eye"
+    author: "本地配色設計"
+    color_space: srgb
+    back_color: 0x0d1420
+    border_color: 0x172235
+    keyboard_back_color: 0x0a111b
+    key_back_color: 0x1a2738
+    key_text_color: 0xe3ebf5
+    key_symbol_color: 0x8fa1b8
+    hilited_key_back_color: 0x2d5683
+    hilited_key_text_color: 0xffffff
+    hilited_key_symbol_color: 0xdfeeff
+    off_key_back_color: 0x142031
+    off_key_text_color: 0x7f91a7
+    on_key_back_color: 0x244d78
+    on_key_text_color: 0xffffff
+    hilited_off_key_back_color: 0x20344c
+    hilited_off_key_text_color: 0xdbe6f2
+    hilited_on_key_back_color: 0x2b5d95
+    hilited_on_key_text_color: 0xffffff
+    candidate_text_color: 0xdbe6f2
+    comment_text_color: 0x8194aa
+    label_color: 0x8fa1b8
+    hilited_candidate_back_color: 0x244d78
+    hilited_candidate_text_color: 0xffffff
+    hilited_comment_text_color: 0xc8daee
+    hilited_back_color: 0x152438
+    hilited_text_color: 0xbfd5ea
+    text_color: 0xc9d6e5
+    text_back_color: 0x0d1420
+    candidate_separator_color: 0x223147
+    preview_back_color: 0x213149
+    preview_text_color: 0xeaf2fb
+    shadow_color: 0x000000
+
+  default:
+    name: 預設／default #方案名稱
+    author: osfans #作者資訊
+    back_color: 0xe4e7e9 #候選區背景
+    border_color: 0xc1c7ca #邊框
+    candidate_separator_color: 0xc1c7ca #候選分割背景
+    candidate_text_color: 0x5a676e #候選文字
+    comment_text_color: 0x5A676E   # 原值對比不足 4.5，未選中候選的提示偏灰
+    hilited_back_color: 0xccd3d7da #標明編碼背景
+    hilited_candidate_back_color: 0xd3d7da #標明候選背景
+    hilited_candidate_text_color: 0x000000 #標明候選文字
+    hilited_comment_text_color: 0x000000 #標明提示
+    hilited_key_back_color: 0xd3d7da #標明按鍵背景
+    hilited_key_symbol_color: 0x000000 #標明按鍵符號
+    hilited_key_text_color: 0x000000 #標明按鍵文字
+    hilited_off_key_back_color: 0xd3d7da #標明按鍵關閉狀態背景
+    hilited_off_key_text_color: 0x000000 #標明按鍵關閉狀態文字
+    hilited_on_key_back_color: 0xd3d7da #標明按鍵打開狀態背景
+    hilited_on_key_text_color: 0x000000 #標明按鍵打開狀態文字
+    hilited_text_color: 0x23948e #標明編碼
+    key_back_color: 0xeceff1 #按鍵背景
+    #key_border_color: 0xeceff1 #按鍵邊框
+    key_symbol_color: 0x5f6b73 #按鍵符號
+    key_text_color: 0x37474f #按鍵文字
+    keyboard_back_color: 0xffffff #鍵盤背景
+    label_color: 0x000000 #標籤
+    off_key_back_color: 0xd3d7da #按鍵關閉狀態背景
+    off_key_text_color: 0x000000 #按鍵關閉狀態文字
+    on_key_back_color: 0x23948e #按鍵打開狀態背景
+    on_key_text_color: 0x37474f #按鍵打開狀態文字
+    preview_back_color: 0x55bfbfbf #按鍵提示背景
+    preview_text_color: 0x23948e #按鍵提示文字
+    shadow_color: 0x000000 #按鍵文字陰影
+    text_color: 0x5a676e #編碼
+    text_back_color: 0xcce4e7e9 #編碼區背景
+
+  aqua:
+    name: 碧水／Aqua
+    author: 佛振 <chen.sst@gmail.com>
+    text_color: 0x000000
+    back_color: 0xeeeeec
+    border_color: 0xe0e0e0
+    hilited_text_color: 0x000000
+    hilited_back_color: 0xd4d4d4
+    hilited_candidate_text_color: 0xffffff
+    hilited_candidate_back_color: 0x0a3afa
+    # 按鍵配色（原配色只定義候選欄，缺這三項會退回寫死的預設值，
+    # 在深色底上字母幾乎看不見）
+    key_back_color: 0xF7F7F6
+    key_text_color: 0x000000
+    key_symbol_color: 0x4A4A4A
+    # 選中候選字的註解色：原本繼承自 comment_text_color，那是為「未選中」
+    # 的背景挑的，套到選中底色上會看不見（甚至同色消失）。
+    hilited_comment_text_color: 0xC2CEFE
+
+  lost_temple:
+    name: 孤寺／Lost Temple
+    author: 佛振 <chen.sst@gmail.com>, based on ir_black
+    text_color: 0xf6f3e8
+    back_color: 0x444444
+    border_color: 0x444444
+    hilited_text_color: 0xcae682
+    hilited_back_color: 0x222222
+    hilited_candidate_text_color: 0x000000
+    hilited_candidate_back_color: 0xcae682
+    # 按鍵配色（原配色只定義候選欄，缺這三項會退回寫死的預設值，
+    # 在深色底上字母幾乎看不見）
+    key_back_color: 0x5A5A5A
+    key_text_color: 0xFFFFFF
+    key_symbol_color: 0xE6E6E6
+    # 選中候選字的註解色：原本繼承自 comment_text_color，那是為「未選中」
+    # 的背景挑的，套到選中底色上會看不見（甚至同色消失）。
+    hilited_comment_text_color: 0x47502E
+
+liquid_keyboard:
+  # 目前只能直接寫參數，不支援變數或fallback機制。
+  # 缺少參數時，自动從style中載入參數。除非需要指定liquid_keyboard使用與主鍵盤不同的背景色、背景圖片，否則不應設置被註解掉的參數。
+  author: "tumuyan"
+  row: 6              #每頁最多顯示多少行按鍵
+  row_land: 5         #橫向螢幕每頁最多顯示多少行按鍵
+  key_height: 40      #按鍵高度
+  key_height_land: 40 #橫向螢幕模式按鍵高度
+  single_width: 60    #single類型的按鍵寬度
+  vertical_gap: 1     #垂直按鍵間隙
+  margin_x: 5         #左右按鍵間隙的1/2
+  fixed_key_bar:  # 固定按鍵條
+    position: bottom  # 摆放位置（在滚动區域的……） top|bottom|left|right
+    keys:  # 按鍵（顯示名稱為對應的label，不能放太多）
+      - liquid_keyboard_exit_compact
+      - space1
+      - liquid_backspace_compact
+      - Return2
+      - clipboard_window_compact
+  keyboards: [emoji, medical_unit, math, ascii, cn, history, list, symbol, tabs, pinyin, script_symbols, jp, grease, rusa, korea, lation, yinbiao, unit, yanwenzi, combing, emoji_full]  #tab列表
+  tabs:
+    name: 更多
+    type: TABS
+  history:
+    name: 常用
+    type: HISTORY
+  emoji:
+    name: emoji   # 原檔沒有 name，導致 liquid_keyboard_emoji 的 option 找不到對應 tab
+    type: SINGLE
+    keys: "🙂😂🤣😆🙃😅🥺😎👀🙈🙉🙊☹😑😄🤐😨😱🌚🌝🤔❤💔🌹💣👌👍😣😥😮🙄😏😕😯😪😫😴😌🤑😉😋😎😍😘😚😛😜😝😒😓😔😲😷🤒😇🤓🤗🤕🙁😖😞😟😤😢😭😦😧😨😩😬😰😳😵😡😠☝✌🖕👎🙏🤘👏💪💋☘🍀🌸☕🍵🍺🍻🍦🍬🍚🍜🍲🍖🎂💤"
+  medical_unit:
+    name: 醫療
+    type: SINGLE
+    keys:
+      - "mL"
+      - "L"
+      - "dL"
+      - "μL"
+      - "cc"
+      - "mg"
+      - "g"
+      - "kg"
+      - "μg"
+      - "ng"
+      - "hr"
+      - "min"
+      - "sec"
+      - "mg/dL"
+      - "g/dL"
+      - "mmol/L"
+      - "μmol/L"
+      - "mEq/L"
+      - "U/L"
+      - "IU/L"
+      - "IU/mL"
+      - "ng/mL"
+      - "pg/mL"
+      - "μg/mL"
+      - "mg/mL"
+      - "cells/μL"
+      - "×10³/μL"
+      - "×10⁶/μL"
+      - "mL/hr"
+      - "cc/hr"
+      - "mg/hr"
+      - "μg/hr"
+      - "mg/kg"
+      - "mg/kg/day"
+      - "μg/kg/min"
+      - "mL/kg/hr"
+      - "L/min"
+      - "mmHg"
+      - "cmH₂O"
+      - "bpm"
+      - "/min"
+      - "%"
+      - "°C"
+      - "SpO₂"
+      - "FiO₂"
+  emoji_full:
+    type: SINGLE
+    name: 全emoji
+    keys: "😀😃😄😁😆😅🤣😂🙂🙃🫠😉😊😇🥰😍🤩😘😗☺😚😙🥲😋😛😜🤪😝🤑🤗🤭🫢🫣🤫🤔🫡🤐🤨😐😑😶🫥😏😒🙄😬🤥😌😔😪🤤😴😷🤒🤕🤢🤮🤧🥵🥶🥴😵🤯🤠🥳🥸😎🤓🧐😕🫤😟🙁☹😮😯😲😳🥺🥹😦😧😨😰😥😢😭😱😖😣😞😓😩😫🥱😤😡😠🤬😈👿💀☠💩🤡👹👺👻👽👾🤖😺😸😹😻😼😽🙀😿😾🙈🙉🙊💌💘💝💖💗💓💞💕💟❣💔❤🧡💛💚💙💜🤎🖤🤍💋💯💢💥💫💦💨🕳💬🗨🗯💭💤👋🤚🖐✋🖖🫱🫲🫳🫴👌🤌🤏✌🤞🫰🤟🤘🤙👈👉👆🖕👇☝🫵👍👎✊👊🤛🤜👏🙌🫶👐🤲🤝🙏✍💅🤳💪🦾🦿🦵🦶👂🦻👃🧠🫀🫁🦷🦴👀👁👅👄🫦👶🧒👦👧🧑👱👨🧔👩🧓👴👵🙍🙎🙅🙆💁🙋🧏🙇🤦🤷👮🕵💂🥷👷🫅🤴👸👳👲🧕🤵👰🤰🫃🫄🤱👼🎅🤶🦸🦹🧙🧚🧛🧜🧝🧞🧟🧌💆💇🚶🧍🧎🏃💃🕺🕴👯🧖🧗🤺🏇⛷🏂🏌🏄🚣🏊⛹🏋🚴🚵🤸🤼🤽🤾🤹🧘🛀🛌👭👫👬💏💑👪🗣👤👥🫂👣🐵🐒🦍🦧🐶🐕🦮🐩🐺🦊🦝🐱🐈🦁🐯🐅🐆🐴🐎🦄🦓🦌🦬🐮🐂🐃🐄🐷🐖🐗🐽🐏🐑🐐🐪🐫🦙🦒🐘🦣🦏🦛🐭🐁🐀🐹🐰🐇🐿🦫🦔🦇🐻🐨🐼🦥🦦🦨🦘🦡🐾🦃🐔🐓🐣🐤🐥🐦🐧🕊🦅🦆🦢🦉🦤🪶🦩🦚🦜🐸🐊🐢🦎🐍🐲🐉🦕🦖🐳🐋🐬🦭🐟🐠🐡🦈🐙🐚🪸🐌🦋🐛🐜🐝🪲🐞🦗🪳🕷🕸🦂🦟🪰🪱🦠💐🌸💮🪷🏵🌹🥀🌺🌻🌼🌷🌱🪴🌲🌳🌴🌵🌾🌿☘🍀🍁🍂🍃🪹🪺🍄🍇🍈🍉🍊🍋🍌🍍🥭🍎🍏🍐🍑🍒🍓🫐🥝🍅🫒🥥🥑🍆🥔🥕🌽🌶🫑🥒🥬🥦🧄🧅🥜🫘🌰🍞🥐🥖🫓🥨🥯🥞🧇🧀🍖🍗🥩🥓🍔🍟🍕🌭🥪🌮🌯🫔🥙🧆🥚🍳🥘🍲🫕🥣🥗🍿🧈🧂🥫🍱🍘🍙🍚🍛🍜🍝🍠🍢🍣🍤🍥🥮🍡🥟🥠🥡🦀🦞🦐🦑🦪🍦🍧🍨🍩🍪🎂🍰🧁🥧🍫🍬🍭🍮🍯🍼🥛☕🫖🍵🍶🍾🍷🍸🍹🍺🍻🥂🥃🫗🥤🧋🧃🧉🧊🥢🍽🍴🥄🔪🫙🏺🌍🌎🌏🌐🗺🗾🧭🏔⛰🌋🗻🏕🏖🏜🏝🏞🏟🏛🏗🧱🪨🪵🛖🏘🏚🏠🏡🏢🏣🏤🏥🏦🏨🏩🏪🏫🏬🏭🏯🏰💒🗼🗽⛪🕌🛕🕍⛩🕋⛲⛺🌁🌃🏙🌄🌅🌆🌇🌉♨🎠🛝🎡🎢💈🎪🚂🚃🚄🚅🚆🚇🚈🚉🚊🚝🚞🚋🚌🚍🚎🚐🚑🚒🚓🚔🚕🚖🚗🚘🚙🛻🚚🚛🚜🏎🏍🛵🦽🦼🛺🚲🛴🛹🛼🚏🛣🛤🛢⛽🛞🚨🚥🚦🛑🚧⚓🛟⛵🛶🚤🛳⛴🛥🚢✈🛩🛫🛬🪂💺🚁🚟🚠🚡🛰🚀🛸🛎🧳⌛⏳⌚⏰⏱⏲🕰🕛🕧🕐🕜🕑🕝🕒🕞🕓🕟🕔🕠🕕🕡🕖🕢🕗🕣🕘🕤🕙🕥🕚🕦🌑🌒🌓🌔🌕🌖🌗🌘🌙🌚🌛🌜🌡☀🌝🌞🪐⭐🌟🌠🌌☁⛅⛈🌤🌥🌦🌧🌨🌩🌪🌫🌬🌀🌈🌂☂☔⛱⚡❄☃⛄☄🔥💧🌊🎃🎄🎆🎇🧨✨🎈🎉🎊🎋🎍🎎🎏🎐🎑🧧🎀🎁🎗🎟🎫🎖🏆🏅🥇🥈🥉⚽⚾🥎🏀🏐🏈🏉🎾🥏🎳🏏🏑🏒🥍🏓🏸🥊🥋🥅⛳⛸🎣🤿🎽🎿🛷🥌🎯🪀🪁🎱🔮🪄🎮🕹🎰🎲🧩🧸🪅🪩🪆♠♥♦♣♟🃏🀄🎴🔫🎭🖼🎨🧵🪡🧶🪢👓🕶🥽🥼🦺👔👕👖🧣🧤🧥🧦👗👘🥻🩱🩲🩳👙👚👛👜👝🛍🎒🩴👞👟🥾🥿👠👡🩰👢👑👒🎩🎓🧢🪖⛑📿💄💍💎🔇🔈🔉🔊📢📣📯🔔🔕🎼🎵🎶🎙🎚🎛🎤🎧📻🎷🪗🎸🎹🎺🎻🪕🥁🪘📱📲☎📞📟📠🔋🪫🔌💻🖥🖨⌨🖱🖲💽💾💿📀🧮🎥🎞📽🎬📺📷📸📹📼🔍🔎🕯💡🔦🏮🪔📔📕📖📗📘📙📚📓📒📃📜📄📰🗞📑🔖🏷💰🪙💴💵💶💷💸💳🧾💹✉📧📨📩📤📥📦📫📪📬📭📮🗳✏✒🖋🖊🖌🖍📝💼📁📂🗂📅📆🗒🗓📇📈📉📊📋📌📍📎🖇📏📐✂🗃🗄🗑🔒🔓🔏🔐🔑🗝💣🔨🪓⛏⚒🛠🗡⚔🪃🏹🛡🪚🔧🪛🔩⚙🗜⚖🦯🔗⛓🪝🧰🧲🪜⚗🧪🧫🧬🔬🔭📡💉🩸💊🩹🩼🩺🩻🚪🛗🪞🪟🛏🛋🪑🚽🪠🚿🛁🪤🪒🧴🧷🧹🧺🧻🪣🧼🫧🪥🧽🧯🛒🧿🪬🚬⚰🪦⚱🗿🪧🪪🏧🚮🚰♿🚹🚺🚻🚼🚾🛂🛃🛄🛅⚠🚸⛔🚫🚳🚭🚯🚱🚷📵🔞☢☣⬆↗➡↘⬇↙⬅↖↕↔↩↪⤴⤵🔃🔄🔙🔚🔛🔜🔝🛐⚛🕉✡☸☯✝☦☪☮🕎🔯♈♉♊♋♌♍♎♏♐♑♒♓⛎🔀🔁🔂▶⏩⏭⏯◀⏪⏮🔼⏫🔽⏬⏸⏹⏺⏏🎦🔅🔆📶📳📴♀♂⚧✖➕➖➗🟰♾‼⁉❓❔❕❗〰💱💲⚕♻⚜🔱📛🔰⭕✅☑✔❌❎➰➿〽✳✴❇©®™🔟🔠🔡🔢🔣🔤🅰🆎🅱🆑🆒🆓ℹ🆔Ⓜ🆕🆖🅾🆗🅿🆘🆙🆚🈁🈂🈷🈶🈯🉐🈹🈚🈲🉑🈸🈴🈳㊗㊙🈺🈵🔴🟠🟡🟢🔵🟣🟤⚫⚪🟥🟧🟨🟩🟦🟪🟫⬛⬜◼◻◾◽▪▫🔶🔷🔸🔹🔺🔻💠🔘🔳🔲🏁🚩🎌🏴🏳"
+  math:   #tab名稱
+    type: SINGLE
+    name: 數學
+    keys: "≈＝≠≌<>≤≥≡()[]{}-+±×*/÷&∥%‰‱°′″∫∮∯∬∭∰∞∑∧∏∈∵∴⊥∝∨∪•√〒∝∽∈∩∧⊙⌒∥∟∣∂∆∞≌∉∪∨⊕⊿⊥∠∫∬∭"  #tab中的按鍵列表
+  cn:
+    type: SINGLE
+    name: 中文
+    keys:  #keys列表可以使用多种格式混合书寫。
+      - ，
+      - 。
+      - ？
+      - ！
+      - ：
+      - 、
+      - “
+      - ”
+      - ‘
+      - ···
+      - ……
+      - { click: "-" }
+      - { click: "——", label: "破折" }
+      - { click: "" } # 內容為空可以強制讓鍵盤從此處新起一行
+      - （
+      - ）
+      - 【
+      - 】
+      - 《
+      - 》
+      - ［
+      - ］
+      - ｛
+      - ｝
+      - 「
+      - 」
+      - 『
+      - 』
+      - ～
+  symbol:
+    name: 特殊
+    type: SINGLE
+    keys: "△▽○◇□☆▲▼●◆■★▷◁▶◀♻♲†⚝✡⚹✦✸✹￼�×⌫☑☒✅❎✔✘✓✗☀☼☽☾◑◐㏂㏘☭♀♂☹☻☠☜☝☞☚☟☛▪•‥…∷※♩♪♫♬§°♭♯♮‖¶№◎¤۞℗®©卍卐℡™㏇Φ⇦⇧⇨⇩⇪↖↑↗←↔→↙↓↘⇄⇅⇆⇤↩⇥▸◂▴▾◤◥◣◢㊤㊧㊥㊨㊦❏❐◲〼▢▣↶✁↷✍⏍ϟ📝✎✆☱☰☴⚿⛮⚙☲☯☵⛶☩☐☳☷☶💬🗨⟲ღ✈☂🎤🌐🔍"
+  unit:
+    name: 單位
+    type: SINGLE
+    keys: "℃¥$€฿￡㎡m³℉￥£￠₠¹²³⁴⁵ⁿ⁶⁷⁸⁹⁰ˣ⁺⁻⁼⁽⁾½⅓¼⅔¾₁₂₃₄₅ₙ₆₇₈₉₀ₓ₊₋₌₍₎℅"
+  list:
+    name: 列表
+    type: SINGLE
+    keys: "①②③④⑤⑥⑦⑧⑨⑩⒈⒉⒊⒋⒌⒍⒎⒏⒐⒑⒒⒓⒔⒕⒖⒗⒘⒙⒚⒛⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩➊➋➌➍➎➏➐➑➒➓㊀㊁㊂㊃㊄㊅㊆㊇㊈㊉ⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ"
+  pinyin:
+    name: 拼音
+    type: SINGLE
+    keys: "āáǎàōóēéěèǒòīíǐìūúǖǘǚǜǔùêüńňㄚㄛㄜㄧㄨㄩㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙ"
+  script_symbols:
+    name: 𝒶𝒜
+    type: SINGLE
+    keys: "𝒶𝒷𝒸𝒹ℯ𝒻ℊ𝒽𝒾𝒿𝓀𝓁𝓂𝓃ℴ𝓅𝓆𝓇𝓈𝓉𝓊𝓋𝓌𝓍𝓎𝓏𝒜ℬ𝒞𝒟ℰℱ𝒢ℋℐ𝒥𝒦ℒℳ𝒩𝒪𝒫𝒬ℛ𝒮𝒯𝒰𝒱𝒲𝒳𝒴𝒵"
+  grease:
+    type: SINGLE
+    name: 希臘
+    keys: "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω"
+  rusa:
+    name: 俄語
+    type: SINGLE
+    keys: "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+  lation:
+    name: 拉丁
+    type: SINGLE
+    keys: "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞŠŸŒàáâãäåæçèéêëìíîïðñòóõôöøùúûüýþšÿœ"
+  korea:
+    type: SINGLE
+    name: "韓文"
+    keys: "dㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣㅐㅒㅔㅖㅘㅙㅚㅝㅞㅟㅢㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㄲㄸㅚㅆㅉ㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩㉪㉫㉬㉭㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻㈀㈁㈂㈃㈄㈅㈆㈇㈈㈉㈊㈋㈌㈍㈎㈏㈐㈑㈒㈓㈔㈕㈖㈗㈘㈙㈚㈛"
+  yinbiao:
+    type: SINGLE
+    name: "音標"
+    keys: ["a:", "ɔ:", "ɜː", "i:", "u:", "ʌ", "ɒ", "ə", "ɪ", "ʊ", "e", "æ", "eɪ", "aɪ", "ɔɪ", "ɪə", "eə", "ʊə", "əʊ", "aʊ", "p", "t", "k", "f", "θ", "s", "b", "d", "g", "v", "ð", "z", "ʃ", "h", "ts", "tʃ", "j", "tr", "ʒ", "r", "dz", "dʒ", "dr", "w", "m", "n", "ŋ", "l"]
+  yanwenzi:
+    type: SINGLE
+    name: "顏文字"
+    keys: ["⎛⎝≥⏝⏝≤⎠⎞", "^_^", "^ω^", "^o^", "~\\(≧▽≦)/~", "*^_^*", "↖(^ω^)↗", "(^o^)／", "(=^▽^=)", "=^_^=", "(*^ω^*)", "٩(๑^o^๑)۶", "o(￣▽￣)o", "Y(^_^)Y", "٩( 'ω' )و", "╰(*´︶`*)╯", "*罒▽罒*", "ヾ ^_^♪", "=￣ω￣=", "︿(￣︶￣)︿", "(´▽｀)ノ♪", "乁( ˙ ω˙乁)", "✧*｡٩(ˊωˋ*)و✧*｡", "～(￣▽￣～)(～￣▽￣)～", "QwQ", "(●—●)", "(๑• . •๑)", "ヾ(≧O≦)〃嗷~", "罒ω罒", "(｡ì _ í｡)", "(๑•ี_เ•ี๑)", "ㄟ(≧◇≦)ㄏ", "(*/ω＼*)", "●▽●", "٩(๑òωó๑)۶", "✺◟(∗❛ัᴗ❛ั∗)◞✺", "( σ'ω')σ", "♡＾▽＾♡", "(๑•̀ㅂ•́)و✧", "(ง •̀_•́)ง", "(｡･ω･｡)ﾉ♡", "(☆_☆)", "(๑°3°๑)", "_(•̀ω•́ 」∠)_", "♪～(´ε｀　)", "～(^з^)-☆", "(´∀｀)♡", "ლ(´ڡ`ლ)", "(＞﹏＜)", "T_T", "⊙︿⊙", "〒▽〒", "⊙﹏⊙", "π_π", "(｡•́︿•̀｡)", "(ToT)/~~~", "╯﹏╰", "ಥ_ಥ", "(╥╯^╰╥)", "(〃′o`)", "●﹏●", "( •̥́ ˍ •̀ू )", "(つд⊂)", "心塞(´-ωก`)", "(╥﹏╥)", "┭┮﹏┭┮", "（；´д｀）ゞ", "(´;︵;`)", "(。﹏。)", "┗( T﹏T )┛", "QAQ", "ヘ(_ _ヘ)", "╰（‵□′）╯", "(*￣︿￣)", ">o<", "(-`ェ´-怒)", "ヽ(‘⌒´メ)ノ", "(*｀Ω´*)v", "(｡•ˇ‸ˇ•｡)", "(怒｀Д´怒)", "٩(๑`^´๑)۶", "(;｀O´)o", "╰_╯", "(#｀皿´)<怒怒怒!!!", "<(｀^´)>", "（｀Δ´）！", "ψ(｀∇´)ψ", "(；′⌒`)", "s(・｀ヘ´・;)ゞ", "(▼皿▼#)", "￣へ￣", "←_←", "（╯‵□′）╯︵┴─┴", "（▼へ▼メ）", "☄ฺ(◣д◢)☄ฺ", "→_→", "⊙_⊙", "d(ŐдŐ๑)", "Σ( ° △ °|||)︴", "(((φ(◎ロ◎;)φ)))", "⊙▽⊙", "(๑ŐдŐ)b", "╭(°A°`)╮", "(๑òᆺó๑)", "⊙ω⊙", "Σ(っ °Д °;)っ", " (ﾟДﾟ≡ﾟдﾟ)!?", "( *・ω・)✄╰ひ╯", "(⊙x⊙;)", "┌(。Д。)┐", "(°ー°〃)", "︽⊙_⊙︽", "!!!∑(°Д°ノ)ノ", "(๑ŐдŐ)b☆d(ŐдŐ๑)", "Σ⊙▃⊙川", "ヽ(*。>Д<)o゜", "━((*′д｀)爻(′д｀*))━!!!!", "=_=", "╮(╯_╰)╭", "（︶︿︶）", "_(:з」∠)_", "@_@", "╮(╯▽╰)╭", "(＠￣ー￣＠)", "_(:3」∠❀)_", "눈_눈", "╭(╯ε╰)╮", "(ー_ー)!!", "_(:D)∠)_", "o_O", "╭(╯^╰)╮", "(；一_一)", "´_>`", "-_-#", "┑(￣Д ￣)┍", "≡￣﹏￣≡", "○|￣|_", "-_-||", "ㄟ( ▔, ▔ )ㄏ", "( ＿ ＿)ノ｜壁", "▄█▀█●"]
+  combing:
+    type: SINGLE
+    name: "組合"#combing character
+    keys: ["⃢", "꯭", "̣", "̲"  ]
+  ascii:
+    type: SINGLE
+    name: 英文
+    keys: ",.?!:;/\\|*-+=$`'\"^~@#%&()[]{}_"
+  jp:
+    type: SINGLE
+    name: 假名
+    keys: "あいうえおかがきぎくぐけげこごさざしじすずせぜそぞただちぢつづてでとどなにぬねのはばぱひびぴふぶぷへべぺほぼぽまみむめもゃやゅゆょよらりるれろわをんアィイウェエオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂツヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロワヲン"
+android_keys:
+  # 僅供編辑鍵盤時參考，實際不產生任何效果
+  when:
+    ascii: 西文標籤
+    paging: 翻頁標籤
+    has_menu: 選單標籤
+    composing: 輸入狀態標籤
+    #always: 始終
+    #hover: 滑過
+    combo: 並擊
+    click: 單按
+    long_click: 長按
+    #double_click: 雙按
+    swipe_left: 左滑
+    swipe_right: 右滑
+    swipe_up: 上滑
+    swipe_down: 下滑
+  property:
+    width: 寬度
+    height: 高度
+    gap: 間隔
+    preview: 預覽
+    hint: 提示
+    label: 標籤
+    states: 狀態標籤
+    repeatable: 連續按鍵
+    functional: 功能鍵
+    shift_lock: Shift鎖定 #ascii_long: 僅英文狀態長按鎖定, long: 單按一次性上檔、長按鎖定, click: 單按鎖定
+  action:
+    command: 指令
+    option: 參數
+    select: 選擇
+    toggle: 狀態
+    send: 按鍵
+    text: 文字
+    commit: 送出
+
+preset_keys:
+  # Android
+  gemma_rewrite: {label: 潤, send: FUNCTION, command: gemma_rewrite}
+  llm_translate_en: {label: 譯, send: FUNCTION, command: llm_translate_en}
+  BRIGHTNESS_DOWN: {label: 亮度-, send: BRIGHTNESS_DOWN}
+  BRIGHTNESS_UP: {label: 亮度+, send: BRIGHTNESS_UP}
+  CALCULATOR: {label: 計算機, send: CALCULATOR}
+  CALENDAR: {label: 日曆, send: CALENDAR}
+  CONTACTS: {label: 通訊錄, send: CONTACTS}
+  ENVELOPE: {label: 信箱, send: ENVELOPE}
+  EXPLORER: {label: 瀏覽器, send: EXPLORER}
+  MUSIC: {label: 音樂, send: MUSIC}
+  POWER: {label: 電源, send: POWER}
+  SEARCH: {label: 搜尋, send: Find}
+  SLEEP: {label: 休眠, send: SLEEP}
+  VOICE_ASSIST: {label: 語音, send: VOICE_ASSIST}
+  Voice_Input: {label: "🎤", send: VOICE_ASSIST}  # 工具列語音鍵；Trime 3.3.8+ 可切換至系統設定的語音 IME
+  bpmf_space_commit: {label: 空白, text: "{space}{Return}"}  # 注音：先以 Space 選取首選，再 Return 立即上屏
+  bpmf_digit_1: {label: "1", commit: "1"}
+  bpmf_digit_2: {label: "2", commit: "2"}
+  bpmf_digit_3: {label: "3", commit: "3"}
+  bpmf_digit_4: {label: "4", commit: "4"}
+  bpmf_digit_5: {label: "5", commit: "5"}
+  bpmf_digit_6: {label: "6", commit: "6"}
+  bpmf_digit_7: {label: "7", commit: "7"}
+  bpmf_digit_8: {label: "8", commit: "8"}
+  bpmf_digit_9: {label: "9", commit: "9"}
+  bpmf_digit_0: {label: "0", commit: "0"}
+  bpmf_minus: {label: "-", commit: "-"}
+  Ellipsis_single: {label: "…", commit: "…"}  # 雙拼句號鍵上滑；單一字元，不是中文雙省略號「……」
+  VOLUME_DOWN: {label: 音量-, send: VOLUME_DOWN}
+  VOLUME_UP: {label: 音量+, send: VOLUME_UP}
+  VOLUME_MUTE: {label: 靜音, send: VOLUME_MUTE}
+  # 編輯
+  Shift_L: {label: ⇧, send: Shift_L, shift_lock: long}  # 單按下一個大寫字母後回小寫；長按鎖定大寫
+  Shift_L_English: {label: ⇧, send: Shift_L, shift_lock: long}  # 英文鍵盤：短按單次大寫，長按鎖定大寫
+  Return: {label: enter_labels, send: Return}
+  Return1: {label: ⏎, send: Return }
+  Return2: {label: Enter, send: Return }
+  Hide: {label: 隱藏, send: BACK}
+  BackSpace: {label: "⌫", repeatable: true, send: BackSpace}
+  space: {repeatable: false, functional: false, send: space, slide_cursor: true}   # 左右恢復跟手拖曳移動游標；上下另在各鍵盤自己的 space 條目設 swipe_up/down
+  space1: {label: 空白, repeatable: false, functional: false, send: space}
+  Escape: {label: Esc, send: Escape}
+  Home: {label: 行首, send: Home}
+  Insert: {label: 插入, send: Insert}
+  Delete: {label: 刪除, send: Delete}
+  End: {label: 行尾, send: End}
+  Page_Up: {label: 上頁, send: Page_Up}
+  Page_Down: {label: 下頁, send: Page_Down}
+  Left: {label: '←', send: Left}
+  Down: {label: '↓', send: Down}
+  Up: {label: '↑', send: Up}
+  Right: {label: '→', send: Right}
+  select_all: {label: 全選, send: Control+a}
+  Clear: {label: 清除, text: "{Control+a}{BackSpace}"} #全選並刪除
+  cut: {label: 剪下, send: Control+x}
+  cut_all: {label: 全部剪下, text: "{Control+a}{Control+x}"} #全選並剪切
+  copy: {label: 複製, send: Control+c}
+  copy_all: {label: 全部複製, text: "{Control+a}{Control+c}"} #全選並複製
+  paste: {label: 貼上, send: Control+v}
+  paste_text: {label: 貼上文字, send: Control+Shift+Alt+v} #>=Android 6.0
+  share_text: {label: 分享文字, send: Control+Alt+s} #>=Android 6.0
+  redo: {label: 重做, send: Control+Shift+z} #>=Android 6.0
+  undo: {label: 復原, send: Control+z} #>=Android 6.0
+  # Rime 組合鍵
+  F4: {label: 方案選單, send: F4}
+  BackToPreviousSyllable: {label: 刪音節, send: Control+BackSpace}
+  CommitRawInput: {label: 原文, send: Control+Return}   # 原封不動送出，不經中文轉換
+  CommitScriptText: {label: 編碼, send: Shift+Return}
+  CommitComment: {label: 編碼, send: Control+Shift+Return}
+  DeleteCandidate: {label: 刪詞, send: Control+Delete}
+  # Rime 狀態
+  # 切換英文補完模式（english_completion.yaml），不是 ascii_mode：Trime 在密碼欄
+  # 自動開的 ascii_mode 維持純直通。要純英文直通時長按空白進「英文」鍵盤。
+  Mode_switch: {toggle: english_mode, send: SWITCH_CHARSET, states: [ 中文, 英文 ]}
+  Zenkaku_Hankaku: {toggle: full_shape, send: SWITCH_CHARSET, states: [ 半角, 全角 ]}
+  Henkan: {toggle: simplification, send: SWITCH_CHARSET, states: [ 漢字, 漢字 ]}
+  Charset_switch: {toggle: extended_charset, send: SWITCH_CHARSET, states: [ 常用, 增廣 ]}
+  Punct_switch: {toggle: ascii_punct, send: SWITCH_CHARSET, states: [ 。，, ．， ]}
+  #切換鍵盤
+  Keyboard_symbols: {label: 符號, send: Eisu_toggle, select: symbols}
+  Keyboard_number: {label: 數字, send: Eisu_toggle, select: number}
+  Keyboard_mini: {label: 迷你, send: Eisu_toggle, select: mini}
+  Keyboard_letter: {label: 字母, send: Eisu_toggle, select: default}
+  # 純 select（不與 toggle 併用才有效）：切到獨立的英文鍵盤。
+  Keyboard_english: {label: 英文, send: Eisu_toggle, select: english}
+  Keyboard_default: {label: 回鍵盤, send: Eisu_toggle, select: .default}
+  Keyboard_switch: {label: 鍵盤, send: Eisu_toggle, select: .next}
+  liquid_keyboard_switch: { label: 更多, send: FUNCTION, command: liquid_keyboard, option: "更多" }
+  liquid_keyboard_exit: {label: 關閉面板, send: FUNCTION, command: liquid_keyboard, option: "-1"}  #離開liquidkeyboard
+  # Liquid Keyboard 底列專用精簡鍵：避免長文字在手機直向畫面被擠出螢幕
+  liquid_keyboard_exit_compact: {label: 關閉, send: FUNCTION, command: liquid_keyboard, option: "-1"}
+  liquid_backspace_compact: {label: "⌫", repeatable: true, send: BackSpace}
+  clipboard_window_compact: {label: "剪貼", send: FUNCTION, command: "clipboard_window", option: '0'}
+  liquid_keyboard_emoji: { label: 🙂, send: FUNCTION, command: liquid_keyboard, option: "emoji" }
+  menu_keyboard: {label: 選單, send: FUNCTION, command: menu_keyboard}  # 開啟 SwitchOptionWindow；供工具列左側齒輪使用
+  Liur_menu_open: {label: 常用功能, toggle: rime_tw_menu_main, send: SWITCH_CHARSET}
+  Liur_menu_hints_open: {label: 提示細項, toggle: rime_tw_menu_hints, send: SWITCH_CHARSET}
+  Liur_menu_advanced_open: {label: 進階設定, toggle: rime_tw_menu_advanced, send: SWITCH_CHARSET}
+  Liur_menu_back: {label: 回鍵盤, toggle: rime_tw_menu_back, send: SWITCH_CHARSET}
+  Liur_menu_home: {label: 回常用功能, toggle: rime_tw_menu_main, send: SWITCH_CHARSET}
+  Liur_menu_main: {send: Eisu_toggle, select: liur_menu_main}
+  Liur_menu_hints: {send: Eisu_toggle, select: liur_menu_hints}
+  Liur_menu_advanced: {send: Eisu_toggle, select: liur_menu_advanced}
+  Liur_menu_main_ascii: {send: Eisu_toggle, select: liur_menu_main_ascii}
+  Liur_menu_hints_ascii: {send: Eisu_toggle, select: liur_menu_hints_ascii}
+  Liur_menu_advanced_ascii: {send: Eisu_toggle, select: liur_menu_advanced_ascii}
+  Liur_mixed_sentence: {toggle: mixed_sentence, send: SWITCH_CHARSET, states: [混合連打：關, 混合連打：實驗]}
+  Liur_english_completion: {toggle: english_completion, send: SWITCH_CHARSET, states: [英文補完：關, 英文補完：開]}
+  Liur_continuous: {toggle: octagram_mode, send: SWITCH_CHARSET, states: [連續輸入：關, 連續輸入：開]}
+  Liur_lookup: {toggle: liu_w2c, send: SWITCH_CHARSET, states: [字碼提示：關, 字碼提示：開]}
+  Liur_hint_zrm: {toggle: hint_zrm, send: SWITCH_CHARSET, states: [自然碼提示：關, 自然碼提示：開]}
+  Liur_hint_bpmf: {toggle: hint_bpmf, send: SWITCH_CHARSET, states: [注音提示：關, 注音提示：開]}
+  Liur_hint_learning: {toggle: hint_learning, send: SWITCH_CHARSET, states: [提示樣式：精簡, 提示樣式：學習]}
+  Liur_full_shape: {toggle: full_shape, send: SWITCH_CHARSET, states: [字寬：半形, 字寬：全形]}
+  Liur_simplification: {toggle: simplification, send: SWITCH_CHARSET, states: [字形：繁體, 字形：簡體]}
+  Liur_quick: {toggle: quick_mode, send: SWITCH_CHARSET, states: [快打：關, 快打：開]}
+  Liur_wildcard: {toggle: wildcard_mode, send: SWITCH_CHARSET, states: [萬用查字：關, 萬用查字：開]}
+  Liur_charset: {toggle: extended_charset, send: SWITCH_CHARSET, states: [字集：常用, 字集：擴充]}
+  Liur_tw: {toggle: zh_tw, send: SWITCH_CHARSET, states: [反查用語：原樣, 反查用語：臺灣]}
+  Liur_emoji: {toggle: emoji_suggestion, send: SWITCH_CHARSET, states: [Emoji 建議：關, Emoji 建議：開]}
+  clipboard_window: { label: "剪貼簿", send: FUNCTION, command: "clipboard_window", option: '0' } #0剪貼簿，1收藏夾
+  set_theme_ink: { label: 切換到ink主題, send: FUNCTION, command: set_theme, option: "ink" } #空白參數代表重新整理主題
+  # Trime 設定
+  IME_switch: { label: 🌐, send: LANGUAGE_SWITCH } #開啟對話框選擇輸入法
+  IME_last: { label: 上一輸入法, send: LANGUAGE_SWITCH, select: .last } #直接切換到上一輸入法
+  IME_next: { label: 下一輸入法, send: LANGUAGE_SWITCH, select: .next } #直接切換到下一輸入法
+  Schema_switch: {label: 下一方案, send: Control+Shift+1}
+  # ── 標點鍵：標籤隨 ascii_punct 開關動態切換 ──────────────
+  # getLabel() 只在 states 與 toggle 皆非空時取 states[option]，
+  # toggle 僅用來「讀取」選項決定顯示哪個標籤，不會讓按鍵去切換它。
+  # send 維持原鍵碼，行為完全不變，純粹修正標籤與實際輸出不符。
+  #   。， 狀態顯示中文標點；．， 狀態顯示 ASCII。
+  Punct_exclam: {send: exclam, toggle: ascii_punct, states: ['！', '!']}
+  Punct_asciicircum: {send: asciicircum, toggle: ascii_punct, states: ['……', '^']}
+  Punct_parenright: {send: parenright, toggle: ascii_punct, states: ['）', ')']}
+  Punct_underscore: {send: underscore, toggle: ascii_punct, states: ['——', '_']}
+  Punct_bar: {send: bar, toggle: ascii_punct, states: ['·', '|']}
+  Punct_backslash: {send: backslash, toggle: ascii_punct, states: ['、', '\']}
+  Punct_semicolon: {send: semicolon, toggle: ascii_punct, states: ['；', ';']}
+  Punct_colon: {send: colon, toggle: ascii_punct, states: ['：', ':']}
+  Punct_comma: {send: comma, toggle: ascii_punct, states: ['，', ',']}
+  Punct_period: {send: period, toggle: ascii_punct, states: ['。', '.']}
+  Punct_greater: {send: greater, toggle: ascii_punct, states: ['》', '>']}
+  Punct_slash: {send: slash, toggle: ascii_punct, states: ['、', '/']}
+  Slash_direct: {label: '/', commit: '/'}  # 直接上屏 ASCII 斜線，不經 punctuator / ascii_punct 轉換
+  # 蝦米底列標點：未組字時直接上屏中文標點，組字中才把 ASCII 碼送給 Rime 當字根。
+  Comma_direct: {label: '，', commit: '，'}
+  Period_direct: {label: '。', commit: '。'}
+  Semicolon_direct: {label: '；', commit: '；'}
+  Comma_code: {label: '，', send: comma}
+  Period_code: {label: '。', send: period}
+  Semicolon_code: {label: '；', send: semicolon}
+  Punct_question: {send: question, toggle: ascii_punct, states: ['？', '?']}
+  Punct_apostrophe: {send: apostrophe, toggle: ascii_punct, states: ['‘', '''']}
+  Punct_quotedbl: {send: quotedbl, toggle: ascii_punct, states: ['“', '"']}
+  Punct_bracketright: {send: bracketright, toggle: ascii_punct, states: ['」', ']']}
+  Punct_braceright: {send: braceright, toggle: ascii_punct, states: ['』', '}']}
+  Schema_liur: {label: 蝦米, send: Control+Shift+6}
+  Schema_zrm: {label: 雙拼+, send: Control+Shift+7}
+  Schema_bpmf: {label: 注音+, send: Control+Shift+8}
+  one_hand_switch_1: {toggle: _one_hand_mode_1, send: SWITCH_CHARSET, states: [ 左手, 一般 ]}
+  one_hand_switch_2: {toggle: _one_hand_mode_2, send: SWITCH_CHARSET, states: [ 右手, 一般 ]}
+  one_hand_switch_3: {toggle: _one_hand_mode_3, send: SWITCH_CHARSET, states: [ 左手, 右手 ]}
+  Color_switch: {label: 配色, send: PROG_RED}
+  Help: {label: 說明, send: Help}
+  Info: {label: 關於, send: INFO}
+  Menu: {label: 方案, send: Menu}
+  Settings: {label: 設定, send: SETTINGS}
+  Color_settings: {label: 配色, send: SETTINGS, option: "color"}
+  Theme_settings: {label: 主題, send: SETTINGS, option: "theme"}
+  Schema_settings: {label: 方案, send: SETTINGS, option: "schema"}
+  Candidate_switch: {toggle: _hide_candidate, send: SWITCH_CHARSET, states: [ 有候選, 無候選]}
+  Comment_switch: {toggle: _hide_comment, send: SWITCH_CHARSET, states: [ 有註解, 無註解]}
+  Hint_switch: {toggle: _hide_key_hint, send: SWITCH_CHARSET, states: [ 有助記, 無助記]}
+  Hint_zrm_switch: {toggle: hint_zrm, send: SWITCH_CHARSET, states: [ 雙拼提示關, 雙拼提示開 ]}
+  Hint_bpmf_switch: {toggle: hint_bpmf, send: SWITCH_CHARSET, states: [ 注音提示關, 注音提示開 ]}
+  Hint_liur_switch: {toggle: hint_liur, send: SWITCH_CHARSET, states: [ 蝦米提示關, 蝦米提示開 ]}
+  # Trime 指令
+  Date: {label: 日期, command: date, option: "yyyy-MM-dd"}
+  ChineseDate: {label: 農曆, command: date, option: "zh_CN@calendar=chinese"} #農曆等日期(>=Android 7.0)：date 語言@calendar=曆法 格式。詳見https://developer.android.com/reference/android/icu/util/Calendar.html
+  Time: {label: 時間, command: date, option: "HH:mm:ss"} #時間： date 格式
+  TrimeApp: {label: 同文, command: run, option: "com.osfans.trime"} #執行 App： run：套件名稱
+  TrimeCmp: {label: 同文元件, command: run, option: "com.osfans.trime/.ui.main.MainActivity"} #執行 App 指定元件： run：套件名稱／元件名稱
+  Homepage: {label: 同文首頁, command: run, option: "https://github.com/osfans/trime"} #查看網頁: run 網址
+  CommitHomepage: {label: 同文網址, commit: https://github.com/osfans/trime} #直接送出
+  Wiki: {label: 維基, command: run, option: "https://zh.wikipedia.org/wiki/%s"} #搜尋網頁: %s或%1$s為目前字元
+  Google: {label: Google, command: run, option: "https://www.google.com/search?q=%s"} #搜尋網頁: %s或%1$s為目前字元
+  MoeDict: {label: 萌典, command: run, option: "https://www.moedict.tw/%3$s"} #搜尋網頁: %3$s為游標前字元
+  WebSearch: {label: 搜尋網頁, command: web_search, option: "%4$s"} #搜尋，其他view、dial、edit、search等intent，參考 Android Intent 文件：https://developer.android.com/reference/android/content/Intent.html
+  Search: {label: 搜尋, command: search, option: "%1$s"} #搜尋簡訊、字典等
+  Share: {label: 分享, command: send, option: "%s"} #分享指定文字: %s或%1$s為目前字元
+  Deploy: {label: 部署, send: FUNCTION, command: apply, option: "DEPLOY"} #重新部署
+  Sync: {label: 同步, send: FUNCTION, command: apply, option: "SYNC_USER_DATA"} #使用者資料同步
+  updateConfig: {label: 更新設定, send: FUNCTION, command: apply, option: "UPDATE_CONFIG"} #更新設定檔
+  RepeatCommit: { label: 重複,  command: commit, option: "%1$s" } #重複輸入剛送出的內容
+
+preset_keyboards:
+  # 不改 ascii_mode 的分頁入口：避免 Trime 切鍵盤時自動提交未完成組字。
+  liur_menu_main:
+    name: 蝦米常用功能
+    ascii_mode: 0
+    reset_ascii_mode: true
+    lock: false
+    width: 50
+    height: 64
+    keys:
+      - {click: Liur_continuous, key_text_size: 16}
+      - {click: Liur_lookup, key_text_size: 16}
+      - {click: Liur_english_completion, key_text_size: 16}
+      - {click: Liur_mixed_sentence, key_text_size: 16}
+      - {click: Liur_menu_hints_open, key_text_size: 16}
+      - {click: Liur_menu_advanced_open, key_text_size: 16}
+      - {click: Liur_menu_back, width: 100}
+  liur_menu_hints:
+    __include: /preset_keyboards/liur_menu_main
+    name: 蝦米字碼提示
+    keys:
+      - {click: Liur_hint_zrm, key_text_size: 16}
+      - {click: Liur_hint_bpmf, key_text_size: 16}
+      - {click: Liur_hint_learning, width: 100}
+      - {click: Liur_menu_home}
+      - {click: Liur_menu_back}
+  liur_menu_advanced:
+    __include: /preset_keyboards/liur_menu_main
+    name: 蝦米進階設定
+    height: 54
+    keys:
+      - {click: Liur_full_shape, key_text_size: 16}
+      - {click: Liur_simplification, key_text_size: 16}
+      - {click: Liur_quick, key_text_size: 16}
+      - {click: Liur_wildcard, key_text_size: 16}
+      - {click: Liur_charset, key_text_size: 16}
+      - {click: Liur_tw, key_text_size: 16}
+      - {click: Liur_emoji, key_text_size: 16}
+      - {click: menu_keyboard, label: 完整選單, key_text_size: 16}
+      - {click: Liur_menu_home}
+      - {click: Liur_menu_back}
+  liur_menu_main_ascii:
+    __include: /preset_keyboards/liur_menu_main
+    ascii_mode: 1
+  liur_menu_hints_ascii:
+    __include: /preset_keyboards/liur_menu_hints
+    ascii_mode: 1
+  liur_menu_advanced_ascii:
+    __include: /preset_keyboards/liur_menu_advanced
+    ascii_mode: 1
+  default:
+    name: 預設40鍵
+    author: "osfans <waxaca@163.com>"
+    ascii_mode: 0
+    width: 10
+    height: 54
+    lock: true #切換 App時記憶鍵盤
+    keys:
+      - {click: '1', long_click: Punct_exclam}
+      - {click: '2', long_click: '@'}
+      - {click: '3', long_click: '#'}
+      - {click: '4', long_click: $}
+      - {click: '5', long_click: '%'}
+      - {click: '6', long_click: ^}
+      - {click: '7', long_click: '&'}
+      - {click: '8', long_click: '*'}
+      - {click: '9', long_click: '（）{Left}'}
+      - {click: '0', long_click: )}
+      - {click: q, long_click: Punct_underscore}
+      - {click: w, long_click: '-'}
+      - {click: e, long_click: +}
+      - {click: r, long_click: '='}
+      - {click: t, long_click: Punct_bar}
+      - {click: y, long_click: Punct_backslash}
+      - {click: u, long_click: '「」{Left}'}
+      - {click: i, long_click: Punct_bracketright}
+      - {click: o, long_click: '『』{Left}'}
+      - {click: p, long_click: Punct_braceright}
+      - {click: a, long_click: select_all}
+      - {click: s, long_click: Home}
+      - {click: d, long_click: End}
+      - {click: f, long_click: Page_Up}
+      - {click: g, long_click: Page_Down}
+      - {click: h, long_click: Left}
+      - {click: j, long_click: Down}
+      - {click: k, long_click: Up}
+      - {click: l, long_click: Right}
+      - {click: ;, long_click: Punct_colon}
+      - {click: Shift_L, width: 15}
+      - {click: z, long_click: '`', width: 10}
+      - {click: x, long_click: cut, width: 10}
+      - {click: c, long_click: copy, width: 10}
+      - {click: v, long_click: paste, width: 10}
+      - {click: b, long_click: '~', width: 10}
+      - {click: n, long_click: Insert, width: 10}
+      - {click: m, long_click: Delete, width: 10}
+      - {click: BackSpace, label: ⌫, swipe_left: Escape, width: 15}
+      # 底列：移除重複的中英切換與 Emoji；Space 針對右側誤觸往右擴張。
+      # 左側 3 鍵合計 30%，Space 45%，右側 4 鍵合計 25%。
+      # Space 往右擴張 5%；保留常用的句號與 Enter 原寬，只縮小斜線與引號。
+      - {click: Keyboard_symbols, long_click: Keyboard_number, width: 10}
+      - {click: ',', long_click: '《》{Left}', width: 10}
+      - {click: '、', long_click: '・', width: 10}
+      - {click: space, width: 45, swipe_up: Up, swipe_down: Down}   # 左右交給 slide_cursor 跟手拖曳；swipe_left/right 不設，slide_cursor 觸發時 ACTION_UP 會搶先 return，設了也不會生效。長按叫方案選單已移除：跟工具列的蝦/雙/注按鈕重複，且常誤觸擋掉滑動游標
+      - {click: ., long_click: Punct_greater, width: 7.5}
+      - {click: Slash_direct, long_click: Punct_question, width: 5}
+      - {click: "'", long_click: Punct_quotedbl, width: 5}
+      - {click: Return, composing: Return1, long_click: CommitRawInput, width: 7.5}
+  mini:
+    name: 精簡鍵盤
+    author: "tumuyan"
+    ascii_mode: 0
+    width: 10
+    height: 44
+    keyboard_height: 120
+    lock: true #切換 App時記憶鍵盤
+    keys:
+      - {click: '1', long_click: '!'}
+      - {click: '2', long_click: '@'}
+      - {click: '3', long_click: '#'}
+      - {click: '4', long_click: '$'}
+      - {click: '5', long_click: '%'}
+      - {click: '6', long_click: '^'}
+      - {click: '7', long_click: '&'}
+      - {click: '8', long_click: '*'}
+      - {click: '9', long_click: '('}
+      - {click: '0', long_click: ')'}
+      - {click: Shift_L}
+      - {click: Keyboard_symbols, long_click: Keyboard_number}
+      - {click: "'", long_click: '"'}
+      - {click: '-', long_click: '_'}
+      - {click: '=', long_click: '+'}
+      - {click: ',', long_click: '<'}
+      - {click: '.', long_click: '>'}
+      - {click: '/', long_click: '?'}
+      - {click: Mode_switch, long_click: Menu}
+      - {click: Return, composing: Return1, long_click: CommitRawInput}
+  letter:
+    __include: /preset_keyboards/default
+    ascii_mode: 1
+    reset_ascii_mode: true  #顯示鍵盤時重置為ascii_mode指定的狀態
+    lock: false
+
+  # 獨立英文鍵盤：三套中文鍵盤都可從「符號」鍵長按切進來，底列「中文」鍵切回原方案。
+  # 幾何與雙拼一致（10 / 9 / 9），長按編輯指令沿用 hjkl + xcv 標準。
+  english:
+    name: 英文
+    author: 本地
+    ascii_mode: 1
+    reset_ascii_mode: true
+    lock: false
+    width: 10
+    height: 54
+    keys:
+      - {click: '1', long_click: Punct_exclam}
+      - {click: '2', long_click: '@'}
+      - {click: '3', long_click: '#'}
+      - {click: '4', long_click: $}
+      - {click: '5', long_click: '%'}
+      - {click: '6', long_click: ^}
+      - {click: '7', long_click: '&'}
+      - {click: '8', long_click: '*'}
+      - {click: '9', long_click: '（）{Left}'}
+      - {click: '0', long_click: )}
+      - {click: q, long_click: Punct_underscore}
+      - {click: w, long_click: '-'}
+      - {click: e, long_click: +}
+      - {click: r, long_click: '='}
+      - {click: t, long_click: Punct_bar}
+      - {click: y, long_click: Punct_backslash}
+      - {click: u, long_click: '「」{Left}'}
+      - {click: i, long_click: Punct_bracketright}
+      - {click: o, long_click: '『』{Left}'}
+      - {click: p, long_click: Punct_braceright}
+      - {width: 5}
+      - {click: a, long_click: select_all}
+      - {click: s, long_click: Home}
+      - {click: d, long_click: End}
+      - {click: f, long_click: Page_Up}
+      - {click: g, long_click: Page_Down}
+      - {click: h, long_click: Left}
+      - {click: j, long_click: Down}
+      - {click: k, long_click: Up}
+      - {click: l, long_click: Right}
+      - {width: 5}
+      - {click: Shift_L_English, long_click: Shift_L_English, width: 15}
+      - {click: z, long_click: '`'}
+      - {click: x, long_click: cut}
+      - {click: c, long_click: copy}
+      - {click: v, long_click: paste}
+      - {click: b, long_click: '~'}
+      - {click: n, long_click: Insert}
+      - {click: m, long_click: Delete}
+      - {click: BackSpace, label: ⌫, swipe_left: Escape, width: 15}
+      - {click: Keyboard_default, label: 中文, long_click: Keyboard_symbols, width: 15}
+      - {click: ',', long_click: ;}
+      - {click: "'", long_click: Punct_quotedbl}
+      - {click: space, long_click: Keyboard_default, width: 40, swipe_up: Up, swipe_down: Down}   # 長按空白鍵→切回原方案
+      - {click: ., long_click: Slash_direct}
+      - {click: Return, long_click: CommitRawInput, width: 15}
+  # 注音+ 的英文補完模式鍵盤（english_completion.yaml）。注音鍵盤的標籤只在
+  # ascii_mode 時換成字母，補完模式不開 ascii_mode，所以另切這套 QWERTY。
+  # ascii_mode 必須是 0，否則成為純直通、沒有補完。底列「中文」與長按空白改為
+  # Mode_switch：原本的 Keyboard_default 會切回注音鍵盤但補完模式仍開著。
+  english_completion:
+    __include: /preset_keyboards/english
+    __patch:
+      keys/@40: {click: Mode_switch, label: 中文, long_click: Keyboard_symbols, width: 15}
+      keys/@43: {click: space, long_click: Mode_switch, width: 40, swipe_up: Up, swipe_down: Down}
+    name: 英文補完
+    ascii_mode: 0
+  qwerty0:
+    name: 預設36鍵
+    author: "osfans <waxaca@163.com>"
+    ascii_mode: 0
+    width: 10
+    height: 54
+    label_transform: uppercase #uppercase|none 中文模式下的字母標籤自動大寫
+    lock: true
+    keys:
+    - {click: '1', long_click: '!'}
+    - {click: '2', long_click: '@'}
+    - {click: '3', long_click: '#'}
+    - {click: '4', long_click: '$'}
+    - {click: '5', long_click: '%'}
+    - {click: '6', long_click: '^'}
+    - {click: '7', long_click: '&'}
+    - {click: '8', long_click: '*'}
+    - {click: '9', long_click: '('}
+    - {click: '0', long_click: ')'}
+    - {click: 'q', long_click: '_'}
+    - {click: 'w', long_click: '-'}
+    - {click: 'e', long_click: '+'}
+    - {click: 'r', long_click: '='}
+    - {click: 't', long_click: '|'}
+    - {click: 'y', long_click: '\'}
+    - {click: 'u', long_click: '['}
+    - {click: 'i', long_click: ']'}
+    - {click: 'o', long_click: '{'}
+    - {click: 'p', long_click: '}'}
+    - {width: 5}
+    - {click: 'a', long_click: select_all }
+    - {click: 's', long_click: Home}
+    - {click: 'd', long_click: End}
+    - {click: 'f', long_click: Page_Up}
+    - {click: 'g', long_click: Page_Down}
+    - {click: 'h', long_click: Left}
+    - {click: 'j', long_click: Down}
+    - {click: 'k', long_click: ':'}
+    - {click: 'l', long_click: ';'}
+    - {width: 5}
+    - {click: Shift_L, has_menu: "'", width: 15}
+    - {click: 'z', long_click: '`'}
+    - {click: 'x', long_click: cut}
+    - {click: 'c', long_click: copy}
+    - {click: 'v', long_click: paste}
+    - {click: 'b', long_click: '~'}
+    - {click: 'n', long_click: '"'}
+    - {click: 'm', long_click: "MoeDict"}
+    - {click: BackSpace, label: ⌫, width: 15}
+    - {click: Mode_switch, long_click: Menu, width: 15}
+    - {click: Keyboard_symbols, long_click: Keyboard_number}
+    - {click: ',', long_click: '<'}
+    - {click: space, width: 30}
+    - {click: '.', long_click: '>'}
+    - {click: '/', long_click: '?'}
+    - {click: Return, composing: Return1, long_click: CommitRawInput, width: 15}
+  qwerty_:
+    name: 預設30鍵
+    author: "osfans <waxaca@163.com>"
+    ascii_mode: 0
+    width: 10
+    height: 55
+    lock: true
+    keys:
+    - {click: 'q', long_click: '!', swipe_up: 1}
+    - {click: 'w', long_click: '@', swipe_up: 2}
+    - {click: 'e', long_click: '#', swipe_up: 3}
+    - {click: 'r', long_click: '$', swipe_up: 4}
+    - {click: 't', long_click: '%', swipe_up: 5}
+    - {click: 'y', long_click: '^', swipe_up: 6}
+    - {click: 'u', long_click: '&', swipe_up: 7}
+    - {click: 'i', long_click: '*', swipe_up: 8}
+    - {click: 'o', long_click: '(', swipe_up: 9}
+    - {click: 'p', long_click: ')', swipe_up: 0}
+    - {click: 'a', long_click: select_all, swipe_left: Left, swipe_right: Right, swipe_up: Up, swipe_down: Down}
+    - {click: 's', long_click: '~', swipe_left: Home, swipe_right: End, swipe_up: Page_Up, swipe_down: Page_Down}
+    - {click: 'd', long_click: '-', swipe_down: '_'}
+    - {click: 'f', long_click: '+', swipe_down: '='}
+    - {click: 'g', long_click: '\', swipe_down: '|'}
+    - {click: 'h', long_click: '[]{Left}', swipe_left: '[', swipe_right: ']'}
+    - {click: 'j', long_click: '{}{Left}', swipe_left: '{', swipe_right: '}'}
+    - {click: 'k', long_click: '"'}
+    - {click: 'l', long_click: "'"}
+    - {click: ';', long_click: ':'}
+    - {click: 'z', long_click: '`'}
+    - {click: 'x', long_click: cut}
+    - {click: 'c', long_click: copy}
+    - {click: 'v', long_click: paste}
+    - {click: 'b', long_click: Time, swipe_up: Date}
+    - {click: 'n', long_click: Insert}
+    - {click: 'm', long_click: Delete}
+    - {click: ',', long_click: '<'}
+    - {click: '.', long_click: '>'}
+    - {click: '/', long_click: '?'}
+    - {click: Shift_L}
+    - {click: Keyboard_symbols, long_click: Keyboard_number}
+    - {click: Mode_switch, long_click: Menu}
+    - {click: space, width: 40}
+    - {click: BackSpace, label: ⌫, width: 15}
+    - {click: Return, composing: Return1, long_click: CommitRawInput, width: 15}
+  qwerty:
+    name: 預設26鍵
+    author: "osfans <waxaca@163.com>"
+    ascii_mode: 0
+    columns: 10 #鍵盤列數，超過則自動換行，預設30列
+    width: 10
+    height: 55
+    lock: true
+    key_symbol_offset_x: 0
+    key_symbol_offset_y: 0
+    key_text_offset_x: 0
+    key_text_offset_y: 0
+    key_hint_offset_x: 0
+    key_hint_offset_y: 0
+    key_press_offset_x: 2
+    key_press_offset_y: 2
+    keys:
+    - {click: q, long_click: '!', swipe_up: 1}
+    - {click: w, long_click: '@', swipe_up: 2}
+    - {click: e, long_click: '#', swipe_up: 3}
+    - {click: r, long_click: $, swipe_up: 4}
+    - {click: t, long_click: '%', swipe_up: 5}
+    - {click: y, long_click: ^, swipe_up: 6}
+    - {click: u, long_click: '[', swipe_up: 7}
+    - {click: i, long_click: ']', swipe_up: 8}
+    - {click: o, long_click: '(){Left}', swipe_up: 9}
+    - {click: p, long_click: Hide, swipe_up: 0}
+    - {width: 5}
+    - {click: a, long_click: select_all, swipe_down: Down, swipe_left: Left, swipe_right: Right, swipe_up: Up}
+    - {click: s, long_click: '~', swipe_down: Page_Down, swipe_left: Home, swipe_right: End, swipe_up: Page_Up}
+    - {click: d, long_click: '-', swipe_down: _}
+    - {click: f, long_click: +, swipe_down: '='}
+    - {click: g, long_click: \, swipe_down: '|'}
+    - {click: h, long_click: '[]{Left}', swipe_left: '[', swipe_right: ']'}
+    - {click: j, long_click: '{}{Left}', swipe_left: '{', swipe_right: '}'}
+    - {click: k, long_click: ':'}
+    - {click: l, long_click: ;}
+    - {width: 5}
+    - {click: Shift_L, send_bindings: false, width: 15}
+    - {click: z, long_click: '`'}
+    - {click: x, long_click: cut}
+    - {click: c, long_click: copy}
+    - {click: v, long_click: paste}
+    - {click: b, long_click: Time, swipe_up: Date}
+    - {click: n, long_click: '"'}
+    - {click: m, long_click: ''''}
+    - {click: BackSpace, label: ⌫, swipe_left: Escape, width: 15}
+    - {click: Mode_switch, long_click: Menu, width: 15}
+    - {click: Keyboard_symbols, long_click: Keyboard_number}
+    - {click: ',', long_click: <}
+    - {click: liquid_keyboard_emoji}
+    - {click: space, long_click: Schema_settings, width: 20}
+    - {click: ., long_click: '>'}
+    - {click: /, long_click: '?'}
+    - {click: Return, composing: Return1, long_click: CommitRawInput, width: 15}
+  us_intl:
+    name: 美式國際
+    author: "Terry Tsang <archerindigo@gmail.com>"
+    ascii_mode: 1
+    width: 10
+    height: 54
+    lock: true
+    keys:
+    - {click: '1', long_click: '!', swipe_up: '¡', swipe_down: '¹'}
+    - {click: '2', long_click: '@', swipe_up: '²'}
+    - {click: '3', long_click: '#', swipe_up: '³'}
+    - {click: '4', long_click: '$', swipe_up: '¤', swipe_down: '£'}
+    - {click: '5', long_click: '%', swipe_up: '€'}
+    - {click: '6', long_click: '^', swipe_up: '¼'}
+    - {click: '7', long_click: '&', swipe_up: '½'}
+    - {click: '8', long_click: '*', swipe_up: '¾'}
+    - {click: '9', long_click: '(){Left}', swipe_left: '(', swipe_right: ')', swipe_up: '‘'}
+    - {click: '0', long_click: '-', swipe_down: '_', swipe_up: '’', swipe_left: '¥'}
+    - {click: 'q', long_click: '~', swipe_up: 'ä'}
+    - {click: 'w', long_click: '+', swipe_up: 'å'}
+    - {click: 'e', long_click: '=', swipe_up: 'é'}
+    - {click: 'r', long_click: '×', swipe_up: '®'}
+    - {click: 't', long_click: '÷', swipe_up: 'þ'}
+    - {click: 'y', long_click: '«»{Left}', swipe_left: '«', swipe_right: '»', swipe_up: 'ü'}
+    - {click: 'u', long_click: '[]{Left}', swipe_left: '[', swipe_right: ']', swipe_up: 'ú'}
+    - {click: 'i', long_click: '{}{Left}', swipe_left: '{', swipe_right: '}', swipe_up: 'í'}
+    - {click: 'o', long_click: '\', swipe_up: 'ó'}
+    - {click: 'p', long_click: '|', swipe_up: 'ö', swipe_down: '¬', swipe_left: '¦'}
+    - {click: 'a', long_click: '`', swipe_up: 'á'}
+    - {click: 's', swipe_up: 'ß', swipe_down: '§'}
+    - {click: 'd', swipe_up: 'ð'}
+    - {click: 'f', long_click: Left, swipe_left: Home, swipe_right: End, swipe_up: Page_Up, swipe_down: Page_Down}
+    - {click: 'g', long_click: Up, swipe_left: Home, swipe_right: End, swipe_up: Page_Up, swipe_down: Page_Down}
+    - {click: 'h', long_click: Down, swipe_left: Home, swipe_right: End, swipe_up: Page_Up, swipe_down: Page_Down}
+    - {click: 'j', long_click: Right, swipe_left: Home, swipe_right: End, swipe_up: Page_Up, swipe_down: Page_Down}
+    - {click: 'k'}
+    - {click: 'l', swipe_up: 'ø'}
+    - {click: ';', long_click: ':', swipe_up: '¶', swipe_down: '°'}
+    - {click: 'z', long_click: select_all, swipe_up: 'æ'}
+    - {click: 'x', long_click: cut}
+    - {click: 'c', long_click: copy, swipe_up: '©', swipe_down: '¢'}
+    - {click: 'v', long_click: paste}
+    - {click: 'b', long_click: Insert}
+    - {click: 'n', long_click: undo, swipe_up: 'ñ'}
+    - {click: 'm', long_click: redo, swipe_up: 'µ'}
+    - {click: ',', long_click: '<', swipe_up: 'ç'}
+    - {click: '.', long_click: '>'}
+    - {click: '/', long_click: '?', swipe_up: '¿'}
+    - {click: Shift_L}
+    - {click: Keyboard_symbols, long_click: Keyboard_number}
+    - {click: Mode_switch, long_click: Menu}
+    - {click: space, long_click: VOICE_ASSIST, width: 30}
+    - {click: "'", long_click: '"'}
+    - {click: BackSpace, label: ⌫, swipe_left: Escape, swipe_right: Delete, width: 15}
+    - {click: Return, long_click: CommitRawInput, width: 15}
+  number:
+    name: 預設數字
+    author: "osfans <waxaca@163.com>"
+    ascii_mode: 1            # 數字鍵盤固定西文模式，按鍵不經 Rime 引擎
+    reset_ascii_mode: true   # 每次顯示都重設，不沿用切換前的中英狀態
+    width: 20
+    height: 54
+    keys:
+    - {click: '+'}
+    - {click: '1'}
+    - {click: '2'}
+    - {click: '3'}
+    - {click: '#'}
+    - {click: '-'}
+    - {click: '4'}
+    - {click: '5'}
+    - {click: '6'}
+    - {click: '%'}
+    - {click: '*'}
+    - {click: '7'}
+    - {click: '8'}
+    - {click: '9'}
+    - {click: ':'}
+    - {click: '/'}
+    - {click: '±'}
+    - {click: '0'}
+    - {click: '.'}
+    - {click: ','}
+    - {click: '='}
+    - {click: Keyboard_default, long_click: Keyboard_symbols}
+    - {click: space}
+    - {click: BackSpace, label: ⌫}
+    - {click: Return}
+  symbols:
+    name: 符號
+    author: "天真可愛的滿滿"
+    ascii_mode: 1
+    width: 10
+    height: 54
+    keys:
+    - {click: '1'}
+    - {click: '2'}
+    - {click: '3'}
+    - {click: '4'}
+    - {click: '5'}
+    - {click: '6'}
+    - {click: '7'}
+    - {click: '8'}
+    - {click: '9'}
+    - {click: '0'}
+    - {click: '~',long_click: '`'}
+    - {click: '!'}
+    - {click: '@'}
+    - {click: '#'}
+    - {click: '$'}
+    - {click: '￥'}
+    - {click: '%'}
+    - {click: '^'}
+    - {click: '&'}
+    - {click: '*'}
+    - {click: '(', long_click: '{'}
+    - {click: ')', long_click: '}'}
+    - {click: '[', long_click: '【'}
+    - {click: ']', long_click: '】'}
+    - {click: '「', long_click: '『'}
+    - {click: '」', long_click: '』'}
+    - {click: '、', ascii: '\', long_click: '|'}
+    - {click: '/', long_click: '√'}
+    - {click: ':'}
+    - {click: ';'}
+    - {click: '+'}
+    - {click: '-', long_click: '_'}
+    - {click: '='}
+    - {click: '〈', long_click: '《', ascii: '<'}
+    - {click: '〉', long_click: '》', ascii: '>'}
+    - {click: '“', ascii: '"', long_click: '‘'}
+    - {click: '”', ascii: "'", long_click: '’'}
+    - {click: '，', ascii: ',', long_click: one_hand_switch_1}
+    - {click: '？', ascii: '?', long_click: one_hand_switch_3}
+    - {click: BackSpace, label: ⌫, swipe_left: Escape}
+    - {click: Keyboard_default, long_click: Menu, width: 15}
+    - {click: Keyboard_number, long_click: Color_switch}
+    - {click: Keyboard_mini, long_click: Theme_settings}
+    - {click: space, width: 30}
+    - {click: '。', ascii: '.'}
+    - {click: liquid_keyboard_switch, long_click: Delete}
+    - {click: Return, long_click: select_all, width: 15}
+  double_pinyin:
+    name: 自然碼雙拼
+    author: "osfans <waxaca@163.com>"
+    ascii_mode: 0
+    reset_ascii_mode: true   # 從英文鍵盤切回來時，自動恢復中文模式
+    width: 10
+    height: 54
+    lock: true
+    # 方案自有完整排列；不要改成 include/default，避免方案專屬手勢互相影響。
+    keys:
+      - {click: '1', long_click: Punct_exclam}
+      - {click: '2', long_click: '@'}
+      - {click: '3', long_click: '#'}
+      - {click: '4', long_click: $}
+      - {click: '5', long_click: '%'}
+      - {click: '6', long_click: ^}
+      - {click: '7', long_click: '&'}
+      - {click: '8', long_click: '*'}
+      - {click: '9', long_click: '（）{Left}'}
+      - {click: '0', long_click: )}
+      - {click: q, long_click: Punct_underscore}
+      - {click: w, long_click: '-'}
+      - {click: e, long_click: +}
+      - {click: r, long_click: '='}
+      - {click: t, long_click: Punct_bar}
+      - {click: y, long_click: Punct_backslash}
+      - {click: u, long_click: '「」{Left}'}
+      - {click: i, long_click: Punct_bracketright}
+      - {click: o, long_click: '『』{Left}'}
+      - {click: p, long_click: Punct_braceright}
+      - {width: 5}
+      - {click: a, long_click: select_all}
+      - {click: s, long_click: Home}
+      - {click: d, long_click: End}
+      - {click: f, long_click: Page_Up}
+      - {click: g, long_click: Page_Down}
+      - {click: h, long_click: Left}
+      - {click: j, long_click: Down}
+      - {click: k, long_click: Up}
+      - {click: l, long_click: Right}
+      - {width: 5}
+      # 第三列改 9 鍵、左右各留 5%：錯位來自列數差（10/9/9），不是硬位移。
+      # ; 不是自然碼編碼，移到 ？ 鍵的下滑。
+      - {click: Shift_L, long_click: Shift_L, width: 15}
+      - {click: z, long_click: '`', width: 10}
+      - {click: x, long_click: cut, width: 10}
+      - {click: c, long_click: copy, width: 10}
+      - {click: v, long_click: paste, width: 10}
+      - {click: b, long_click: '~', width: 10}
+      - {click: n, long_click: Insert, width: 10}
+      - {click: m, long_click: Delete, width: 10}
+      - {click: BackSpace, label: ⌫, swipe_left: Escape, width: 15}
+      # 底列骨架與注音／蝦米一致：15 / 10 / 10 / space 40 / 10 / 15。
+      # 原本 5% 寬的 / 與 ' 降為長按（自然碼雙拼不用它們當編碼）。
+      - {click: Keyboard_symbols, long_click: Keyboard_number, width: 15}
+      - {click: ',', long_click: '、', swipe_up: liquid_keyboard_emoji, width: 10}
+      - {click: Punct_question, long_click: '《》{Left}', swipe_up: "'", swipe_down: Punct_semicolon, width: 10}
+      - {click: space, long_click: Keyboard_english, width: 40, swipe_up: Up, swipe_down: Down}   # 長按空白鍵→英文鍵盤
+      - {click: ., long_click: Slash_direct, swipe_up: Ellipsis_single, width: 10}
+      - {click: Return, composing: Return1, long_click: CommitRawInput, width: 15}
+  # 一週 Octagram 試跑：schema ID 獨立，鍵盤永遠跟隨正式雙拼。
+  double_pinyin_octagram:
+    __include: /preset_keyboards/double_pinyin
+    name: 自然碼雙拼+
+  liur:
+    name: 嘸蝦米
+    author: "osfans <waxaca@163.com>"
+    ascii_mode: 0
+    reset_ascii_mode: true   # 從英文鍵盤切回來時，自動恢復中文模式
+    width: 10
+    height: 54
+    lock: true
+    # 方案自有完整排列；與雙拼外觀相同，但按鍵行為可獨立演進。
+    keys:
+      - {click: '1', long_click: Punct_exclam}
+      - {click: '2', long_click: '@'}
+      - {click: '3', long_click: '#'}
+      - {click: '4', long_click: $}
+      - {click: '5', long_click: '%'}
+      - {click: '6', long_click: ^}
+      - {click: '7', long_click: '&'}
+      - {click: '8', long_click: '*'}
+      - {click: '9', long_click: '（）{Left}'}
+      - {click: '0', long_click: )}
+      - {click: q, long_click: Punct_underscore}
+      - {click: w, long_click: '-'}
+      - {click: e, long_click: +}
+      - {click: r, long_click: '='}
+      - {click: t, long_click: Punct_bar}
+      - {click: y, long_click: Punct_backslash}
+      - {click: u, long_click: '「」{Left}'}
+      - {click: i, long_click: Punct_bracketright}
+      - {click: o, long_click: '『』{Left}'}
+      - {click: p, long_click: Punct_braceright}
+      # 第三列改為 9 鍵（去掉 ;），左右各留 5%——錯位來自列數差，不是硬位移。
+      # 長按維持 hjkl 方向鍵標準，不因排列改動而變。
+      - {width: 5}
+      - {click: a, long_click: select_all}
+      - {click: s, long_click: Home}
+      - {click: d, long_click: End}
+      - {click: f, long_click: Page_Up}
+      - {click: g, long_click: Page_Down}
+      - {click: h, long_click: Left}
+      - {click: j, long_click: Down}
+      - {click: k, long_click: Up}
+      - {click: l, long_click: Right}
+      - {width: 5}
+      # 第四列：Shift 15 + 7 字根鍵 + ⌫ 15，寬度與原版相同。
+      - {click: Shift_L, long_click: Shift_L, width: 15}
+      - {click: z, long_click: '`', width: 10}
+      - {click: x, long_click: cut, width: 10}
+      - {click: c, long_click: copy, width: 10}
+      - {click: v, long_click: paste, width: 10}
+      - {click: b, long_click: '~', width: 10}
+      - {click: n, long_click: Insert, width: 10}
+      - {click: m, long_click: Delete, width: 10}
+      - {click: BackSpace, label: ⌫, swipe_left: Escape, width: 15}
+      # 底列：常用的 , ; . 三顆全部單按；長按各取實體 QWERTY 上的右鄰鍵。
+      - {click: Keyboard_symbols, long_click: Keyboard_number, width: 15}
+      # 單按：未組字→直出中文標點；組字中→送 ASCII 碼給 Rime。
+      # 長按：一律送 ASCII 碼，供「以 , . ; 開頭」的字根起首使用（起首後就回到單按）。
+      # 上滑：次要符號。
+      # , 與 . 同為字根：單按一律送 ASCII 碼給 Rime，照嘸蝦米原本的打法（按 , 再按 space 才出字）。
+      - {click: ',', long_click: Comma_direct, swipe_up: '、', width: 10}
+      - {click: Semicolon_direct, composing: Semicolon_code, long_click: Punct_question, swipe_up: Semicolon_code, swipe_down: "'", width: 10}
+      - {click: space, long_click: Keyboard_english, width: 40, swipe_up: Up, swipe_down: Down}   # 長按空白鍵→英文鍵盤
+      # . 是字根起首（.,→；  ..→：），所以單按一律送 ASCII 碼給 Rime，不直出句號。
+      # 句號改由長按取得；/ 移到上滑。
+      - {click: ., long_click: Period_direct, swipe_up: Slash_direct, width: 10}
+      - {click: Return, composing: Return1, long_click: CommitRawInput, width: 15}
+  # 蝦米·精簡：鍵盤與 liur 完全相同。
+  liur_lite:
+    __include: /preset_keyboards/liur
+    name: 蝦米·精簡
+  # Octagram 開關開啟後套用的隱藏後端方案。
+  # 鍵盤必須與 liur 完全相同，使用者只感覺是原方案的一個開關。
+  liur_octagram:
+    name: 蝦米輸入法
+    author: "osfans <waxaca@163.com>"
+    ascii_mode: 0
+    reset_ascii_mode: true
+    width: 10
+    height: 54
+    lock: true
+    keys:
+      - {click: '1', long_click: Punct_exclam}
+      - {click: '2', long_click: '@'}
+      - {click: '3', long_click: '#'}
+      - {click: '4', long_click: $}
+      - {click: '5', long_click: '%'}
+      - {click: '6', long_click: ^}
+      - {click: '7', long_click: '&'}
+      - {click: '8', long_click: '*'}
+      - {click: '9', long_click: '（）{Left}'}
+      - {click: '0', long_click: )}
+      - {click: q, long_click: Punct_underscore}
+      - {click: w, long_click: '-'}
+      - {click: e, long_click: +}
+      - {click: r, long_click: '='}
+      - {click: t, long_click: Punct_bar}
+      - {click: y, long_click: Punct_backslash}
+      - {click: u, long_click: '「」{Left}'}
+      - {click: i, long_click: Punct_bracketright}
+      - {click: o, long_click: '『』{Left}'}
+      - {click: p, long_click: Punct_braceright}
+      - {width: 5}
+      - {click: a, long_click: select_all}
+      - {click: s, long_click: Home}
+      - {click: d, long_click: End}
+      - {click: f, long_click: Page_Up}
+      - {click: g, long_click: Page_Down}
+      - {click: h, long_click: Left}
+      - {click: j, long_click: Down}
+      - {click: k, long_click: Up}
+      - {click: l, long_click: Right}
+      - {width: 5}
+      - {click: Shift_L, long_click: Shift_L, width: 15}
+      - {click: z, long_click: '`', width: 10}
+      - {click: x, long_click: cut, width: 10}
+      - {click: c, long_click: copy, width: 10}
+      - {click: v, long_click: paste, width: 10}
+      - {click: b, long_click: '~', width: 10}
+      - {click: n, long_click: Insert, width: 10}
+      - {click: m, long_click: Delete, width: 10}
+      - {click: BackSpace, label: ⌫, swipe_left: Escape, width: 15}
+      - {click: Keyboard_symbols, long_click: Keyboard_number, width: 15}
+      - {click: ',', long_click: Comma_direct, swipe_up: '、', width: 10}
+      - {click: Semicolon_direct, composing: Semicolon_code, long_click: Punct_question, swipe_up: Semicolon_code, swipe_down: "'", width: 10}
+      - {click: space, long_click: Keyboard_english, width: 40, swipe_up: Up, swipe_down: Down}
+      - {click: ., long_click: Period_direct, swipe_up: Slash_direct, width: 10}
+      - {click: Return, composing: Return1, long_click: CommitRawInput, width: 15}
+  bopomofo_tw:
+    name: 注音·臺灣正體
+    author: "皛筱晓小笨鱼"
+    ascii_mode: 0
+    reset_ascii_mode: true   # 從英文鍵盤切回來時，自動恢復中文模式
+    ascii_keyboard: letter
+    width: 10
+    height: 54
+    keys:
+    # Gboard「交錯排列注音鍵盤」。label_symbol 固定顯示 Gboard 的角落標示，
+    # 不再讓 Trime 自動拿 long_click 的編輯快捷鍵當作標示。
+    # 第一列：1–0 與 -；ㄦ位於最右側，11 鍵等寬。
+    - {click: '1', label: ㄅ, label_symbol: '1', long_click: bpmf_digit_1, width: 9.09}
+    - {click: '2', label: ㄉ, label_symbol: '2', long_click: bpmf_digit_2, width: 9.09}
+    - {click: '3', label: ˇ, label_symbol: '3', long_click: bpmf_digit_3, width: 9.09}
+    - {click: '4', label: ˋ, label_symbol: '4', long_click: bpmf_digit_4, width: 9.09}
+    - {click: '5', label: ㄓ, label_symbol: '5', long_click: bpmf_digit_5, width: 9.09}
+    - {click: '6', label: ˊ, label_symbol: '6', long_click: bpmf_digit_6, width: 9.09}
+    - {click: '7', label: ˙, label_symbol: '7', long_click: bpmf_digit_7, width: 9.09}
+    - {click: '8', label: ㄚ, label_symbol: '8', long_click: bpmf_digit_8, width: 9.09}
+    - {click: '9', label: ㄞ, label_symbol: '9', long_click: bpmf_digit_9, width: 9.09}
+    - {click: '0', label: ㄢ, label_symbol: '0', long_click: bpmf_digit_0, width: 9.09}
+    - {click: '-', label: ㄦ, label_symbol: '-', long_click: bpmf_minus, width: 9.09}
+    # 第二列向右錯開 1/3 鍵；左右空白加按鍵恰為 100%。
+    - {width: 3.03}
+    - {click: q, label: ㄆ, label_symbol: q, long_click: _, width: 9.09}
+    - {click: w, label: ㄊ, label_symbol: w, long_click: '-', width: 9.09}
+    - {click: e, label: ㄍ, label_symbol: e, long_click: +, width: 9.09}
+    - {click: r, label: ㄐ, label_symbol: r, long_click: '=', width: 9.09}
+    - {click: t, label: ㄔ, label_symbol: t, long_click: '|', width: 9.09}
+    - {click: y, label: ㄗ, label_symbol: y, long_click: \, width: 9.09}
+    - {click: u, label: ㄧ, label_symbol: u, long_click: '[', width: 9.09}
+    - {click: i, label: ㄛ, label_symbol: i, long_click: ']', width: 9.09}
+    - {click: o, label: ㄟ, label_symbol: o, long_click: '{', width: 9.09}
+    - {click: p, label: ㄣ, label_symbol: p, long_click: '}', width: 9.09}
+    - {width: 6.07}
+    # 第三列再向右錯開 1/3 鍵；ㄤ右上角為冒號。
+    - {width: 6.06}
+    - {click: a, label: ㄇ, label_symbol: a, long_click: '`', width: 9.09}
+    - {click: s, label: ㄋ, label_symbol: s, long_click: Up, width: 9.09}
+    - {click: d, label: ㄎ, label_symbol: d, long_click: '~', width: 9.09}
+    - {click: f, label: ㄑ, label_symbol: f, long_click: '!', width: 9.09}
+    - {click: g, label: ㄕ, label_symbol: g, long_click: select_all, width: 9.09}
+    - {click: h, label: ㄘ, label_symbol: h, long_click: Home, width: 9.09}
+    - {click: j, label: ㄨ, label_symbol: j, long_click: End, width: 9.09}
+    - {click: k, label: ㄜ, label_symbol: k, long_click: Page_Up, width: 9.09}
+    - {click: l, label: ㄠ, label_symbol: l, long_click: Page_Down, width: 9.09}
+    - {click: ;, label: ㄤ, label_symbol: ':', long_click: Punct_colon, width: 9.09}
+    - {width: 3.04}
+    # 第四列：…、!、? 分別位於 ㄝ、ㄡ、ㄥ；Backspace 與其他鍵等寬。
+    - {click: z, label: ㄈ, label_symbol: z, long_click: Left, width: 9.09}
+    - {click: x, label: ㄌ, label_symbol: x, long_click: Down, width: 9.09}
+    - {click: c, label: ㄏ, label_symbol: c, long_click: Right, width: 9.09}
+    - {click: v, label: ㄒ, label_symbol: v, long_click: cut, width: 9.09}
+    - {click: b, label: ㄖ, label_symbol: b, long_click: copy, width: 9.09}
+    - {click: n, label: ㄙ, label_symbol: n, long_click: paste, width: 9.09}
+    - {click: m, label: ㄩ, label_symbol: m, long_click: Insert, width: 9.09}
+    - {click: ',', label: ㄝ, label_symbol: '…', long_click: Ellipsis_single, width: 9.09}
+    - {click: ., label: ㄡ, label_symbol: '!', long_click: Punct_exclam, width: 9.09}
+    - {click: /, label: ㄥ, label_symbol: '?', long_click: Punct_question, width: 9.09}
+    - {click: BackSpace, label: ⌫, swipe_left: Escape, width: 9.09}
+    # Gboard 的標點順序；Space 仍保留先前指定的 50%，不縮回 Gboard 約 40%。
+    # 底列骨架與雙拼／蝦米一致：15 / 10 / 10 / space 40 / 10 / 15。
+    - {click: Keyboard_symbols, long_click: Keyboard_number, width: 15}
+    - {click: '，', label_symbol: '、', long_click: '、', swipe_up: liquid_keyboard_emoji, width: 10}
+    - {click: Punct_question, label_symbol: '《》', long_click: '《》{Left}', width: 10}
+    - {click: space, composing: bpmf_space_commit, send_bindings: true, long_click: Keyboard_english, width: 40}   # 長按空白鍵→英文鍵盤（Gboard 慣例）  # 組字時：Space 選首選 + Return 上屏；未組字時仍為一般空白
+    - {click: 。, label_symbol: '/', long_click: Slash_direct, swipe_up: Ellipsis_single, width: 10}
+    - {click: Return, composing: Return1, long_click: CommitRawInput, width: 15}
+  # 一週 Octagram 試跑：schema ID 獨立，鍵盤永遠跟隨正式注音。
+  bopomofo_tw_octagram:
+    __include: /preset_keyboards/bopomofo_tw
+    name: 注音+
+  stroke:
+    name: 五筆畫鍵盤
+    author: 皛筱晓小笨鱼
+    ascii_mode: 0
+    width: 20
+    height: 75
+    keys:
+    - {click: '?', long_click: '!'}
+    - {click: h, label: '一'}
+    - {click: s, label: '丨'}
+    - {click: p, label: '丿'}
+    - {click: BackSpace, label: ⌫, swipe_left: Escape}
+    - {click: ';', long_click: ':'}
+    - {click: n, label: '丶'}
+    - {click: z, label: '乙'}
+    - {click: "'", label: '詞組'}
+    - {click: ',', long_click: '.'}
+    - {click: Hide, width: 10}
+    - {click: '/', long_click: '^', width: 10}
+    - {click: Keyboard_symbols, long_click: Keyboard_number, width: 10}
+    - {click: space, width: 40}
+    - {click: Keyboard_letter, long_click: Menu, width: 10}
+    - {click: Return, composing: Return1, long_click: CommitRawInput, width: 20}
+  telegraph:
+    name: 電碼
+    author: 熊貓阿Bo
+    ascii_mode: 0
+    width: 20
+    keys:
+    - {click: '@'}
+    - {click: '7'}
+    - {click: '8'}
+    - {click: '9'}
+    - {click: '、'}
+    - {click: '!', label: '！'}
+    - {click: '4'}
+    - {click: '5'}
+    - {click: '6'}
+    - {click: ';', label: '；'}
+    - {click: '?', label: '？'}
+    - {click: '1'}
+    - {click: '2'}
+    - {click: '3'}
+    - {click: ',', label: '，'}
+    - {click: '"', label: '“”{Left}'}
+    - {click: ':', label: '：'}
+    - {click: '0'}
+    - {click: '.', label: '。'}
+    - {click: BackSpace, label: ⌫}
+    - {click: Keyboard_letter, long_click: Menu}
+    - {click: space, width: 60}
+    - {click: Return, composing: Return1}
+  terra_pinyin:
+    name: 地球拼音鍵盤
+    author: 默默ㄇㄛˋ
+    ascii_mode: 0
+    width: 10
+    height: 55
+    keys:
+    - {click: 'q', long_click: '_'}
+    - {click: 'w', long_click: '-'}
+    - {click: 'e', long_click: '+'}
+    - {click: 'r', long_click: '='}
+    - {click: 't', long_click: '|'}
+    - {click: 'y', long_click: '^'}
+    - {click: 'u', long_click: '['}
+    - {click: 'i', long_click: ']'}
+    - {click: 'o', long_click: '{'}
+    - {click: 'p', long_click: '}'}
+    - {click: 'a', long_click: '`' }
+    - {click: 's', long_click: Time, swipe_up: Date}
+    - {click: 'd', long_click: '~'}
+    - {click: 'f', long_click: '!'}
+    - {click: 'g', long_click: '@'}
+    - {click: 'h', long_click: '#'}
+    - {click: 'j', long_click: '$'}
+    - {click: 'k', long_click: '%'}
+    - {click: 'l', long_click: '>'}
+    - {click: ';', long_click: ':', composing: 'ˉ', send_bindings: false}  #一聲
+    - {click: 'z', long_click: cut}
+    - {click: 'x', long_click: copy}
+    - {click: 'c', long_click: paste}
+    - {click: 'v', long_click: '&'}
+    - {click: 'b', long_click: '*'}
+    - {click: 'n', long_click: '('}
+    - {click: 'm', long_click: ')'}
+    - {click: '/', long_click: '?', composing: 'ˊ', send_bindings: false}  #二聲
+    - {click: ',', long_click: '<', composing: 'ˇ', send_bindings: false}  #三聲
+    - {click: BackSpace, label: ⌫, swipe_left: Escape}
+    - {click: Mode_switch, long_click: Menu}
+    - {click: Shift_L}
+    - {click: Keyboard_symbols, long_click: Keyboard_number}
+    - {click: space, width: 40}
+    - {click: ".", long_click: '"'}
+    - {click: '\', long_click: '.', composing: 'ˋ', send_bindings: false}  #四聲
+    - {click: Return, composing: Return1, long_click: CommitRawInput}
+  array30:
+    name: 行列30配美式國際
+    author: "Terry Tsang <archerindigo@gmail.com>"
+    ascii_mode: 1
+    width: 10
+    height: 54
+    lock: true
+    keys:
+    - {click: '1', long_click: '!', swipe_up: '¡', swipe_down: '¹'}
+    - {click: '2', long_click: '@', swipe_up: '²'}
+    - {click: '3', long_click: '#', swipe_up: '³'}
+    - {click: '4', long_click: '$', swipe_up: '¤', swipe_down: '£'}
+    - {click: '5', long_click: '%', swipe_up: '€'}
+    - {click: '6', long_click: '^', swipe_up: '¼'}
+    - {click: '7', long_click: '&', swipe_up: '½'}
+    - {click: '8', long_click: '*', swipe_up: '¾'}
+    - {click: '9', long_click: '(){Left}', swipe_left: '(', swipe_right: ')', swipe_up: '‘'}
+    - {click: '0', long_click: '-', swipe_down: '_', swipe_up: '’', swipe_left: '¥'}
+    - {click: 'q', label: "1^", long_click: '~', swipe_up: 'ä'}
+    - {click: 'w', label: "2^", long_click: '+', swipe_up: 'å'}
+    - {click: 'e', label: "3^", long_click: '=', swipe_up: 'é'}
+    - {click: 'r', label: "4^", long_click: '×', swipe_up: '®'}
+    - {click: 't', label: "5^", long_click: '÷', swipe_up: 'þ'}
+    - {click: 'y', label: "6^", long_click: '«»{Left}', swipe_left: '«', swipe_right: '»', swipe_up: 'ü'}
+    - {click: 'u', label: "7^", long_click: '[]{Left}', swipe_left: '[', swipe_right: ']', swipe_up: 'ú'}
+    - {click: 'i', label: "8^", long_click: '{}{Left}', swipe_left: '{', swipe_right: '}', swipe_up: 'í'}
+    - {click: 'o', label: "9^", long_click: '\', swipe_up: 'ó'}
+    - {click: 'p', label: "0^", long_click: '|', swipe_up: 'ö', swipe_down: '¬', swipe_left: '¦'}
+    - {click: 'a', label: "1-", long_click: '`', swipe_up: 'á'}
+    - {click: 's', label: "2-", swipe_up: 'ß', swipe_down: '§'}
+    - {click: 'd', label: "3-", swipe_up: 'ð'}
+    - {click: 'f', label: "4-", long_click: Left, swipe_left: Home, swipe_right: End, swipe_up: Page_Up, swipe_down: Page_Down}
+    - {click: 'g', label: "5-", long_click: Up, swipe_left: Home, swipe_right: End, swipe_up: Page_Up, swipe_down: Page_Down}
+    - {click: 'h', label: "6-", long_click: Down, swipe_left: Home, swipe_right: End, swipe_up: Page_Up, swipe_down: Page_Down}
+    - {click: 'j', label: "7-", long_click: Right, swipe_left: Home, swipe_right: End, swipe_up: Page_Up, swipe_down: Page_Down}
+    - {click: 'k', label: "8-"}
+    - {click: 'l', label: "9-", swipe_up: 'ø'}
+    - {click: ';', label: "0-", long_click: ':', swipe_up: '¶', swipe_down: '°'}
+    - {click: 'z', label: "1v", long_click: select_all, swipe_up: 'æ'}
+    - {click: 'x', label: "2v", long_click: cut}
+    - {click: 'c', label: "3v", long_click: copy, swipe_up: '©', swipe_down: '¢'}
+    - {click: 'v', label: "4v", long_click: paste}
+    - {click: 'b', label: "5v", long_click: Insert}
+    - {click: 'n', label: "6v", long_click: undo, swipe_up: 'ñ'}
+    - {click: 'm', label: "7v", long_click: redo, swipe_up: 'µ'}
+    - {click: ',', label: "8v", long_click: '<', swipe_up: 'ç'}
+    - {click: '.', label: "9v", long_click: '>'}
+    - {click: '/', label: "0v", long_click: '?', swipe_up: '¿'}
+    - {click: Shift_L}
+    - {click: Keyboard_symbols, long_click: Keyboard_number}
+    - {click: Mode_switch, long_click: Menu}
+    - {click: space, long_click: VOICE_ASSIST, width: 30}
+    - {click: "'", long_click: '"'}
+    - {click: BackSpace, label: ⌫, swipe_left: Escape, swipe_right: Delete, width: 15}
+    - {click: Return, long_click: CommitRawInput, width: 15}
