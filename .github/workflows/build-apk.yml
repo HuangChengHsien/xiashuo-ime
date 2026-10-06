@@ -46,14 +46,27 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             "ndk;$NDK_VERSION" "cmake;$CMAKE_VERSION" "build-tools;36.0.0" "platforms;android-36"
 
-      - name: Cache native build
+      - name: Cache Boost source
         uses: actions/cache@v4
         with:
-          path: |
-            app/.cxx
-            app/src/main/jni/boost-*.tar.xz
-          key: native-${{ runner.os }}-${{ hashFiles('.gitmodules', 'app/src/main/jni/**/CMakeLists.txt', 'app/src/main/jni/cmake/*.cmake') }}
-          restore-keys: native-${{ runner.os }}-
+          path: app/boost-*.tar.xz
+          key: boost-${{ hashFiles('app/src/main/jni/cmake/Boost.cmake') }}
+
+      # Fetch Boost with retries and a checksum check up front; CMake reuses
+      # app/boost-<version>.tar.xz when it already exists.
+      - name: Download Boost
+        run: |
+          version=$(sed -n 's/^set(BOOST_VERSION \(.*\))$/\1/p' app/src/main/jni/cmake/Boost.cmake)
+          sha=$(grep -o '[0-9a-f]\{64\}' app/src/main/jni/cmake/Boost.cmake | head -1)
+          file="app/boost-$version.tar.xz"
+          if [ -f "$file" ] && echo "$sha  $file" | sha256sum -c --status; then
+            echo "Using cached $file"
+            exit 0
+          fi
+          rm -f "$file"
+          curl -fL --retry 5 --retry-delay 10 --retry-all-errors -o "$file" \
+            "https://github.com/boostorg/boost/releases/download/boost-$version/boost-$version-cmake.tar.xz"
+          echo "$sha  $file" | sha256sum -c
 
       - name: Configure signing
         id: signing
