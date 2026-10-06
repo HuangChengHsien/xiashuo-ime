@@ -6,6 +6,7 @@
 package com.osfans.trime.ime.keyboard
 
 import android.app.Dialog
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.view.KeyEvent
@@ -37,6 +38,7 @@ import com.osfans.trime.util.buildIntentFromAction
 import com.osfans.trime.util.buildIntentFromArgument
 import com.osfans.trime.util.customFormatDateTime
 import com.osfans.trime.util.isAsciiPrintable
+import com.osfans.trime.util.toast
 import kotlinx.coroutines.launch
 import org.kodein.di.instance
 import splitties.systemservices.clipboardManager
@@ -280,7 +282,14 @@ class CommonKeyboardActionListener {
             private fun handleIntentAction(command: String, arg: String) {
                 buildIntentFromAction(command, arg)?.let { intent ->
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY
-                    service.startActivity(intent)
+                    // An unknown theme command (e.g. one this version does not implement yet) must not
+                    // crash the keyboard when no app handles the resulting intent.
+                    try {
+                        service.startActivity(intent)
+                    } catch (e: ActivityNotFoundException) {
+                        Timber.w(e, "No activity for theme command '%s'", command)
+                        service.toast("這個版本不支援按鍵指令：$command", Toast.LENGTH_LONG)
+                    }
                 }
             }
 
