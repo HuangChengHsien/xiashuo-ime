@@ -68,6 +68,15 @@ jobs:
             "https://github.com/boostorg/boost/releases/download/boost-$version/boost-$version-cmake.tar.xz"
           echo "$sha  $file" | sha256sum -c
 
+      # Without the SIGNING_* secrets the debug APK is signed with
+      # ~/.android/debug.keystore, which a fresh runner regenerates every run.
+      # Reuse one key so each debug APK installs over the previous one.
+      - name: Cache debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
+
       - name: Configure signing
         id: signing
         env:
