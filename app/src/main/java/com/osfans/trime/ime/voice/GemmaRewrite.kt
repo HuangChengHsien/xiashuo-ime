@@ -48,9 +48,20 @@ object GemmaRewrite {
     fun modelFile(context: Context): File = LlmModels.selected(context).target(context)
 
     /** What to do with the selected text; each task only changes the prompt and wording. */
-    enum class Task(val label: String, val action: String) {
-        POLISH("潤", "潤飾"),
-        TRANSLATE_EN("譯", "翻譯"),
+    enum class Task(
+        val label: String,
+        val action: String,
+        val systemInstruction: String,
+        /** English output needs several times more tokens than the Chinese source. */
+        val maxOutputTokens: Int,
+    ) {
+        POLISH("潤", "潤飾", "你是臺灣繁體中文文字潤飾助手。遵守使用者要求，只回傳完成潤飾的文字。", 256),
+        TRANSLATE_EN(
+            "譯",
+            "翻譯",
+            "You are a translator. Translate the user's text into English and reply with the English translation only.",
+            1024,
+        ),
         ;
 
         fun prompt(source: String): String = when (this) {
@@ -92,13 +103,13 @@ object GemmaRewrite {
             // loads on CPU for this short rewrite workload. Fall back to GPU if CPU fails.
             val generateStart = SystemClock.elapsedRealtime()
             val result = try {
-                generate(model, prompt, Backend.CPU(), context, "cpu")
+                generate(model, prompt, task, Backend.CPU(), context, "cpu")
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                Log.w(TAG, "CPU inference failed; retrying with GPU (${error.javaClass.simpleName})")
+                Log.w(TAG, "CPU inference failed; retrying with GPU (task=${task.name})", error)
                 discardCachedEngine("cpu")
-                generate(model, prompt, Backend.GPU(), context, "gpu")
+                generate(model, prompt, task, Backend.GPU(), context, "gpu")
             }
             Log.i(
                 TAG,
@@ -156,17 +167,22 @@ object GemmaRewrite {
         engineMutex.withLock { closeCachedEngine() }
     }
 
-    private fun generate(model: File, prompt: String, backend: Backend, context: Context, backendName: String): String {
+    private fun generate(
+        model: File,
+        prompt: String,
+        task: Task,
+        backend: Backend,
+        context: Context,
+        backendName: String,
+    ): String {
         val start = SystemClock.elapsedRealtime()
         val (entry, initializeMs) = engineFor(model, backend, context, backendName)
         val conversationStart = SystemClock.elapsedRealtime()
         entry.engine.createConversation(
             ConversationConfig(
-                systemInstruction = Contents.of(
-                    "你是臺灣繁體中文文字潤飾助手。遵守使用者要求，只回傳完成潤飾的文字。",
-                ),
+                systemInstruction = Contents.of(task.systemInstruction),
                 samplerConfig = SamplerConfig(topK = 40, topP = 0.9, temperature = 0.2),
-                maxOutputToken = 256,
+                maxOutputToken = task.maxOutputTokens,
             ),
         ).use { conversation ->
             val conversationMs = SystemClock.elapsedRealtime() - conversationStart
