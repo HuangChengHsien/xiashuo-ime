@@ -361,7 +361,9 @@ class AppPrefs(
             const val USER_DB_MIGRATED = "profile_user_db_migrated"
         }
 
-        val dataStorageMode = enum(R.string.data_storage_mode, DATA_STORAGE_MODE, DataStorageMode.EXTERNAL_SYNC)
+        // App storage by default: the in-app editors (fonts, custom phrases) write the files Rime
+        // reads, which external sync would overwrite on the next deploy.
+        val dataStorageMode = enum(R.string.data_storage_mode, DATA_STORAGE_MODE, DataStorageMode.APP_STORAGE)
         val externalRimeTreeUri = string(EXTERNAL_RIME_TREE_URI, "")
         val externalRimeDisplayName = string(EXTERNAL_RIME_DISPLAY_NAME, "")
         val userDbMigrated = bool(USER_DB_MIGRATED, false)
