@@ -116,7 +116,7 @@
     <string name="data_storage_mode">数据存储模式</string>
     <string name="sync_from_external">从外部存储同步</string>
     <string name="use_app_specific_storage">使用应用专属存储空间</string>
-    <string name="sync_from_external_desc">每次部署或同步用户数据前，从指定目录导入数据到内部存储，并在同步用户数据后导出到该目录。需要较多存储空间。推荐老用户使用。</string>
+    <string name="sync_from_external_desc">每次部署或同步用户数据前，从指定目录导入数据到内部存储，并在同步用户数据后导出到该目录。需要较多存储空间。推荐老用户使用。选择后，字体与字号、自定义词语页面会改为只读，请在外部目录编辑。</string>
     <string name="use_app_specific_storage_desc">直接使用应用内部私有存储空间，用户需要使用支持的文件管理器管理数据。卸载应用时系统可能会询问是否保留数据，请随时做好备份。</string>
     <string name="external_sync_select_folder_message">外部同步需要选择数据文件夹。请选择存放 Trime 配置文件的位置。</string>
     <string name="external_sync_fallback_app_storage">文件夹选择失败或已取消。存储模式将还原为使用应用专属存储空间。</string>
