@@ -5,7 +5,7 @@
 # Trime default style settings
 # encoding: utf-8
 
-config_version: "3.0.143-bundled-translate"  # ⚠️ 改動本檔後務必把這個版本號調高：
+config_version: "3.0.144-translate-button"  # ⚠️ 改動本檔後務必把這個版本號調高：
                            # Trime 用 Rime.deployRimeConfigFile(id, "config_version")
                            # 編譯主題，版本號沒變就跳過重編；而 build/dak66.trime.yaml
                            # 不存在時會退回讀 App 私有目錄的預編譯版，
