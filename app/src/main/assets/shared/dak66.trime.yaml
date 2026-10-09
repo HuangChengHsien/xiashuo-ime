@@ -5,7 +5,7 @@
 # Trime default style settings
 # encoding: utf-8
 
-config_version: "3.0.144-translate-button"  # ⚠️ 改動本檔後務必把這個版本號調高：
+config_version: "3.0.145-rice-paper-colors"  # ⚠️ 改動本檔後務必把這個版本號調高：
                            # Trime 用 Rime.deployRimeConfigFile(id, "config_version")
                            # 編譯主題，版本號沒變就跳過重編；而 build/dak66.trime.yaml
                            # 不存在時會退回讀 App 私有目錄的預編譯版，
@@ -261,6 +261,88 @@ preset_color_schemes:
     candidate_separator_color: 0x545458
     preview_back_color: 0xf2f2f7
     preview_text_color: 0x111113
+    shadow_color: 0x000000
+
+  rice_paper:
+    name: "宣紙／Rice Paper"
+    author: "本地配色設計"
+    color_space: srgb
+    dark_scheme: ink_night
+    # 暖米色紙底、墨色文字、朱砂強調；所有文字與底色對比 ≥ 5.6:1（WCAG AA）。
+    root_background: 0xd9d2c5
+    back_color: 0xf6f1e7
+    candidate_back_color: 0xf6f1e7
+    border_color: 0xcfc6b6
+    keyboard_back_color: 0xe3dccf
+    key_back_color: 0xfbf8f2
+    key_border_color: 0xcfc6b6
+    key_text_color: 0x2b2620
+    key_symbol_color: 0x5c5246
+    label_color: 0x4a4239
+    hilited_key_back_color: 0xa8321f
+    hilited_key_text_color: 0xffffff
+    hilited_key_symbol_color: 0xffffff
+    off_key_back_color: 0xd8d0c2
+    off_key_text_color: 0x2b2620
+    on_key_back_color: 0xa8321f
+    on_key_text_color: 0xffffff
+    hilited_off_key_back_color: 0xc7bdac
+    hilited_off_key_text_color: 0x2b2620
+    hilited_on_key_back_color: 0x84261a
+    hilited_on_key_text_color: 0xffffff
+    candidate_text_color: 0x2b2620
+    comment_text_color: 0x5c5246
+    hilited_candidate_back_color: 0xa8321f
+    hilited_candidate_text_color: 0xffffff
+    hilited_comment_text_color: 0xfbe9e4
+    hilited_back_color: 0xe3dccf
+    hilited_text_color: 0x2b2620
+    text_color: 0x2b2620
+    text_back_color: 0xf6f1e7
+    candidate_separator_color: 0xcfc6b6
+    preview_back_color: 0x3a332b
+    preview_text_color: 0xfbf8f2
+    shadow_color: 0x000000
+
+  ink_night:
+    name: "墨夜／Ink Night"
+    author: "本地配色設計"
+    color_space: srgb
+    light_scheme: rice_paper
+    # 暖黑底、米白文字、珊瑚朱強調配深色字；所有文字與底色對比 ≥ 6.8:1（WCAG AA）。
+    root_background: 0x0f0d0b
+    back_color: 0x1d1a17
+    candidate_back_color: 0x1d1a17
+    border_color: 0x4a433b
+    keyboard_back_color: 0x1d1a17
+    key_back_color: 0x34302b
+    key_border_color: 0x4a433b
+    key_text_color: 0xf3ede3
+    key_symbol_color: 0xc9bfb1
+    label_color: 0xe6ddd0
+    hilited_key_back_color: 0xff9f8a
+    hilited_key_text_color: 0x1d1a17
+    hilited_key_symbol_color: 0x1d1a17
+    off_key_back_color: 0x2a2622
+    off_key_text_color: 0xe6ddd0
+    on_key_back_color: 0xff9f8a
+    on_key_text_color: 0x1d1a17
+    hilited_off_key_back_color: 0x4a433b
+    hilited_off_key_text_color: 0xf3ede3
+    hilited_on_key_back_color: 0xffc2b5
+    hilited_on_key_text_color: 0x1d1a17
+    candidate_text_color: 0xf3ede3
+    comment_text_color: 0xc9bfb1
+    hilited_candidate_back_color: 0xff9f8a
+    hilited_candidate_text_color: 0x1d1a17
+    hilited_comment_text_color: 0x3a2a24
+    hilited_back_color: 0x34302b
+    hilited_text_color: 0xf3ede3
+    text_color: 0xe6ddd0
+    text_back_color: 0x1d1a17
+    candidate_separator_color: 0x4a433b
+    preview_back_color: 0xf3ede3
+    preview_text_color: 0x1d1a17
     shadow_color: 0x000000
 
   night_eye:
