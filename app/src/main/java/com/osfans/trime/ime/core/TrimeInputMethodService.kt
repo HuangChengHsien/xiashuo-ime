@@ -667,8 +667,8 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
             Toast.makeText(this, "請先選取要${action}的文字", Toast.LENGTH_SHORT).show()
             return
         }
-        if (original.length > 4000) {
-            Toast.makeText(this, "一次最多${action} 4,000 個字元", Toast.LENGTH_SHORT).show()
+        if (original.length > task.maxInputChars) {
+            Toast.makeText(this, "一次最多${action} ${"%,d".format(task.maxInputChars)} 個字元", Toast.LENGTH_SHORT).show()
             return
         }
         val selectedModel = com.osfans.trime.ime.voice.LlmModels.selected(this)

@@ -47,20 +47,29 @@ object GemmaRewrite {
 
     fun modelFile(context: Context): File = LlmModels.selected(context).target(context)
 
-    /** What to do with the selected text; each task only changes the prompt and wording. */
+    /**
+     * What to do with the selected text; each task only changes the prompt and wording.
+     *
+     * LiteRT-LM does not report whether a reply stopped at [maxOutputTokens], so a cut-off reply
+     * would look complete in the preview and replace the whole selection. Each task therefore
+     * caps the selection at [maxInputChars] so that its output budget covers the full reply
+     * (about one token per Chinese character, more for English), and input plus output stay
+     * inside the 4096-token context of the bundled models.
+     */
     enum class Task(
         val label: String,
         val action: String,
         val systemInstruction: String,
-        /** English output needs several times more tokens than the Chinese source. */
+        val maxInputChars: Int,
         val maxOutputTokens: Int,
     ) {
-        POLISH("潤", "潤飾", "你是臺灣繁體中文文字潤飾助手。遵守使用者要求，只回傳完成潤飾的文字。", 256),
+        POLISH("潤", "潤飾", "你是臺灣繁體中文文字潤飾助手。遵守使用者要求，只回傳完成潤飾的文字。", 1200, 1536),
         TRANSLATE_EN(
             "譯",
             "翻譯",
             "You are a translator. Translate the user's text into English and reply with the English translation only.",
-            1024,
+            800,
+            1536,
         ),
         ;
 
