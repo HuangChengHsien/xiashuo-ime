@@ -146,6 +146,9 @@ object DataManager {
         val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
         val backup = File(appFilesDir, "rime-backup-$stamp")
         val candidates = bundledPaths.map { File(userDataDir, it) }.toMutableList()
+        // Trime compiles each OpenCC .txt into an .ocd2 next to it; those from the old copies are stale.
+        candidates += bundledPaths.filter { it.endsWith(".txt") }
+            .map { File(userDataDir, it.removeSuffix(".txt") + ".ocd2") }
         // rime-tw's old Android package shipped its global settings as default.custom.yaml.
         userDataDir.resolve(DEFAULT_CUSTOM_FILE_NAME)
             .takeIf { it.isFile && "rime_tw/octagram_default" in it.readText() }
