@@ -685,7 +685,7 @@ preset_keys:
   SLEEP: {label: 休眠, send: SLEEP}
   VOICE_ASSIST: {label: 語音, send: VOICE_ASSIST}
   Voice_Input: {label: "🎤", send: VOICE_ASSIST}  # 工具列語音鍵；Trime 3.3.8+ 可切換至系統設定的語音 IME
-  bpmf_space_commit: {label: 空白, text: "{space}{Return}"}  # 注音：先以 Space 選取首選，再 Return 立即上屏
+  bpmf_space: {label: 空白, send: space}  # 注音組字：只送 Space，由 lua/bpmf_space.lua 決定標一聲或送出（不帶 slide_cursor，避免點按被當成拖曳）
   bpmf_digit_1: {label: "1", commit: "1"}
   bpmf_digit_2: {label: "2", commit: "2"}
   bpmf_digit_3: {label: "3", commit: "3"}
@@ -1631,7 +1631,7 @@ preset_keyboards:
     - {click: Keyboard_symbols, long_click: Keyboard_number, width: 15}
     - {click: '，', label_symbol: '、', long_click: '、', swipe_up: liquid_keyboard_emoji, width: 10}
     - {click: Punct_question, label_symbol: '《》', long_click: '《》{Left}', width: 10}
-    - {click: space, composing: bpmf_space_commit, send_bindings: true, long_click: Keyboard_english, width: 40}   # 長按空白鍵→英文鍵盤（Gboard 慣例）  # 組字時：Space 選首選 + Return 上屏；未組字時仍為一般空白
+    - {click: space, composing: bpmf_space, send_bindings: true, long_click: Keyboard_english, width: 40}   # 長按空白鍵→英文鍵盤（Gboard 慣例）  # 組字時：未標調＝一聲，已標調＝送出；未組字時仍為一般空白
     - {click: 。, label_symbol: '/', long_click: Slash_direct, swipe_up: Ellipsis_single, width: 10}
     - {click: Return, composing: Return1, long_click: CommitRawInput, width: 15}
   # 一週 Octagram 試跑：schema ID 獨立，鍵盤永遠跟隨正式注音。
