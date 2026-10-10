@@ -160,13 +160,15 @@ object RimeDaemon {
         if (it is RimeMessage.DeployMessage) {
             when (it.data) {
                 RimeMessage.DeployMessage.State.Start -> {
-                    DeployNotification.showProgress()
+                    DeployService.start()
                     withContext(Dispatchers.IO) { subprocess("logcat", "--clear") }
                 }
                 RimeMessage.DeployMessage.State.Success -> {
+                    DeployService.stop()
                     DeployNotification.showSuccess()
                 }
                 RimeMessage.DeployMessage.State.Failure -> {
+                    DeployService.stop()
                     val intent =
                         Intent(appContext, LogActivity::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

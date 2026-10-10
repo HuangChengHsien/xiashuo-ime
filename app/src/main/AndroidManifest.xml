@@ -123,6 +123,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
+        <!-- Keeps a deploy running when the user leaves the app; see DeployService. -->
+        <service
+            android:name=".daemon.DeployService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <!-- WorkManager runs voice model downloads as a data sync foreground service. -->
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"

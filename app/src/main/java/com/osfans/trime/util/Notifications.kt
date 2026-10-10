@@ -44,9 +44,9 @@ object DeployNotification {
         createNotificationChannel(CHANNEL_ID, appContext.getString(R.string.rime_daemon))
     }
 
-    fun showProgress() {
+    fun progressNotification(): android.app.Notification {
         ensureChannel()
-        NotificationCompat
+        return NotificationCompat
             .Builder(appContext, CHANNEL_ID)
             .setContentTitle(appContext.getString(R.string.rime_daemon))
             .setSmallIcon(R.drawable.ic_baseline_refresh_reversed_24)
@@ -56,7 +56,10 @@ object DeployNotification {
             .setAutoCancel(false)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
-            .let { notificationManager.notify(MESSAGE_ID, it) }
+    }
+
+    fun showProgress() {
+        notificationManager.notify(MESSAGE_ID, progressNotification())
     }
 
     fun showSuccess() {
