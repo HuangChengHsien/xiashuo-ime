@@ -472,7 +472,10 @@ keystore.properties
 
 # Project
 app/src/main/assets/checksums.json
-app/src/main/assets/shared/opencc
+# Generated: OpenCC data and the rime-tw tree (RimeTwDataPlugin); only Trime's own themes are tracked.
+app/src/main/assets/shared/*
+!app/src/main/assets/shared/trime.yaml
+!app/src/main/assets/shared/tongwenfeng.trime.yaml
 
 # boost
 app/boost-*.tar.xz

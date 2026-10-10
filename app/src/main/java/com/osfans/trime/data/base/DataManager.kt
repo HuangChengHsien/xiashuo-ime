@@ -12,6 +12,9 @@ import com.osfans.trime.util.appContext
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -28,12 +31,9 @@ object DataManager {
 
     private const val DATA_CHECKSUMS_NAME = "checksums.json"
 
-    private const val SCHEMA_LIST_CUSTOM_PATCH = """
-      patch:
-        schema_list:
-          - schema: luna_pinyin
-          - schema: luna_pinyin_simp
-    """
+    private const val BUNDLE_MIGRATION_MARKER = "rime-tw-bundled-v1"
+
+    private const val SHARED_PREFIX = "shared/"
 
     private val lock = ReentrantLock()
 
@@ -66,6 +66,20 @@ object DataManager {
     val userDataDir get() = runtimeUserDataDir
 
     val prebuiltDataDir = File(sharedDataDir, "build")
+
+    /** Files the APK ships in the shared directory (rime-tw and Trime's own), relative to it. */
+    private val bundledPaths: Set<String> by lazy {
+        appContext.assets.dataChecksums().files
+            .filter { (path, sha256) -> sha256.isNotBlank() && path.startsWith(SHARED_PREFIX) }
+            .keys
+            .mapTo(HashSet()) { it.removePrefix(SHARED_PREFIX) }
+    }
+
+    /**
+     * Whether the APK bundles this file. Rime prefers the user directory, so a user copy of a
+     * bundled file would hide every later update of it.
+     */
+    fun isBundled(relativePath: String) = relativePath in bundledPaths
     val stagingDir get() = File(userDataDir, "build")
 
     /**
@@ -85,7 +99,8 @@ object DataManager {
         return defaultPath.absolutePath
     }
 
-    fun sync() = lock.withLock {
+    /** Returns true when bundled data changed, so Rime should run a full deploy. */
+    fun sync(): Boolean = lock.withLock {
         val oldChecksumsFile = File(dataDir, DATA_CHECKSUMS_NAME)
         val oldChecksums =
             oldChecksumsFile
@@ -94,7 +109,8 @@ object DataManager {
 
         val newChecksums = appContext.assets.dataChecksums()
 
-        DataDiff.diff(oldChecksums, newChecksums).sortedByDescending { it.ordinal }.forEach {
+        val diffs = DataDiff.diff(oldChecksums, newChecksums)
+        diffs.sortedByDescending { it.ordinal }.forEach {
             Timber.d("Diff: $it")
             when (it) {
                 is DataDiff.CreateFile,
@@ -111,13 +127,37 @@ object DataManager {
 
         ResourceUtils.copyFile(DATA_CHECKSUMS_NAME, dataDir.resolve(DATA_CHECKSUMS_NAME).absolutePath)
 
-        val custom = userDataDir.resolve(DEFAULT_CUSTOM_FILE_NAME)
-        if (!custom.exists()) {
-            if (custom.createNewFile()) {
-                custom.writeText(SCHEMA_LIST_CUSTOM_PATCH.trimIndent())
-            }
-        }
+        // No default.custom.yaml is written: the bundled default.yaml already lists rime-tw's
+        // schemas, and a user file here would replace rime-tw's global settings.
+        val moved = moveAsideUserCopiesOfBundledFiles()
 
         Timber.d("Synced!")
+        diffs.isNotEmpty() || moved
+    }
+
+    /**
+     * Before rime-tw was bundled, it was copied into the user directory by hand, where it would
+     * shadow the bundled files forever. Move those copies aside once. Personal data (user
+     * dictionaries, custom phrases, user.yaml, installation.yaml, sync/) is never bundled and stays.
+     */
+    private fun moveAsideUserCopiesOfBundledFiles(): Boolean {
+        val marker = dataDir.resolve(BUNDLE_MIGRATION_MARKER)
+        if (marker.exists()) return false
+        val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+        val backup = File(appFilesDir, "rime-backup-$stamp")
+        val candidates = bundledPaths.map { File(userDataDir, it) }.toMutableList()
+        // rime-tw's old Android package shipped its global settings as default.custom.yaml.
+        userDataDir.resolve(DEFAULT_CUSTOM_FILE_NAME)
+            .takeIf { it.isFile && "rime_tw/octagram_default" in it.readText() }
+            ?.let { candidates += it }
+        var moved = 0
+        candidates.filter { it.isFile }.forEach { file ->
+            val dest = backup.resolve(file.relativeTo(userDataDir))
+            dest.parentFile?.mkdirs()
+            if (file.renameTo(dest)) moved++ else Timber.w("Could not move aside $file")
+        }
+        if (moved > 0) Timber.i("Moved $moved user copies of bundled files to $backup")
+        marker.createNewFile()
+        return moved > 0
     }
 }

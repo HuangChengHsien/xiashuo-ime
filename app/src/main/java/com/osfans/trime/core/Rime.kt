@@ -347,7 +347,8 @@ class Rime :
     }
 
     private fun startRime(fullCheck: Boolean) {
-        DataManager.sync()
+        // Bundled data changed (first launch, app update): rebuild instead of trusting timestamps.
+        val dataChanged = DataManager.sync()
         val sharedDataDir = DataManager.sharedDataDir.absolutePath
         val userDataDir = DataManager.userDataDir.absolutePath
         Timber.d(
@@ -355,10 +356,10 @@ class Rime :
             Starting rime with:
             sharedDataDir: $sharedDataDir
             userDataDir: $userDataDir
-            fullCheck: $fullCheck
+            fullCheck: $fullCheck, dataChanged: $dataChanged
             """.trimIndent(),
         )
-        startupRime(sharedDataDir, userDataDir, BuildConfig.BUILD_VERSION_NAME, fullCheck)
+        startupRime(sharedDataDir, userDataDir, BuildConfig.BUILD_VERSION_NAME, fullCheck || dataChanged)
     }
 
     private fun processKeyInner(value: Int, modifiers: Int, isVirtual: Boolean): Boolean {

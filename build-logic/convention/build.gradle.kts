@@ -38,5 +38,9 @@ gradlePlugin {
             id = "com.osfans.trime.opencc-data"
             implementationClass = "OpenCCDataPlugin"
         }
+        register("rimeTwData") {
+            id = "com.osfans.trime.rime-tw-data"
+            implementationClass = "RimeTwDataPlugin"
+        }
     }
 }

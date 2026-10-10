@@ -126,7 +126,10 @@ object RimeDataSync {
                 val destRoot = DataManager.userDataDir
                 val index = SyncIndex.load()
                 val skipUserDb = !UserDbMigration.shouldImportUserDb()
+                // Bundled files come from the APK; an external copy would only shadow its updates,
+                // and leaving it out of externalPaths lets the orphan cleaner drop old local copies.
                 val files = SafTreeWalker.listFiles(cr, treeUri, rootId, skipUserDb = skipUserDb)
+                    .filterNot { DataManager.isBundled(it.relativePath) }
                 val externalPaths = files.map { it.relativePath }.toSet()
                 val createdDirs = LocalDirectoryGate()
                 val copyResults =
